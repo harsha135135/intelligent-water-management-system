@@ -1,0 +1,701 @@
+<title>Review Briefing — Water Demand Forecasting</title>
+<style>
+:root{
+  --paper:#f6f8fa; --card:#ffffff; --tint:#eef2f7; --rule:#dde3ea; --rule-2:#e9edf2;
+  --ink:#0f1620; --ink-2:#43505f; --ink-3:#74818f;
+  --accent:#1f6fd0; --accent-tint:#e7f0fb;
+  --defn:#6b4fc4; --defn-tint:#efeafb;
+  --good:#0d7a51; --good-tint:#e2f3ec;
+  --warn:#95660a; --warn-tint:#faf0d9;
+  --bad:#b8332e; --bad-tint:#fbe8e7;
+  --shadow:0 1px 2px rgba(15,22,32,.05),0 1px 3px rgba(15,22,32,.04);
+  --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --read:min(760px,100%); --wide:min(1060px,100%);
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0b1017; --card:#121a24; --tint:#182230; --rule:#25313f; --rule-2:#1c2734;
+  --ink:#e9eef4; --ink-2:#a6b2c0; --ink-3:#7b8896;
+  --accent:#63a4f0; --accent-tint:#12233a;
+  --defn:#a78ff0; --defn-tint:#1f1a33;
+  --good:#42c391; --good-tint:#0c2a1f; --warn:#dfae4a; --warn-tint:#2a2110;
+  --bad:#ef6f68; --bad-tint:#2d1614;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --paper:#0b1017; --card:#121a24; --tint:#182230; --rule:#25313f; --rule-2:#1c2734;
+  --ink:#e9eef4; --ink-2:#a6b2c0; --ink-3:#7b8896;
+  --accent:#63a4f0; --accent-tint:#12233a;
+  --defn:#a78ff0; --defn-tint:#1f1a33;
+  --good:#42c391; --good-tint:#0c2a1f; --warn:#dfae4a; --warn-tint:#2a2110;
+  --bad:#ef6f68; --bad-tint:#2d1614;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.35);
+}
+:root[data-theme="light"]{
+  --paper:#f6f8fa; --card:#ffffff; --tint:#eef2f7; --rule:#dde3ea; --rule-2:#e9edf2;
+  --ink:#0f1620; --ink-2:#43505f; --ink-3:#74818f;
+  --accent:#1f6fd0; --accent-tint:#e7f0fb;
+  --defn:#6b4fc4; --defn-tint:#efeafb;
+  --good:#0d7a51; --good-tint:#e2f3ec; --warn:#95660a; --warn-tint:#faf0d9;
+  --bad:#b8332e; --bad-tint:#fbe8e7;
+  --shadow:0 1px 2px rgba(15,22,32,.05),0 1px 3px rgba(15,22,32,.04);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.68;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+p{margin:0}
+code{font-family:var(--mono);font-size:.88em;background:var(--tint);padding:1.5px 5px;
+  border-radius:4px;color:var(--ink)}
+b,strong{font-weight:640;color:var(--ink)}
+a{color:var(--accent)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+.nav-in{max-width:var(--wide);margin:0 auto;padding:9px 22px;display:flex;gap:5px;
+  overflow-x:auto;align-items:center}
+.nav-in a{font:600 11.5px/1 var(--mono);letter-spacing:.03em;color:var(--ink-2);
+  text-decoration:none;padding:6px 9px;border-radius:6px;white-space:nowrap}
+.nav-in a:hover{background:var(--tint);color:var(--ink)}
+.nav-in .brand{font-weight:700;color:var(--accent);padding-left:0;margin-right:6px}
+
+/* shell */
+.wrap{max-width:var(--wide);margin:0 auto;padding:0 22px 110px}
+.read{max-width:var(--read)}
+header.hero{padding:52px 0 34px;border-bottom:1px solid var(--rule);margin-bottom:8px}
+.kicker{font:700 11px/1 var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(30px,4.2vw,44px);font-weight:700;letter-spacing:-.026em;line-height:1.1;margin:13px 0 15px}
+.sub{font-size:18px;color:var(--ink-2);max-width:64ch;line-height:1.6}
+.facts{display:flex;flex-wrap:wrap;gap:7px 18px;margin-top:20px;
+  font:500 12.5px/1.5 var(--mono);color:var(--ink-3)}
+.facts b{color:var(--ink-2);font-weight:650}
+
+section{padding-top:52px;scroll-margin-top:56px}
+.sec-head{display:flex;gap:15px;align-items:baseline;margin-bottom:8px}
+.sec-n{font:700 13px/1 var(--mono);color:var(--accent);background:var(--accent-tint);
+  padding:6px 8px;border-radius:6px;flex:none}
+h2{font-size:26px;font-weight:670;letter-spacing:-.018em}
+.sec-sub{color:var(--ink-2);font-size:16px;margin:6px 0 22px;max-width:66ch}
+h3{font-size:17.5px;font-weight:640;letter-spacing:-.01em;margin:30px 0 9px}
+h3:first-of-type{margin-top:0}
+.stack{display:flex;flex-direction:column;gap:15px}
+.prose{display:flex;flex-direction:column;gap:13px;max-width:var(--read)}
+
+/* definition */
+.defn{background:var(--defn-tint);border:1px solid color-mix(in srgb,var(--defn) 22%,transparent);
+  border-left:3px solid var(--defn);border-radius:8px;padding:14px 17px;max-width:var(--read)}
+.defn .lbl{font:700 10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;
+  color:var(--defn);display:block;margin-bottom:7px}
+.defn .term{font-weight:660;font-size:16px}
+.defn p{font-size:15px;color:var(--ink-2);margin-top:5px}
+.defn p+p{margin-top:8px}
+
+/* work item */
+.item{background:var(--card);border:1px solid var(--rule);border-radius:10px;
+  box-shadow:var(--shadow);overflow:hidden}
+.item-h{padding:15px 19px;border-bottom:1px solid var(--rule-2);display:flex;
+  align-items:center;gap:11px;flex-wrap:wrap}
+.item-h h3{margin:0;font-size:17px}
+.item-b{padding:6px 19px 18px}
+.row{display:grid;grid-template-columns:112px 1fr;gap:14px;padding:11px 0;
+  border-bottom:1px solid var(--rule-2);align-items:start}
+.row:last-child{border-bottom:0}
+.row .k{font:700 10.5px/1.5 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);padding-top:3px}
+.row .v{font-size:15.3px;color:var(--ink-2)}
+.row .v b{color:var(--ink)}
+.row.means .v{color:var(--ink)}
+.row.means .k{color:var(--accent)}
+
+/* chips */
+.chip{display:inline-block;font:650 10.5px/1 var(--mono);letter-spacing:.05em;
+  padding:5px 8px;border-radius:5px;text-transform:uppercase;white-space:nowrap}
+.chip.new{background:var(--accent);color:#fff}
+.chip.good{background:var(--good-tint);color:var(--good)}
+.chip.warn{background:var(--warn-tint);color:var(--warn)}
+.chip.bad{background:var(--bad-tint);color:var(--bad)}
+.chip.pre{background:var(--tint);color:var(--ink-3)}
+
+/* callouts */
+.note{border-radius:9px;padding:15px 18px;max-width:var(--read);
+  border:1px solid var(--rule);border-left:3px solid var(--accent);background:var(--card)}
+.note.good{border-left-color:var(--good)} .note.warn{border-left-color:var(--warn)}
+.note.bad{border-left-color:var(--bad)}
+.note h4{font-size:15.5px;font-weight:650;margin-bottom:6px}
+.note p{font-size:15.2px;color:var(--ink-2)}
+.note p+p{margin-top:9px}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:9px;background:var(--card);
+  box-shadow:var(--shadow);max-width:var(--wide)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+caption{text-align:left;padding:13px 16px 2px;font-size:12.8px;color:var(--ink-3)}
+th,td{padding:9px 15px;text-align:left;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+thead th{font:650 10.5px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);background:var(--tint)}
+tbody th{font-weight:620}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13.4px}
+td.good{color:var(--good);font-weight:640} td.bad{color:var(--bad);font-weight:640}
+td.dim{color:var(--ink-3)}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+tbody tr:hover{background:var(--tint)}
+
+/* Q&A */
+.qa{background:var(--card);border:1px solid var(--rule);border-radius:10px;
+  box-shadow:var(--shadow);overflow:hidden;max-width:var(--read)}
+.qa .q{padding:14px 18px 11px;font-weight:640;font-size:16px;display:flex;gap:10px}
+.qa .q::before{content:"Q";font:700 11px/1.55 var(--mono);color:var(--accent);
+  background:var(--accent-tint);width:21px;height:21px;border-radius:5px;
+  display:grid;place-items:center;flex:none;margin-top:2px}
+.qa .a{padding:0 18px 15px 49px;font-size:15.2px;color:var(--ink-2);
+  display:flex;flex-direction:column;gap:9px}
+.qa .a::before{content:"";display:none}
+
+/* number strip */
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:11px}
+.stat{background:var(--card);border:1px solid var(--rule);border-radius:9px;
+  padding:14px 15px;box-shadow:var(--shadow)}
+.stat .v{font:700 25px/1.15 var(--sans);letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;color:var(--accent)}
+.stat .k{font:650 10.5px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:6px}
+.stat .s{font-size:12.8px;color:var(--ink-2);line-height:1.45;margin-top:4px}
+
+ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;
+  font-size:15.3px;color:var(--ink-2);max-width:var(--read)}
+li::marker{color:var(--ink-3)}
+hr{border:0;border-top:1px solid var(--rule);margin:0}
+footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
+  color:var(--ink-3);font-size:13.5px;max-width:var(--read)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (max-width:640px){
+  body{font-size:15.5px}.wrap{padding:0 15px 80px}
+  .row{grid-template-columns:1fr;gap:3px}.row .k{padding-top:0}
+  .qa .a{padding-left:18px}
+}
+</style>
+
+<nav><div class="nav-in">
+  <a class="brand" href="#top">PW26_PK_06</a>
+  <a href="#thirty">30 seconds</a>
+  <a href="#vocab">Vocabulary</a>
+  <a href="#done">What was done</a>
+  <a href="#impact">Why it matters</a>
+  <a href="#questions">Likely questions</a>
+  <a href="#gaps">What isn't done</a>
+  <a href="#cold">Know cold</a>
+</div></nav>
+
+<div class="wrap" id="top">
+
+<header class="hero">
+  <span class="kicker">Review briefing · Phase III</span>
+  <h1>What we did, what it means, and how to defend it</h1>
+  <p class="sub">Everything completed on the campus water-demand forecasting project, written to be
+    read the night before the review — each piece of work paired with what it actually shows, why it
+    changes the project, and the definitions you'll need if someone asks.</p>
+  <div class="facts">
+    <span><b>24</b> tanks</span><span><b>9</b> models</span><span><b>6</b> horizons</span>
+    <span><b>188,664</b> scored rows per model</span><span><b>26</b> figures</span>
+    <span><b>0</b> leakage rows</span>
+    <span>2025-01-01 → 2026-04-22</span>
+  </div>
+</header>
+
+<!-- ─────────────────────────────── 30 SECONDS ─────────────────────────────── -->
+<section id="thirty">
+  <div class="sec-head"><span class="sec-n">00</span><h2>If you get thirty seconds</h2></div>
+  <div class="stack">
+    <div class="note">
+      <p>We replaced the water-demand forecasting model running on campus with <b>Chronos-2</b>, a
+      pretrained time-series foundation model used <b>zero-shot</b> — no training at all. On a single
+      evaluation grid where all nine models score the same <span class="num">188,664</span> rows, it
+      beats the deployed incumbent at <b>every one of six forecast horizons</b>, and we proved the
+      margin is <b>statistically significant</b> at all six by two independent tests.</p>
+      <p>It had two known weaknesses. We <b>diagnosed the cause of both</b> and <b>implemented the
+      corrections</b>, measured on data the correction never saw. Its overconfident intervals went
+      from <span class="num">72%</span> coverage to <span class="num">78.5%</span> against a target
+      of <span class="num">80%</span>; its systematic under-forecast went from
+      <span class="num">−10.5%</span> to <span class="num">−1.8%</span>.</p>
+      <p><b>What is not done:</b> nothing is deployed and running, and the research paper is not
+      written. Both are designed in detail. Say this before you're asked.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────── VOCABULARY ─────────────────────────────── -->
+<section id="vocab">
+  <div class="sec-head"><span class="sec-n">01</span><h2>The vocabulary you'll be asked about</h2></div>
+  <p class="sec-sub">Six terms carry the whole project. If you can define these cleanly, most
+    follow-up questions answer themselves.</p>
+  <div class="stack">
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Forecast horizon, and forecast origin</span>
+      <p>The <b>origin</b> is the moment you stand at; the <b>horizon</b> is how far ahead you
+      predict. A forecast made at 23:00 on Monday for the next 24 hours has a Monday-23:00 origin and
+      a 24-hour horizon. We evaluate six horizons: <span class="num">6 h, 12 h, 1 d, 2 d, 3 d, 7 d</span>.</p>
+      <p>Our benchmark uses <b>24 origins spaced 23 hours apart</b>, not 24. Twenty-four hours would
+      put every origin at the same clock time, so the 6-hour horizon would only ever be scored on the
+      quiet overnight window. Twenty-three is co-prime with 24, so the origins visit
+      <b>every hour of the day exactly once</b>.</p>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Zero-shot</span>
+      <p>The model was pretrained by Amazon on millions of unrelated time series and is used on our
+      data <b>with no training, no fitting and no fine-tuning</b>. We hand it history, it returns a
+      forecast. This is why the full backtest costs <span class="num">89 seconds</span> and why there
+      is no per-tank model store to maintain.</p>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">MAE and RMSE</span>
+      <p><b>MAE</b> (mean absolute error) is the average size of the mistake, in KL/h. <b>RMSE</b>
+      squares the errors before averaging, so it punishes large misses harder. Both are in real units,
+      which makes them readable — but both are dominated by whichever tank moves the most water.</p>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">MASE — and why it is not a percentage</span>
+      <p>MASE is <b>MAE divided by the MAE of a seasonal-naive baseline</b> (the forecast "tomorrow
+      looks like today"). So <b>1.0 means no better than naive</b>, <span class="num">0.65</span>
+      means 35% less error than naive, and above 1.0 means worse than naive.</p>
+      <p><b>Never call MASE an accuracy percentage.</b> "MASE 0.65" does not mean 65% accurate. If
+      someone asks for an accuracy figure, give MAE in KL/h, or the 24-hour volume error.</p>
+      <p>Why it exists: our tanks span three orders of magnitude of demand, and a dead sensor emitting
+      zero forever scores a <em>perfect</em> raw MAE. Ranked by raw MAE, Chronos-2's three "best"
+      tanks are all broken ones — <code>NEW_BLOCK_RO</code> scores
+      <span class="num">0.0005</span> by predicting nothing on a tank that does nothing. Dividing by
+      each tank's own naive error removes both problems.</p>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Prediction interval and coverage</span>
+      <p>Alongside a single number, the model outputs a range — <b>p10 to p90</b> — and makes a
+      promise: <em>the truth will land inside this range 80% of the time.</em> <b>Coverage</b> is how
+      often that promise actually held.</p>
+      <p>Ours held <span class="num">72%</span> of the time, not 80%. The band was too narrow: the
+      model was <b>overconfident</b>. You'd expect to be surprised 1 time in 5 and actually be
+      surprised 1 time in 3.6.</p>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Sensor trust tiers</span>
+      <p>Before modelling anything we tested each tank against the physical identity
+      <code>Opening + Inflow − Outflow = Closing</code>, judged relative to that tank's own
+      throughput. That splits the campus into <b>15 healthy, 6 degraded, 3 dead</b>. The three dead
+      tanks are 73–96% zero hours with means under <span class="num">0.01</span> KL/h — no signal
+      exists there and a forecast would be theatre.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─────────────────────────────── WHAT WAS DONE ─────────────────────────────── -->
+<section id="done">
+  <div class="sec-head"><span class="sec-n">02</span><h2>What was done</h2></div>
+  <p class="sec-sub">Eight pieces of work. The first was in place before this round; the rest are
+    new. Each one is stated as: what we did, what it showed, and what it changes.</p>
+
+  <div class="stack">
+
+    <!-- 1 -->
+    <div class="item">
+      <div class="item-h"><h3>1 · The benchmark</h3><span class="chip pre">earlier work</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Nine forecasting models scored
+          on one shared grid — 24 tanks × 24 origins × 6 horizons — with every model evaluated on
+          <b>identical rows</b>, enforced by an assertion that halts the run if any two models differ.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">Chronos-2 zero-shot beats the
+          incumbent <b>NPTS</b> at every horizon on every point metric, by
+          <b>5.7% to 12.5% MASE</b>. Zero leakage rows, zero duplicates, 6/6 metric tests and 15/15
+          methodology checks passing.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">This is the result the
+          project rests on. The row-parity guarantee is what makes it a fair comparison rather than
+          a collection of separately-run numbers — the previous work in this repo could not be
+          compared model-to-model, and fixing that was the point.</span></div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="item">
+      <div class="item-h"><h3>2 · Statistical significance testing</h3><span class="chip new">new</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">A <b>paired bootstrap</b> over
+          the 24 forecast origins (10,000 resamples) plus a <b>Diebold-Mariano test</b> with the
+          small-sample correction, per horizon and per tank.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v"><b>Significant at all six
+          horizons on both MAE and MASE</b>, by both tests — bootstrap
+          <span class="num">p &lt; 0.0001</span>, DM <span class="num">p</span> between
+          <span class="num">0.0006</span> and <span class="num">0.0069</span>. Per tank at 1 day:
+          <b>11 significantly better, 9 indistinguishable, 4 significantly worse</b>.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">This closed the single
+          biggest hole. Our own review summary said in writing that no significance test had been
+          run — so the improvement was a point estimate a reviewer could dismiss as noise. It no
+          longer is. <b>And all four significant losses are on degraded or dead sensors: of the 15
+          healthy tanks, Chronos-2 is better on 8, tied on 7, and worse on none.</b></span></div>
+      </div>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Paired bootstrap</span>
+      <p>We have 24 forecast origins. For each, we compute how much better Chronos-2 was than NPTS.
+      Then we <b>resample those 24 differences with replacement, 10,000 times</b>, and look at the
+      spread of the average. If 95% of those resampled averages still favour Chronos-2, the win is
+      not an accident of which days we happened to pick.</p>
+      <p>"Paired" means both models are compared on <em>the same</em> rows — which is only possible
+      because of the row-parity guarantee from the benchmark.</p>
+    </div>
+
+    <!-- 3 -->
+    <div class="item">
+      <div class="item-h"><h3>3 · Error-pattern analysis</h3><span class="chip new">new</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Broke the error down by hour of
+          day, by lead time, by demand size, and cumulatively over the window.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">Error tracks demand
+          (<span class="num">ρ = 0.958</span>) — it is not failing at particular times. Error grows
+          only <b>+5.6% from day 1 to day 7</b>. <b>All 24 tanks</b> beat the naive baseline. And the
+          bias is negative in <b>all 24 hours of the day</b>.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">Three defences in one.
+          The flat lead-time curve means <b>a 7-day forecast is nearly as good as a 1-day forecast</b>
+          — the model learned the repeating daily shape rather than extrapolating a trend, which is
+          what makes weekly planning viable. Positive skill on all 24 tanks kills the "your average is
+          flattered by dead tanks" objection. And a bias present in every hour is <b>systematic, not
+          situational</b> — which is precisely the kind that a correction can fix.</span></div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="item">
+      <div class="item-h"><h3>4 · The calibration diagnosis</h3><span class="chip new">new</span>
+        <span class="chip good">most novel</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Asked <em>why</em> the intervals
+          under-covered, instead of just reporting that they did. Measured the empirical rate at
+          every quantile, not only the p10–p90 pair.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">The failure is
+          <b>almost entirely in the lower tail</b>. The p90 is nearly perfect
+          (<span class="num">0.888</span> against a target of 0.90); the p10 is badly wrong
+          (<span class="num">0.292</span> against 0.10). Mechanism:
+          <b><span class="num">24%</span> of hourly readings are exactly zero</b>, and Chronos-2
+          places its p10 <em>above</em> zero on <b><span class="num">79%</span> of rows</b> — so
+          <b>two thirds of all its lower-tail misses are hours when demand was exactly zero</b>.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">This reframes the one axis
+          where the incumbent wins. <b>NPTS is better calibrated not because it models uncertainty
+          better, but because it is a nonparametric sampler that can reproduce the exact-zero
+          outcome — and a continuous-density foundation model structurally cannot.</b> That is a
+          general finding about foundation models on zero-inflated data, not a quirk of our campus,
+          and it is the most publishable thing in the project.</span></div>
+      </div>
+    </div>
+
+    <div class="note warn">
+      <h4>The detail that shows you did the work properly</h4>
+      <p>The obvious fix — just clamp the lower bound to zero — <b>overshoots</b>, taking coverage to
+      <span class="num">0.888</span> against a target of 0.80. We measured that rather than assuming
+      it. It is why the correction we built is asymmetric and fitted, not a clamp.</p>
+    </div>
+
+    <!-- 5 -->
+    <div class="item">
+      <div class="item-h"><h3>5 · Calibration, implemented</h3><span class="chip new">new</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Two post-hoc corrections, neither
+          requiring retraining. A <b>per-tank volume factor</b>, and <b>conformalised quantile
+          regression</b> per tank with independent lower and upper offsets.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">Coverage
+          <span class="num">0.741 → 0.785</span>. Volume bias
+          <span class="num">−10.5% → −1.8%</span>. Daily campus error
+          <span class="num">36.7 → 28.8 KL</span>. And SeasonalNaive-24, which has
+          <em>no native interval at all</em>, went from <span class="num">0.268</span> to
+          <span class="num">0.804</span>.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">Two items our own future-work
+          list flagged as the highest-value next steps are now done and measured — <b>on a window the
+          correction never saw</b>. This is the difference between "we know what's wrong" and "we
+          fixed it".</span></div>
+      </div>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Conformal calibration</span>
+      <p>Take 60 days of forecasts the model already made. Measure how far the truth actually fell
+      outside the stated band. Take the 90th percentile of those misses in each direction, and
+      <b>widen the band by exactly that much</b>. Per tank.</p>
+      <p>That is the entire method — <em>"how wrong has this band been historically? add that much
+      slack."</em> No retraining, no new model, and it comes with a mathematical guarantee that the
+      widened band hits its target rate on exchangeable data.</p>
+      <p>Ours is <b>asymmetric</b>: because the diagnosis showed the failure is lower-tail, we push
+      the bottom down much harder than the top, and <b>clip the lower bound at zero</b> — which is
+      what finally lets the interval say "it might be nothing at all".</p>
+    </div>
+
+    <div class="defn">
+      <span class="lbl">Definition</span>
+      <span class="term">Volume bias correction</span>
+      <p>A different problem from the interval. Not about confidence — about the level being
+      consistently wrong in one direction. Chronos-2's forecasts summed to <b>10.5% below</b> actual.</p>
+      <p>Fix: for each tank, divide total actual by total predicted over the calibration window to get
+      one multiplier, then scale future forecasts by it. Seventeen tanks got a normal factor between
+      <span class="num">0.90</span> and <span class="num">1.63</span>; four hit a safety clip at
+      <span class="num">2.0</span> (one had a raw ratio of <span class="num">20×</span> — a broken
+      sensor, not a model error, which is what the clip is for); three were too dead to correct.</p>
+    </div>
+
+    <div class="note bad">
+      <h4>The methodological point they may probe — have this ready</h4>
+      <p>Calibration parameters are fitted on <b>8 Jan – 8 Mar</b> and reported on
+      <b>9 Mar – 22 Apr</b>. Strictly later, strictly disjoint, and the code <b>raises an error if
+      the two windows touch</b>.</p>
+      <p>Why it matters: if you fit the correction on the same days you then measure coverage on, the
+      coverage comes out right <em>by construction</em> — you tuned it to fit, and the number means
+      nothing. Keeping them separate is what makes <span class="num">0.785</span> an honest number
+      rather than a circular one.</p>
+    </div>
+
+    <!-- 6 -->
+    <div class="item">
+      <div class="item-h"><h3>6 · The continuous 45-day holdout</h3><span class="chip new">new</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">45 consecutive daily forecasts —
+          each origin at 23:00 predicting the next 24 hours — so the forecasts tile the window once,
+          with no gaps and no overlap, and can be drawn as one continuous line. Three figures, four
+          representative tanks each.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">Chronos-2 reproduces
+          <b><span class="num">89%</span></b> of the real day-to-day variation and correlates
+          <b><span class="num">+0.65</span></b> with it. <b>NPTS reproduces
+          <span class="num">6%</span> and correlates <span class="num">−0.31</span></b> — it is
+          effectively a flat line at the long-run average, on every tank.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">This is the strongest
+          <em>operational</em> argument, and it is not visible in MASE at all. <b>For answering "how
+          much water does the campus need tomorrow", the incumbent carries almost no information
+          beyond the average.</b> Chronos-2 carries most of it. Show the two charts side by side —
+          the picture makes the case faster than any table.</span></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <h4>Why the seasonal-naive model is in the comparison at all</h4>
+      <p>It comes last on every table, so someone will ask. It is not a competitor — it is the
+      <b>measuring instrument</b>. MASE is <em>defined</em> as the ratio to it, so seasonal naive must
+      score ≈ <span class="num">1.0</span>, and it does (<span class="num">0.967–1.069</span>). That
+      is the checksum on the entire metric: <b>if it failed, every MASE number in the study would be
+      wrong</b>, and there is a unit test asserting it.</p>
+      <p>It also earns its place in the 45-day panels, where three models give three distinct failure
+      modes: Chronos-2 tracks but sits low (a <em>level</em> problem, fixable), NPTS doesn't track at
+      all (an <em>information</em> problem, not fixable post-hoc), and seasonal naive tracks perfectly
+      but one day late (a <em>timing</em> problem). Without the third you cannot tell whether tracking
+      this data is even possible.</p>
+    </div>
+
+    <!-- 7 -->
+    <div class="item">
+      <div class="item-h"><h3>7 · Real-time system design</h3><span class="chip new">new</span>
+        <span class="chip warn">design only</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Six documents specifying the
+          production system: architecture with 10 diagrams, an 11-phase implementation plan, API
+          design, data model, demo plan, and a safety document for automated motor control.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">A design where the data source
+          is a swappable adapter, so replaying historical data and reading live data use the
+          <b>same pipeline</b>. Motor safety is separated into layers: the forecast can never command
+          a pump directly — a separate safety gate can only veto or clamp.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">This is what turns
+          "we have a good model" into "we have a plan to deploy it". <b>It is design, not
+          implementation — say so plainly.</b> Its value at the review is that the deployment gap has
+          a concrete, costed answer rather than a shrug.</span></div>
+      </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="item">
+      <div class="item-h"><h3>8 · The repository</h3><span class="chip new">new</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Public repo with the full
+          pipeline, dataset, all 26 figures, metrics, tests and documentation —
+          <span class="num">43 MB</span>, with model binaries excluded because they regenerate in
+          about an hour.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">Everything claimed is
+          reproducible from source by anyone. Three commands regenerate every number in the
+          study.</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─────────────────────────────── IMPACT ─────────────────────────────── -->
+<section id="impact">
+  <div class="sec-head"><span class="sec-n">03</span><h2>How this changes the project</h2></div>
+  <p class="sec-sub">Four things are true now that were not true before this round of work.</p>
+  <div class="stack">
+    <div class="tw"><table>
+      <caption>Before and after</caption>
+      <thead><tr><th>Question</th><th>Before</th><th>Now</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Is the improvement real?</th>
+          <td class="dim">A point estimate. No significance test — stated as a limitation in our own write-up.</td>
+          <td class="good">Significant at all 6 horizons, two independent tests, p &lt; 0.01.</td></tr>
+        <tr><th scope="row">Which tanks can we trust it on?</th>
+          <td class="dim">"It loses on 5–8 tanks" — vague, and it looked like a fleet-wide weakness.</td>
+          <td class="good">Every significant loss is a broken sensor. Zero healthy tanks are worse.</td></tr>
+        <tr><th scope="row">Are the uncertainty bands usable?</th>
+          <td class="bad">No — 72% coverage against 80%, cause unknown, fix unimplemented.</td>
+          <td class="good">78.5% out of sample, cause identified as zero-inflation, correction shipped.</td></tr>
+        <tr><th scope="row">Can we size a refill with it?</th>
+          <td class="bad">No — 12% under-forecast, ~800 KL short across the window.</td>
+          <td class="good">Bias corrected to −1.8%; daily campus error down 21%.</td></tr>
+        <tr><th scope="row">Is it deployed?</th>
+          <td class="dim">No.</td>
+          <td class="bad">Still no. Designed in detail across six documents, but nothing is serving.</td></tr>
+      </tbody></table></div>
+
+    <div class="note good">
+      <h4>The sentence that captures the whole contribution</h4>
+      <p>We did not just show that a foundation model beats the incumbent. <b>We showed by how much,
+      proved it wasn't luck, identified exactly which tanks it can and cannot be trusted on,
+      diagnosed the structural reason its uncertainty estimates were wrong, and fixed them.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────── QUESTIONS ─────────────────────────────── -->
+<section id="questions">
+  <div class="sec-head"><span class="sec-n">04</span><h2>Likely questions, with answers</h2></div>
+  <p class="sec-sub">The eight most probable, in roughly the order they tend to come.</p>
+  <div class="stack">
+
+    <div class="qa"><div class="q">Your model isn't trained on your data at all. How can it work?</div>
+      <div class="a"><p>It was pretrained on millions of time series and has learned what
+      demand-like signals look like in general. Our data has strong daily structure it can recognise
+      without ever having seen it. The evidence is that it beats a model fitted specifically on our
+      data at every horizon — and it costs 89 seconds instead of 26 minutes.</p></div></div>
+
+    <div class="qa"><div class="q">MASE 0.65 — so it's 65% accurate?</div>
+      <div class="a"><p>No — MASE is a ratio, not a percentage. 1.0 means no better than a naive
+      baseline, so 0.65 means 35% less error than that baseline. If you want an accuracy figure in
+      real units, the 24-hour campus volume is predicted to within about 11%.</p></div></div>
+
+    <div class="qa"><div class="q">Isn't the average flattered by the dead tanks?</div>
+      <div class="a"><p>That's exactly why we don't use raw MAE — ranked by MAE our "best" tanks are
+      the broken ones. MASE removes that. And we measured skill against the naive baseline per tank:
+      <b>all 24 are positive</b>, and skill does not decline with tank size.</p></div></div>
+
+    <div class="qa"><div class="q">How do you know it isn't just luck on the days you picked?</div>
+      <div class="a"><p>Paired bootstrap over the 24 origins, 10,000 resamples, plus a
+      Diebold-Mariano test. Significant at all six horizons on both metrics, all p &lt; 0.01. At the
+      7-day horizon it wins on 24 origins out of 24.</p></div></div>
+
+    <div class="qa"><div class="q">Your intervals are miscalibrated.</div>
+      <div class="a"><p>They were — 72% against 80%. We found the reason: a quarter of hours are
+      exactly zero, and a continuous model puts its lower bound above zero, so every quiet hour falls
+      out the bottom. Two thirds of the misses are exactly-zero hours.</p>
+      <p>We then fixed it with asymmetric conformal calibration — 78.5%, measured on a window the
+      calibration never saw.</p></div></div>
+
+    <div class="qa"><div class="q">Why does calibration make the hourly MAE slightly worse?</div>
+      <div class="a"><p>Because MAE is minimised by predicting the <em>median</em>, and the bias
+      correction scales toward the <em>mean</em>. On a right-skewed series those differ. Over 24
+      hours the bias compounds while the noise cancels, so daily volume error improves 21% even
+      though hourly MAE rises 4%. The correction is for volume and refill sizing, which is what it's
+      for.</p></div></div>
+
+    <div class="qa"><div class="q">Is this running anywhere?</div>
+      <div class="a"><p>No. There's a browser extension that displays real forecasts from a
+      precomputed file, but nothing is serving live. The production architecture is fully
+      specified — data model, APIs, safety layers, an 11-phase plan — and phases 1 to 3 are the next
+      concrete step.</p></div></div>
+
+    <div class="qa"><div class="q">What would you do next?</div>
+      <div class="a"><p>Three things, in order. Write the paper — the zero-inflation calibration
+      finding is a genuine contribution and the material already exists. Build a minimal live slice
+      to close the deployment gap. And attack <code>GJBC_LAW_BLOCK_3__A1</code>, the one healthy
+      sensor the model genuinely fails on — it needs a spike model, not a smoother.</p></div></div>
+
+  </div>
+</section>
+
+<!-- ─────────────────────────────── GAPS ─────────────────────────────── -->
+<section id="gaps">
+  <div class="sec-head"><span class="sec-n">05</span><h2>What isn't done</h2></div>
+  <p class="sec-sub">Volunteer these. Being first to name your own gaps reads as rigour; being caught
+    on them reads as a hole in the work.</p>
+  <div class="stack">
+    <div class="note bad"><h4>Nothing is deployed</h4>
+      <p>The Chrome dock runs offline from a bundled file. The container stack that exists points at
+      models we retired. <b>Do not describe the dock as a deployment</b> — describing it accurately
+      is more credible than describing it generously.</p></div>
+    <div class="note bad"><h4>The research paper isn't written</h4>
+      <p>All the material exists — methodology, results, per-tank analysis, limitations. It is
+      assembly work, not new research.</p></div>
+    <div class="note warn"><h4>System testing is partial</h4>
+      <p>6/6 metric tests and 15/15 methodology checks pass, which validates the <em>measurement
+      apparatus</em>. There's no integration test suite, because the system it would test isn't
+      built. Say that rather than presenting model tests as system tests.</p></div>
+    <div class="note warn"><h4>Two honest limitations in the results themselves</h4>
+      <p>The evaluation covers one 23-day window in one season — the improvement figures shouldn't be
+      extrapolated to a monsoon. And the daily-total confidence bands transfer worse than the hourly
+      ones (63% at campus level against 80% nominal), because tank errors are correlated and don't
+      cancel in the sum. Per-tank they're fine, at a median of 0.781.</p></div>
+    <div class="note warn"><h4>One loose end we created</h4>
+      <p>The architecture gates a per-tank model router on a significance test across at least 4 of
+      6 horizons. We ran that test at the 1-day horizon only, so the gate can't yet be satisfied
+      either way. It's a small extension — worth mentioning as known and scoped rather than leaving
+      it to be found.</p></div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────── COLD ─────────────────────────────── -->
+<section id="cold">
+  <div class="sec-head"><span class="sec-n">06</span><h2>The numbers to know cold</h2></div>
+  <p class="sec-sub">If you remember nothing else, remember these.</p>
+  <div class="stack">
+    <div class="strip">
+      <div class="stat"><div class="k">Improvement</div><div class="v">5.7–12.5%</div>
+        <div class="s">lower MASE than the incumbent, every horizon</div></div>
+      <div class="stat"><div class="k">Significance</div><div class="v">6 / 6</div>
+        <div class="s">horizons significant, two independent tests</div></div>
+      <div class="stat"><div class="k">Healthy tanks lost</div><div class="v">0 / 15</div>
+        <div class="s">every significant loss is a broken sensor</div></div>
+      <div class="stat"><div class="k">Cells won</div><div class="v">101 / 144</div>
+        <div class="s">tank × horizon comparisons</div></div>
+      <div class="stat"><div class="k">Coverage</div><div class="v">0.74 → 0.79</div>
+        <div class="s">after calibration, target 0.80</div></div>
+      <div class="stat"><div class="k">Volume bias</div><div class="v">−10.5 → −1.8%</div>
+        <div class="s">after per-tank correction</div></div>
+      <div class="stat"><div class="k">Variation captured</div><div class="v">89% vs 6%</div>
+        <div class="s">Chronos-2 against the incumbent</div></div>
+      <div class="stat"><div class="k">Cost</div><div class="v">89 s</div>
+        <div class="s">full backtest, no training at all</div></div>
+    </div>
+
+    <div class="note">
+      <h4>And three sentences that answer most of what gets asked</h4>
+      <p><b>On the result:</b> "It beats the deployed model at every horizon, and we proved it's
+      significant rather than lucky — bootstrap and Diebold-Mariano, all p under 0.01."</p>
+      <p><b>On trust:</b> "It's never significantly worse than the incumbent on any tank with a
+      working sensor. All four losses are on degraded or dead sensors."</p>
+      <p><b>On the weaknesses:</b> "Both known weaknesses are diagnosed and corrected, measured on
+      data the correction never saw. What's not done is deployment and the paper."</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Intelligent Water Management System · PW26_PK_06 · PES University RR ·
+  Abhay Patil, Amogh E M, Harshavardhan M, Viraj Ved Shankar.<br>
+  Every figure and number referenced here traces to a file in the project repository.
+</footer>
+
+</div>

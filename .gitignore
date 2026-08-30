@@ -108,3 +108,7 @@ Thumbs.db
 # ─────────────────────────────────────────────────────────────────────────────
 papers/
 __MACOSX/
+
+# Generated report page (~5.5 MB of base64-embedded figures already tracked as PNG/SVG).
+# Regenerate with: python reports/build_results_page.py
+reports/phase3_results_page.html

@@ -52,6 +52,7 @@ Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
 | `results/chronos2/` | Benchmark metrics, per-tank tables, and **23 figures** (A–N, O–W). Model binaries and prediction parquets are regenerable and not committed |
 | `docs/` | Results reports and the full design specification for the real-time system |
 | `tests/` | `test_metrics.py` — 6 tests, no pytest needed. Run these before trusting any number |
+| `reports/` | Standalone HTML reports: the review briefing, and the generator for the full results page |
 | `extension/` | FastAPI service, Next.js dashboard, and the Waltr MV3 forecast dock |
 | `water_forecast_dash/` | Standalone Flask dashboard prototype |
 | `notebooks/` | Exploratory analysis |
