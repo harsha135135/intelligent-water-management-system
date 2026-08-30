@@ -99,7 +99,7 @@ the origin.
 
 **Final holdout.** The last origin (2026-04-15 23:00) forecasts the final 7 contiguous days of
 the dataset, 2026-04-16 00:00 → 2026-04-22 23:00. It is a labelled subset of the same grid, not
-a separate experiment (`results/chronos2/review/final_holdout_*.csv`).
+a separate experiment (`results/chronos2/unified/leaderboard.csv`).
 
 ### 2.3 Methodology verification
 
@@ -120,7 +120,7 @@ pass; no result in this review rests on an unverified assumption.
 | 10 | **No duplicate prediction rows** | PASS — 0 duplicated `(model, item_id, origin, horizon, timestamp)` |
 | 11 | **SeasonalNaive-24 sanity: MASE ≈ 1** | PASS — measured 0.967 – 1.069 across the six horizons; RMSSE 0.717 – 0.812 |
 | 12 | **Metric unit tests** | PASS — 6 / 6 in `tests/test_metrics.py`, including the MASE ≈ 1 identity and degenerate-series exclusion |
-| 13 | **Published tables reproduce from the raw predictions** | PASS — an independent re-score of `predictions_*.parquet` reproduces `metrics_by_horizon.csv` and `metrics_per_tank.csv` to ≤ 2.2e-16; two independent metric implementations (`metrics.py`, `review_package.py`) agree to 0.0 |
+| 13 | **Published tables reproduce from the raw predictions** | PASS — an independent re-score of `predictions_*.parquet` reproduces `metrics_by_horizon.csv` and `metrics_per_tank.csv` to ≤ 2.2e-16; two independent metric implementations (`metrics.py` via `score_benchmark`, and `unified_analysis`) agree to 1e-16 across all 66 model x horizon rows |
 | 14 | **`per_tank_comparison.csv` matches the predictions** | PASS — all 144 rows × 3 models × 4 metrics reproduce with max abs difference 0.0; `n_observations` totals match the per-horizon row counts exactly |
 | 15 | **Degenerate-series guard** | Not triggered — smallest seasonal-naive denominator on the grid is 0.00198, so `n_tanks_scaled = 24` everywhere and no metric is undefined |
 
@@ -138,9 +138,18 @@ pass; no result in this review rests on an unverified assumption.
 | Chronos2-COV-XL | covariate study | as COV, plus cross-learning across tanks |
 | ETS, Theta, DynamicOptimizedTheta | context | classical baselines, scored on the same grid, reported in `benchmark_table.md` |
 
-**PatchTST is out of scope and is not used anywhere in this comparison.** It was never run on
-this grid; `results/patchtst/` comes from a different, non-comparable evaluation (24 series, 576
-rows, different holdout dates). It appears in no table, figure or conclusion in this document.
+**PatchTST is now on this grid.** It is the trained deep control — the same patched-transformer
+family Chronos-2 belongs to, but fitted on this campus rather than pretrained. Two configurations
+were run (`src/models/patchtst_benchmark.py`): AutoGluon's defaults (context
+96 h, 30 epochs) and a `tuned` preset at the
+settings the PatchTST paper uses for hourly data (context 512 h,
+100 epochs). Both are fitted only on data at or before the first origin, scored
+on the identical rows, and reported. Measured: Chronos-2 zero-shot is **16.5–18.6 % better
+in MASE at every horizon** than the stronger of the two, significant at all six by paired bootstrap
+and Diebold–Mariano. Full analysis in `results/chronos2/unified/`.
+
+The older `results/patchtst/` directory is a *different*, non-comparable evaluation (24 series, 576
+rows, different holdout dates) and is used nowhere in this document.
 
 ---
 
@@ -523,7 +532,7 @@ p = 6.29e-08** (`eda/eda_report.txt`). Both results are true. The calendar effec
 **campus-daily** aggregation and vanishes into noise at **per-tank-hourly** resolution, which is
 the resolution the model runs at. The aggregation level changed, not the statistics.
 
-One further point against the covariate variants, measured in `results/chronos2/review/volume_bias.csv`:
+One further point against the covariate variants, measured in `results/chronos2/unified/leaderboard.csv`:
 they are **more** volume-biased than zero-shot, not less — at 1 d, COV −13.75 %, COV-LEAN
 −13.55 %, COV-XL −13.88 %, against zero-shot's −12.15 %. Whatever the covariates change, they do
 not change it in the direction the operator cares about (§8.2).
@@ -694,9 +703,11 @@ wrappers and a router.**
    hourly readings are exactly zero; §8.1 percentages on the five near-dead tanks should be read as "unusable",
    not as "96 % error".
 8. **Runtimes are single measurements** on one Apple MPS laptop, not benchmarked means.
-9. **PatchTST, TiDE and the AutoGluon ensembles are absent by scope**, so this study does not
-   establish that Chronos-2 beats a tuned deep model — only that it beats the incumbent and the
-   classical baselines on this grid.
+9. **TiDE and the AutoGluon ensembles are absent by scope.** PatchTST is no longer absent — it
+   is on the grid at two configurations (§3) and Chronos-2 beats the stronger one by
+   16.5–18.6 % MASE at every horizon. What this still does not establish is a result
+   against a deep model given substantially more data or a per-tank architecture search; the
+   claim is about this dataset at this size.
 
 ---
 
@@ -735,8 +746,8 @@ python eda/eda_hourly.py                  # trust tiers, feature MI study
 python -m src.models.chronos2_forecasting # 4 Chronos-2 variants  (~32 min total)
 python -m src.models.baselines_autogluon  # NPTS, SeasonalNaive, ETS, Theta, DOT (~26 min)
 python -m src.models.score_benchmark      # benchmark_table.md + per_tank_comparison.csv
-python -m src.models.review_package       # review CSVs
-python -m src.models.review_plots         # 14 figures, PNG + SVG
+python -m src.models.unified_analysis     # every table, all models
+python -m src.models.unified_figures      # 12 figures, PNG + SVG
 ```
 
 Environment: `venv/` — Python 3.13.3, pandas 2.3.3, numpy 2.1.3, matplotlib 3.10.8,
@@ -747,18 +758,18 @@ torch on Apple MPS, `chronos-forecasting`, `autogluon.timeseries`.
 | Section | File |
 |---|---|
 | §2 dataset | `python -m src.data.curate`, `results/chronos2/run_manifest.json` |
-| §2.2 grid | `results/chronos2/run_manifest.json`, `results/chronos2/review/review_manifest.json` |
+| §2.2 grid | `results/chronos2/run_manifest.json`, `results/chronos2/unified/summary.json` |
 | §5, §6 | `results/chronos2/metrics_by_horizon.csv`, `results/chronos2/benchmark_table.md` |
-| §5.4 | `results/chronos2/review/final_holdout_macro.csv` |
+| §5.4 | `results/chronos2/unified/leaderboard.csv` |
 | §7 | `results/chronos2/per_tank_comparison.csv`, `results/chronos2/metrics_per_tank.csv` |
-| §8.1 | `results/chronos2/review/per_tank_daily_volume_accuracy.csv` |
-| §8.2 | `results/chronos2/review/volume_bias.csv` |
-| §8 tolerance rates | `results/chronos2/review/per_tank_practical_accuracy_h24.csv` |
+| §8.1 | `results/chronos2/unified/per_tank.csv` |
+| §8.2 | `results/chronos2/unified/leaderboard.csv` |
+| §8 tolerance rates | `results/chronos2/unified/per_tank.csv` |
 | §9 | `results/chronos2/metrics_by_horizon.csv`, `eda/feature_mi_by_horizon.csv`, `eda/eda_report.txt` |
 | §9 runtimes | `results/chronos2/run_manifest.json` (`wall_clock_s`) |
 | §10 | `results/chronos2/metrics_by_horizon.csv` (`p10_p90_coverage`, `p10_p90_width`) |
 | §11 | `eda/tank_mass_balance.csv`, `eda/tank_trust.json` |
-| Figures | `results/chronos2/review/plots/` (PNG + SVG) |
+| Figures | `results/chronos2/unified/plots/` (PNG + SVG) |
 
 ### Figure index
 

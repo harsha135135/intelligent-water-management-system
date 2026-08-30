@@ -13,16 +13,18 @@ zero-shot — no training, no fine-tuning.
 
 ## Headline result
 
-Measured on a single rolling-origin grid where all nine models score the **same 188,664 rows**:
+Measured on a single rolling-origin grid where all eleven models score the **same 188,664 rows**:
 
 | | Chronos-2 zero-shot vs the deployed incumbent (NPTS) |
 |---|---|
 | **MASE improvement** | **5.7 % – 12.5 %**, at every one of six horizons |
 | **Statistical significance** | Significant at **all six horizons**, by paired bootstrap (10,000 resamples over 24 origins) **and** Diebold–Mariano — all *p* < 0.01 |
-| **Tank-horizon cells won** | **101 / 144** (70 %) |
+| **Beaten significantly at every horizon** | **7 of 10** opponents — every model that is not a Chronos-2 covariate variant |
+| **Tank-horizon cells won** | **101 / 144** vs the incumbent; **144 / 144** vs every classical method |
 | **Healthy tanks significantly worse** | **0 / 15** — every significant loss is on a degraded or dead sensor |
 | **Skill vs seasonal-naive** | Positive on **all 24 tanks** |
-| **Cost** | **89 seconds** for the entire 24-origin × 6-horizon backtest |
+| **vs a PatchTST trained here** | **16.5 % – 18.6 % lower MASE** at every horizon, significant at all six, 120/144 cells |
+| **Cost** | **89 seconds** for the entire backtest — the trained PatchTST needed 55 min, a **37×** difference |
 
 Two caveats, both measured and both stated wherever the results appear:
 
@@ -46,13 +48,13 @@ Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
 | Path | Contents |
 |---|---|
 | `src/data/` | `curate.py` — 26 directories → 24 tanks, gapless hourly reindex, raises on drift. `calendar_pesu.py` — academic-calendar covariates |
-| `src/models/` | `chronos2_forecasting.py` (the production model), `backtest.py` (shared evaluation grid), `metrics.py` (MAE/RMSE/MASE/RMSSE), `baselines_autogluon.py`, `score_benchmark.py`, `review_package.py`, `review_plots.py`, `phase3_analysis.py` |
+| `src/models/` | **Forecasting** — `chronos2_forecasting.py` (the production model), `baselines_autogluon.py` (NPTS + classical), `patchtst_benchmark.py` (the trained deep control). **Evaluation** — `backtest.py` (the shared grid), `metrics.py`, `score_benchmark.py` (row parity, fatal under `--strict`), `significance.py` (paired bootstrap + Diebold-Mariano). **Reporting** — `unified_analysis.py` + `unified_figures.py` (every table and figure, all models), `calibration.py` + `calibrated_holdout.py`, `style.py` (one palette for every figure) |
 | `dataset/` | Per-tank daily JSON — hourly inflow, outflow, opening and closing level. 2025-01-01 → 2026-04-22 |
 | `eda/` | `eda_hourly.py` — mass-balance sensor integrity, trust tiers, covariate mutual-information study. Outputs `tank_trust.json` |
-| `results/chronos2/` | Benchmark metrics, per-tank tables, and **23 figures** (A–N, O–W). Model binaries and prediction parquets are regenerable and not committed |
+| `results/chronos2/` | `unified/` — the evidence: 10 CSVs, `summary.json` and **12 figures** covering all 11 models. `calibrated/` — conformal calibration and the 45-day operational view. `benchmark_table.md` and the metric CSVs. Model binaries, fitting scratch and prediction parquets are regenerable and not committed |
 | `docs/` | Results reports and the full design specification for the real-time system |
 | `tests/` | `test_metrics.py` — 6 tests, no pytest needed. Run these before trusting any number |
-| `reports/` | Standalone HTML reports: the review briefing, and the generator for the full results page |
+| `reports/` | `build_results_page.py` → the full HTML results page; `build_review_deck.py` → the PPTX review deck; `review_briefing.html` — the defence briefing. Both generated deliverables read the same CSVs, so they cannot disagree |
 | `extension/` | FastAPI service, Next.js dashboard, and the Waltr MV3 forecast dock |
 | `water_forecast_dash/` | Standalone Flask dashboard prototype |
 | `notebooks/` | Exploratory analysis |
@@ -94,10 +96,11 @@ Full step-by-step reproduction, with measured runtimes for every stage, is in
 
 | Document | Contents |
 |---|---|
-| [`docs/phase3_results.md`](docs/phase3_results.md) | **Phase III deliverable** — final results, significance testing, the calibration diagnosis, 23 figures, and the inference for each review category |
+| [`docs/phase3_results.md`](docs/phase3_results.md) | **Phase III deliverable** — final results, significance testing, the calibration diagnosis, and the inference for each review category |
 | [`docs/review_summary.md`](docs/review_summary.md) | 16-section technical report: dataset, evaluation protocol, per-tank analysis, covariate study, calibration, limitations |
 | [`docs/architecture.md`](docs/architecture.md) | The forecasting engine, and the measurement behind each design choice |
-| [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) | Complete benchmark: 9 models × 6 horizons × 6 metrics |
+| [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) | Complete benchmark: 11 models × 6 horizons × 6 metrics |
+| [`results/chronos2/unified/`](results/chronos2/unified/) | The machine-readable evidence behind every claim: leaderboard, significance against every opponent, win matrix, per-tank, skill, calibration, cost |
 
 ### Real-time system — designed, not yet built
 
@@ -120,13 +123,14 @@ documents; **none of the pipeline they describe is implemented yet.**
 | Component | Status |
 |---|---|
 | Data curation, calendar features, backtest harness, metrics | **Implemented** |
-| Chronos-2 inference, benchmark, review package, 23 figures | **Implemented** |
+| Chronos-2 inference (4 variants), benchmark, unified analysis, 12 figures | **Implemented** |
+| PatchTST control (two configurations) | **Implemented** |
 | Sensor trust tiering, mass-balance integrity (`eda/`) | **Implemented** |
-| Significance testing, calibration diagnosis (`phase3_analysis.py`) | **Implemented** |
+| Significance against every opponent, calibration diagnosis | **Implemented** |
 | Waltr forecast dock (offline, precomputed bundle) | **Implemented** |
 | WALTR HTTP client | **Implemented but unusable** — requires a JWT; none is available |
 | Real-time ingestion, state store, alerts, decision engine, Flutter dashboard | **Not built** — specified in Phases 1–8 |
-| Conformal interval calibration, volume bias correction | **Not built** — Phase 9 |
+| Conformal interval calibration, volume bias correction | **Implemented** — `calibration.py`, measured out of sample |
 | Live WALTR data feed | **Blocked** — requires an issued service token |
 | Real motor control | **Blocked** — no motor API exists, and the dataset contains **no motor telemetry** |
 
@@ -218,8 +222,34 @@ time, so each horizon needs its own predictor. Produces NPTS (the incumbent), Se
 (the reference), ETS, Theta and DynamicOptimizedTheta in one pass. Writes
 `results/chronos2/predictions_autogluon_baselines.parquet` (950,400 rows) and
 `baselines_manifest.json`. Measured per horizon: 3.8 / 5.0 / 5.0 / 3.7 / 1.9 / 6.8 min —
-**~26 min total**. Add `--include-neural` for PatchTST/TiDE (**not** part of this review; PatchTST
-is out of scope).
+**~26 min total**. `--include-neural` would add PatchTST/TiDE to this same pass, but PatchTST is
+run from its own module instead — see step 5b.
+
+### 5b. Model execution — the PatchTST control
+
+```bash
+python -m src.models.patchtst_benchmark --preset default
+python -m src.models.patchtst_benchmark --preset tuned \
+    --out-name predictions_PatchTST-Tuned.parquet \
+    --manifest-name patchtst_tuned_manifest.json \
+    --model-dir results/chronos2/_patchtst_tuned_models
+```
+
+PatchTST is the **trained deep control**: the same patched-transformer family Chronos-2 belongs to,
+but fitted on this campus rather than pretrained. One predictor per horizon, fitted strictly on
+data at or before the first origin and rolled forward — the same protocol the statistical baselines
+use, so nothing leaks and the row counts stay identical.
+
+Two configurations are run because one would have been unfair. Chronos-2 conditions on 2,048 hours
+of context; AutoGluon's default PatchTST sees 96. The `tuned` preset
+uses the settings the PatchTST paper uses for hourly data — context 512 h,
+100 epochs, 200 batches per epoch. Measured:
+default **2.2 min**, tuned
+**55 min**. Writes `predictions_PatchTST.parquet` and
+`predictions_PatchTST-Tuned.parquet` (190,080 rows each), which `score_benchmark` picks up by glob.
+
+Both are scored by the same `score_benchmark` pass as every other model, and compared in
+step 7 alongside the rest of the field — there is no separate PatchTST study to run.
 
 ### 6. Evaluation and scoring
 
@@ -240,71 +270,93 @@ the run** if any two models were scored on different row counts. Writes:
 
 Runtime: ~7 s.
 
-### 7. Review package (CSVs)
+### 7. Unified analysis — every table on the results page
 
 ```bash
-python -m src.models.review_package
+python -m src.models.unified_analysis      # ~4 min
 ```
 
-Writes 10 CSVs under `results/chronos2/review/`: `headline_comparison.csv`,
-`macro_metrics_all_models.csv`, `per_tank_metrics_all_models.csv`,
-`per_tank_chronos2_vs_npts.csv`, `per_tank_practical_accuracy_h24.csv`,
-`per_tank_practical_accuracy_h168.csv`, `per_tank_daily_volume_accuracy.csv`
-(24 h volume error per tank — the "water requirement" view), `volume_bias.csv`
-(signed under/over-forecast per model and horizon), `final_holdout_macro.csv`,
-`final_holdout_per_tank.csv`, plus `review_manifest.json`. Re-scores nothing.
-Runtime: ~6 s.
+One pass over **all 11 models** on the shared grid. Replaces the per-opponent studies that
+preceded it (Chronos-2 vs NPTS, the covariate study, the PatchTST comparison), each of which
+produced its own tables in its own shape. Writes to `results/chronos2/unified/`:
 
-### 8. Plots
+| File | Contents |
+|---|---|
+| `leaderboard.csv` | 66 rows — every model x horizon, macro and volume-weighted metrics, interval coverage and width, signed volume bias, rank |
+| `significance_vs_all.csv` | 120 rows — Chronos-2 against **every** opponent, both metrics, all six horizons: paired bootstrap CI, bootstrap *p*, Diebold-Mariano statistic and *p*, origins won |
+| `win_matrix_all_horizons.csv`, `win_matrix_h24.csv` | every ordered model pair, tank-horizon cells won |
+| `per_tank.csv` | 1,584 rows — model x tank x horizon, with the sensor trust tier |
+| `skill_h24.csv` | skill against the naive reference, per tank, for every model |
+| `error_by_leadtime.csv`, `diurnal_h24.csv` | where the error lives, every model |
+| `zero_inflation_h24.csv` | the interval mechanism: tail miss rates, how often p10 goes negative, what a clamp would do |
+| `cost.csv` | measured wall clock against accuracy, read from the run manifests |
+| `summary.json` | the headline numbers, so nothing downstream has to recompute them |
+
+**A cross-check worth knowing about:** the unified pass computes the four macro metrics
+independently of `score_benchmark`, and the two agree to **1e-16** across all 66 model x horizon
+rows. Two implementations reaching the same number from the same parquets is a stronger statement
+than either one alone.
+
+### 8. Figures
 
 ```bash
-python -m src.models.review_plots
+python -m src.models.unified_figures       # ~25 s
+python -m src.models.calibrated_holdout    # ~3 min, the operational view
 ```
 
-Writes 14 figures as **both PNG and SVG** to `results/chronos2/review/plots/`:
+Twelve figures to `results/chronos2/unified/plots/`, as **both PNG and SVG**. Every panel carries
+every model; colour is assigned by family in `style.py` and never by rank, so a model keeps its
+identity across the whole set.
 
-| ID | File | Shows |
-|---|---|---|
-| A–D | `A_mase_vs_horizon`, `B_rmse_vs_horizon`, `C_mae_vs_horizon`, `D_rmsse_vs_horizon` | each metric by horizon, Chronos-2 / NPTS / SeasonalNaive |
-| E | `E_per_tank_mase_24h` | per-tank MASE at 1 d, all 24 tanks |
-| F | `F_per_tank_improvement_24h` | signed per-tank improvement %, positive and negative |
-| G | `G_per_tank_mase_heatmap` | Chronos-2 MASE, tank × horizon |
-| H | `H_error_distribution_24h` | error distribution and absolute-error percentiles |
-| I | `I_actual_vs_predicted_24h` | actual vs prediction with p10–p90 band |
-| J | `J_final_holdout_7day` | 7-day final-holdout forecast with p10–p90 band |
-| K | `K_interval_calibration` | coverage vs the nominal 0.80 |
-| L | `L_variant_selection` | accuracy per minute of compute |
-| M | `M_tanks_won` | number and % of tanks won, per horizon |
-| N | `N_covariate_vs_zeroshot` | covariate gain against its cost and the incumbent gap |
+| ID | Shows |
+|---|---|
+| U1 | Macro MASE vs horizon, all 11 models |
+| U2 | The leaderboard as a heatmap, with rank in every cell |
+| U3 | Chronos-2 against each opponent — 1 d with CIs, and across all six horizons |
+| U4 | Win matrix: every ordered model pair, % of 144 tank-horizon cells |
+| U5 | Per tank x per model MASE at 1 d, ordered by demand, labelled by sensor tier |
+| U6 | Skill against the naive reference vs tank demand |
+| U7 | Interval coverage against the width that bought it |
+| U8 | Accuracy against measured compute |
+| U9 | Error against lead time, out to 168 h |
+| U10 | Error and bias by hour of day, against the demand profile |
+| U11 | Why the intervals miss — tail asymmetry, negative p10, the clamp |
+| U12 | Signed volume bias by model and horizon |
 
-Representative tanks in I and J are chosen **by measured role** (highest / median / lowest demand
-among live tanks, plus the highest-MASE tank) and recorded in
-`results/chronos2/review/representative_tanks.json`, so the panel cannot be cherry-picked.
-Runtime: ~10 s.
+`calibrated_holdout` adds the three 45-day operational panels (one per headline model) and the
+calibration measurements, fitted on 8 Jan - 8 Mar 2026 and reported on the disjoint
+9 Mar - 22 Apr window.
+
+### 9. The deliverables
+
+```bash
+python reports/build_results_page.py    # ~10 s -> reports/phase3_results_page.html
+python reports/build_review_deck.py     # ~15 s -> reports/PW26_PK_06_phase3_review.pptx
+```
+
+Both read the same CSVs under `results/chronos2/unified/`, so the page and the deck cannot drift
+from the data or from each other. Neither output is committed: each embeds figures that are
+already tracked as PNG and SVG.
 
 ### Expected files after a full run
 
 ```
 results/chronos2/
-├── predictions_Chronos2-ZS.parquet            190,080 rows
-├── predictions_Chronos2-COV.parquet           190,080 rows
-├── predictions_Chronos2-COV-LEAN.parquet      190,080 rows
-├── predictions_Chronos2-COV-XL.parquet        190,080 rows
-├── predictions_autogluon_baselines.parquet    950,400 rows  (5 models)
-├── run_manifest.json / baselines_manifest.json
+├── predictions_*.parquet                  190,080 rows each (7 files, not committed)
+├── run_manifest.json / baselines_manifest.json / patchtst*_manifest.json
 ├── benchmark_table.md
-├── metrics_by_horizon.csv                     54 rows  (9 models × 6 horizons)
-├── metrics_per_tank.csv                    1,296 rows  (9 × 6 × 24)
-├── per_tank_comparison.csv                   144 rows  (24 tanks × 6 horizons)
-└── review/
-    ├── 10 CSVs + review_manifest.json + representative_tanks.json
-    └── plots/  14 figures × {png, svg}
-docs/review_summary.md
+├── metrics_by_horizon.csv                 66 rows  (11 models x 6 horizons)
+├── metrics_per_tank.csv                   1,584 rows
+├── unified/
+│   ├── 10 CSVs + summary.json
+│   └── plots/  12 figures x {png, svg}
+└── calibrated/
+    ├── calibration parameters and daily tables
+    └── plots/  3 operational panels x {png, svg}
 ```
 
-Total end-to-end: **~60 minutes**, of which ~59 min is the two forecasting steps (33 min
-Chronos-2, 26 min baselines). Re-running only steps 6–8 from existing predictions takes
-**~23 seconds**.
+Total end-to-end: **~2 hours**, almost all of it the two forecasting steps. Re-running only the
+analysis and reporting from existing predictions takes **~8 minutes**.
 
 ### Methodology details that matter
 
@@ -327,7 +379,10 @@ comparison with the published numbers.
   shift later timestamps and corrupt the 24-hour seasonality the metrics scale against.
 * **Sanity check to look for first:** SeasonalNaive-24 must score MASE ≈ 1 (measured
   0.967–1.069). If it does not, the scaling denominator is wrong and every number is wrong.
-* **PatchTST is out of scope** for this comparison and appears in none of the tables above.
+* **PatchTST is in scope and on the grid.** It is run from `src/models/patchtst_benchmark.py` at
+  two configurations and scored on the identical rows, then compared in the same unified pass as
+  every other model. The older `results/patchtst/` directory is a *different*, non-comparable
+  evaluation and is not used anywhere.
 
 ---
 

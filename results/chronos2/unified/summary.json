@@ -1,0 +1,85 @@
+{
+  "models": [
+    "Chronos2-ZS",
+    "Chronos2-COV-XL",
+    "Chronos2-COV",
+    "Chronos2-COV-LEAN",
+    "NPTS",
+    "PatchTST-Tuned",
+    "PatchTST",
+    "ETS",
+    "Theta",
+    "DynamicOptimizedTheta",
+    "SeasonalNaive"
+  ],
+  "n_models": 11,
+  "rows_per_model": 188664,
+  "n_origins": 24,
+  "n_tanks": 24,
+  "horizons": [
+    6,
+    12,
+    24,
+    48,
+    72,
+    168
+  ],
+  "best_mase_h24": {
+    "model": "Chronos2-COV-XL",
+    "macro_mase": 0.6550124166937342
+  },
+  "chronos2_rank_by_horizon": {
+    "6 h": 2,
+    "12 h": 3,
+    "1 d": 2,
+    "2 d": 4,
+    "3 d": 4,
+    "7 d": 4
+  },
+  "chronos2_improvement_pct_h24": {
+    "Chronos2-COV-XL": 0.03,
+    "Chronos2-COV": 0.14,
+    "Chronos2-COV-LEAN": 0.2,
+    "NPTS": 7.68,
+    "PatchTST-Tuned": 18.58,
+    "PatchTST": 23.47,
+    "ETS": 32.04,
+    "Theta": 31.81,
+    "DynamicOptimizedTheta": 31.91,
+    "SeasonalNaive": 36.67
+  },
+  "opponents_beaten_significantly_all_horizons": [
+    "NPTS",
+    "PatchTST-Tuned",
+    "PatchTST",
+    "ETS",
+    "Theta",
+    "DynamicOptimizedTheta",
+    "SeasonalNaive"
+  ],
+  "tank_horizon_cells_won_vs": {
+    "Chronos2-COV-XL": 55,
+    "Chronos2-COV": 62,
+    "Chronos2-COV-LEAN": 66,
+    "NPTS": 101,
+    "PatchTST-Tuned": 120,
+    "PatchTST": 128,
+    "ETS": 144,
+    "Theta": 144,
+    "DynamicOptimizedTheta": 144,
+    "SeasonalNaive": 144
+  },
+  "tank_horizon_cells_total": 144,
+  "skill_positive_by_model": {
+    "Chronos2-COV-LEAN": 24,
+    "Chronos2-COV-XL": 24,
+    "Chronos2-COV": 24,
+    "Chronos2-ZS": 24,
+    "PatchTST-Tuned": 21,
+    "PatchTST": 20,
+    "NPTS": 24,
+    "ETS": 19,
+    "Theta": 19,
+    "DynamicOptimizedTheta": 19
+  }
+}

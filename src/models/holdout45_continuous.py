@@ -269,8 +269,8 @@ def plot_all() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    from .phase3_analysis import _caption
-    from .review_plots import COLOR, GRID, INK, INK2, SURFACE
+    from .style import caption as _caption
+    from .style import COLOR, GRID, INK, INK2, SURFACE
 
     plots = OUT / "plots"; plots.mkdir(parents=True, exist_ok=True)
     daily = pd.read_csv(OUT / "daily_campus.csv", parse_dates=["day"])

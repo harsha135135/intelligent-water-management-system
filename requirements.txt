@@ -2,3 +2,10 @@ autogluon.timeseries
 numpy
 pandas
 scikit-learn
+scipy
+matplotlib
+pyarrow
+
+# report generation
+python-pptx
+pillow
