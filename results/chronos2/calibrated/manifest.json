@@ -1,0 +1,22 @@
+{
+  "calibration_window": [
+    "2026-01-08 00:00:00",
+    "2026-03-08 23:00:00"
+  ],
+  "reported_window": [
+    "2026-03-09 00:00:00",
+    "2026-04-22 23:00:00"
+  ],
+  "cal_days": 60,
+  "test_days": 45,
+  "horizon_h": 24,
+  "alpha": 0.2,
+  "nominal_coverage": 0.8,
+  "method": "CQR (Romano et al. 2019) with independent tail offsets, per (model, tank); multiplicative per-tank volume bias correction applied first",
+  "windows_disjoint": true,
+  "models": [
+    "Chronos2-ZS",
+    "NPTS",
+    "SeasonalNaive-24"
+  ]
+}

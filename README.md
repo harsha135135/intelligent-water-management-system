@@ -26,12 +26,14 @@ Measured on a single rolling-origin grid where all nine models score the **same 
 
 Two caveats, both measured and both stated wherever the results appear:
 
-- **Prediction intervals are overconfident** — p10–p90 covers **0.714–0.743** against a nominal
-  0.80. This work traces the cause: **~24 % of hourly readings are exactly zero**, and a
+- **Prediction intervals were overconfident** — p10–p90 covered **0.714–0.743** against a nominal
+  0.80. Cause identified here: **~24 % of hourly readings are exactly zero**, and a
   continuous-density model puts its p10 above zero on 79 % of rows, so two-thirds of its
-  lower-tail misses are zero-demand hours. Not yet corrected.
-- **24-hour volume is under-forecast by 12.15 %** — about 800 KL across the evaluation window.
-  A refill must not be sized on the mean forecast. Not yet corrected.
+  lower-tail misses are zero-demand hours. **Corrected** by asymmetric conformal calibration:
+  coverage **0.741 → 0.785**, measured on a disjoint later window.
+- **24-hour volume was under-forecast by 12.15 %.** **Corrected** by a per-tank multiplicative
+  factor: **−10.5 % → −1.8 %**, cutting daily campus error from 36.7 to 28.8 KL. A refill should
+  still be sized on the calibrated interval, not the raw mean.
 
 Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
 [`docs/review_summary.md`](docs/review_summary.md) ·

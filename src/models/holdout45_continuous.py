@@ -37,9 +37,14 @@ HORIZON = 24
 CHRONOS, INCUMBENT, REFERENCE = "Chronos2-ZS", "NPTS", "SeasonalNaive-24"
 
 
-def build_origins(panel: pd.DataFrame, days: int = HOLDOUT_DAYS) -> list[pd.Timestamp]:
-    """One origin per day at 23:00, each followed by exactly 24 h of actuals."""
-    end = panel["timestamp"].max()
+def build_origins(panel: pd.DataFrame, days: int = HOLDOUT_DAYS,
+                  end: pd.Timestamp | None = None) -> list[pd.Timestamp]:
+    """One origin per day at 23:00, each followed by exactly 24 h of actuals.
+
+    ``end`` is the last hour the window covers; pass it to build an earlier, disjoint window
+    (the calibration set must not overlap the window it is reported on).
+    """
+    end = pd.Timestamp(end) if end is not None else panel["timestamp"].max()
     first_day = end.normalize() - pd.Timedelta(days=days - 1)
     first_origin = first_day - pd.Timedelta(hours=1)          # 23:00 the night before
     return [first_origin + pd.Timedelta(days=k) for k in range(days)]
@@ -62,6 +67,10 @@ def seasonal_naive(panel: pd.DataFrame, origins: list[pd.Timestamp]) -> pd.DataF
             preds.append(np.tile(w, int(np.ceil(len(g) / 24)))[: len(g)])
         b = fut[["item_id", "timestamp", "step"]].copy()
         b["pred"] = np.concatenate(preds)
+        # No native predictive distribution: p10 = p90 = the point forecast, so the conformal
+        # step below builds the whole interval from residuals rather than widening one.
+        b["q10"] = b["pred"]
+        b["q90"] = b["pred"]
         b["actual"] = fut[TARGET].to_numpy()
         b["model"] = REFERENCE
         b["origin"] = origin
@@ -97,11 +106,13 @@ def npts(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int,
         fut = actuals_after(panel, origin, HORIZON)
         known = tsdf(fut).drop(columns=[TARGET])
         pred = predictor.predict(tsdf(hist), known_covariates=known, model="NPTS")
-        pred = pred.reset_index()[["item_id", "timestamp", "mean"]]
+        pred = pred.reset_index()[["item_id", "timestamp", "mean", "0.1", "0.9"]]
         b = fut[["item_id", "timestamp", "step", TARGET]].merge(
             pred, on=["item_id", "timestamp"], how="left").rename(columns={TARGET: "actual"})
         b["pred"] = np.clip(b["mean"].to_numpy(), 0.0, None)
-        b = b.drop(columns=["mean"])
+        b["q10"] = np.clip(b["0.1"].to_numpy(), 0.0, None)
+        b["q90"] = np.clip(b["0.9"].to_numpy(), 0.0, None)
+        b = b.drop(columns=["mean", "0.1", "0.9"])
         b["model"] = INCUMBENT
         b["origin"] = origin
         blocks.append(b)
@@ -127,8 +138,11 @@ def chronos2(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int,
             prediction_length=HORIZON, quantile_levels=[0.1, 0.5, 0.9], batch_size=32,
         )
         out["pred"] = np.clip(out["predictions"].to_numpy(), 0.0, None)
+        out["q10"] = np.clip(out["0.1"].to_numpy(), 0.0, None)
+        out["q90"] = np.clip(out["0.9"].to_numpy(), 0.0, None)
         b = fut[["item_id", "timestamp", "step", TARGET]].merge(
-            out[["item_id", "timestamp", "pred"]], on=["item_id", "timestamp"], how="left"
+            out[["item_id", "timestamp", "pred", "q10", "q90"]],
+            on=["item_id", "timestamp"], how="left"
         ).rename(columns={TARGET: "actual"})
         b["model"] = CHRONOS
         b["origin"] = origin

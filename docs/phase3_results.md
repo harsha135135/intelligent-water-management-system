@@ -16,10 +16,12 @@ estimated. Where something was not done, it says so.
 | 2 | **Validation & Verification** | 🟢 **Done, and now stronger** | Row parity, leakage assertions, MASE identity, independent re-score — **plus the paired bootstrap + Diebold-Mariano significance tests added in this session**, which closed the single largest gap (`review_summary.md` §13.2) |
 | 3 | **Deployment** | 🔴 **Not deployed** | A Chrome MV3 dock runs offline against a bundled forecast; `docker-compose.yml` exists but targets the **retired** AutoGluon models. Nothing is serving live |
 | 4 | **Final Experimental Results** | 🟢 **Done** | 9 models × 6 horizons × 24 tanks on one shared grid. §2 below |
-| 5 | **Performance Analysis (tables + graphs)** | 🟢 **Done — 14 figures, now 23** | 14 existing (A–N) + **9 new (O–W) built this session**. §3–§4 |
+| 5 | **Performance Analysis (tables + graphs)** | 🟢 **Done — 14 figures, now 26** | 14 existing (A–N), **9 new diagnostic (O–W)**, and **3 calibrated 45-day holdout charts (X–Z)**. §3–§4, §7 |
+| 5b | **Conformal calibration + bias correction** | 🟢 **Implemented** | Fitted on 8 Jan – 8 Mar 2026, measured on the disjoint 9 Mar – 22 Apr window: coverage 0.741 → 0.785, volume bias −10.5 % → −1.8 %. `src/models/calibration.py`, §7 below |
 | 6 | **Complete Research Paper Draft** | 🔴 **Not written** | `docs/review_summary.md` (16 sections) is the raw material — results, methodology, limitations — but it is a technical report, not a paper |
 
-**Three of six are complete, one is partial, two are not started.** The honest framing for the
+**Three of six complete, one partial, two not started — plus the two calibration layers the
+benchmark had listed as future work, now implemented (§9).** The honest framing for the
 review: the *modelling* half of Phase III is finished and now statistically defended; the
 *systems* half (testing, deployment) is designed in detail but unbuilt.
 
@@ -343,7 +345,58 @@ calibration deficit against a nonparametric sampler, and that the obvious correc
 
 ---
 
-## 7. The single-slide summary
+## 7. Calibration — implemented and measured out of sample
+
+`review_summary.md` §14 listed split-conformal calibration and per-tank volume bias correction as
+the two highest-value next steps. **Both are now implemented** (`src/models/calibration.py`,
+`src/models/calibrated_holdout.py`).
+
+**Method.** Per-tank multiplicative volume factor (Σactual ÷ Σpred), applied first; then
+conformalised quantile regression (Romano et al., 2019) per tank with **independent lower and
+upper offsets**, because §4.3 showed the failure is almost entirely lower-tail. The lower bound is
+clipped at zero — that is what lets the interval represent the ~24 % of exactly-zero hours.
+
+**The split.** Parameters are fitted on **8 Jan – 8 Mar 2026** and reported on **9 Mar – 22 Apr**,
+strictly later and strictly disjoint. `calibration.assert_disjoint` fails the run if the windows
+touch — coverage measured on the rows it was fitted on would be circular. Each window gets its own
+NPTS predictor fitted only on data preceding it.
+
+### 7.1 Hourly intervals and volume bias (out of sample, nominal 0.80)
+
+| Model | Coverage | Gap to 0.80 | Width (KL/h) | Miss below p10 | Volume bias | Hourly MAE |
+|---|---|---|---|---|---|---|
+| **Chronos-2** | 0.741 → **0.785** | 0.059 → **0.015** | 0.593 → 0.669 | 0.161 → **0.122** | −10.5 % → **−1.8 %** | 0.205 → 0.214 |
+| NPTS | 0.850 → 0.827 | 0.050 → 0.027 | 0.688 → 0.786 | 0.055 → 0.083 | −6.9 % → −1.7 % | 0.227 → 0.241 |
+| SeasonalNaive-24 | 0.268 → **0.804** | 0.532 → **0.004** | 0.000 → 0.780 | 0.371 → 0.099 | −0.1 % → −0.7 % | 0.304 → 0.304 |
+
+SeasonalNaive is the cleanest demonstration: it has **no native interval at all**, and conformal
+calibration takes it from 0.268 to 0.804 — essentially exact.
+
+### 7.2 Campus daily totals, calibrated
+
+| Model | Daily MAE (KL) | MAPE | Total bias | SD ratio | Corr. w/ actual |
+|---|---|---|---|---|---|
+| **Chronos-2** | 36.7 → **28.8** | **11.4 %** | −10.3 % → **−1.6 %** | **0.89** | **+0.65** |
+| NPTS | 41.1 → 36.3 | 14.7 % | −6.6 % → −1.4 % | 0.06 | −0.31 |
+| SeasonalNaive-24 | 42.9 → 42.7 | 17.2 % | +0.7 % → +0.1 % | 0.99 | +0.28 |
+
+### 7.3 Three findings
+
+1. **The correction works, and the cost is stated.** Hourly MAE rises slightly (0.205 → 0.214)
+   because scaling toward the conditional mean moves away from the conditional median, which is
+   what minimises absolute error. Over 24 hours the bias compounds while noise cancels, so daily
+   MAE *improves* 21 %. Apply it to volume and refill sizing — that is what it is for.
+2. **Calibration cannot fix a model that does not track.** After correction NPTS still has an SD
+   ratio of 0.06 and correlates −0.31 with reality. Post-hoc correction fixes *where* a forecast
+   sits and *how sure* it claims to be, not *whether it responds to anything*.
+3. **Daily-total bands did not transfer.** Fitted on 56 calibration days they cover only 63–65 %
+   against nominal 80 %, and 90- or 120-day windows do not help — it is regime shift, not sample
+   size. The hourly intervals, fitted on ~1,400 residuals per tank, transfer well. A production
+   system must refit on a rolling basis and monitor exactly this.
+
+---
+
+## 8. The single-slide summary
 
 > **Chronos-2 zero-shot beats the deployed incumbent at every forecast horizon — 5.7 % to 12.5 %
 > lower MASE — and the margin is statistically significant at all six horizons (paired bootstrap
@@ -351,21 +404,26 @@ calibration deficit against a nonparametric sampler, and that the obvious correc
 > beats the naive baseline on all 24 tanks, and is never significantly worse than the incumbent on
 > any tank with a healthy sensor. It costs 89 seconds and requires no training.**
 >
-> **Two measured caveats, both with identified fixes: its prediction intervals cover 72 % against
-> a nominal 80 % — traced in this work to the model's inability to represent the 24 % of hours
-> with exactly zero demand — and it under-forecasts 24-hour volume by 12 %, which over the
-> evaluation window amounts to 800 KL of under-provisioned campus supply. Neither is corrected
-> yet; both corrections are specified and neither requires retraining.**
+> **Its two known weaknesses have been diagnosed and corrected.** Intervals covered 72 % against
+> a nominal 80 %, traced here to the model's inability to represent the 24 % of hours with exactly
+> zero demand. Asymmetric conformal calibration and a per-tank volume bias correction — fitted on
+> an earlier, disjoint window and measured out of sample — take coverage to **0.785** and cut
+> volume bias from **−10.5 % to −1.8 %**, reducing daily campus error from 36.7 to **28.8 KL**.
+> Neither requires retraining.
+>
+> **What calibration does not fix:** the incumbent still reproduces 6 % of real day-to-day
+> variation and correlates −0.31 with it; Chronos-2 reproduces 89 % and correlates +0.65.
 
 ---
 
-## 8. Reproducing this analysis
+## 9. Reproducing this analysis
 
 ```bash
 source venv/bin/activate
 python -m tests.test_metrics                  # 6/6, ~3 s   — trust nothing if this fails
 python -m src.models.score_benchmark --strict # ~7 s        — re-scores from existing parquets
-python -m src.models.phase3_analysis          # ~90 s       — everything in §3–§5
+python -m src.models.phase3_analysis          # ~90 s       — §3-§4, figures O-W
+python -m src.models.calibrated_holdout       # ~3 min      — §7, figures X-Z
 ```
 
 `phase3_analysis` refits nothing and re-scores nothing; it reads
