@@ -42,7 +42,7 @@ ag_daily_model/
 results/autogluon/
 results/patchtst/
 results/chronos2/_ag_models/
-results/chronos2/**/_npts_model/
+results/chronos2/**/_npts*/
 results/chronos2/*.parquet
 results/chronos2/**/*.parquet
 *.pkl
