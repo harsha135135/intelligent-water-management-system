@@ -271,6 +271,9 @@ it reads the completed prediction parquets. Seeded (`20260830`), so it is reprod
 | **U** | `U_cumulative_volume` | Cumulative campus demand: forecast vs actual, and the running shortfall |
 | **V** | `V_win_matrix` | Tank × horizon improvement heatmap |
 | **W** | `W_zero_inflation_diagnosis` | Why the interval under-covers: the zero-atom mechanism |
+| **X** | `X_tanks45_chronos2` | Chronos-2: four representative tanks, 45 continuous days, calibrated |
+| **Y** | `Y_tanks45_npts` | NPTS: the same four tanks — flat on every one |
+| **Z** | `Z_tanks45_seasonal_naive` | SeasonalNaive-24: closest tracker, worst MAE, every peak a day late |
 
 Tables: `significance_by_horizon.csv`, `significance_per_tank_h24.csv`, `diurnal_error_h24.csv`,
 `error_by_leadtime.csv`, `reliability.csv`, `win_matrix.csv`, `skill_scores_h24.csv`,
@@ -380,7 +383,41 @@ calibration takes it from 0.268 to 0.804 — essentially exact.
 | NPTS | 41.1 → 36.3 | 14.7 % | −6.6 % → −1.4 % | 0.06 | −0.31 |
 | SeasonalNaive-24 | 42.9 → 42.7 | 17.2 % | +0.7 % → +0.1 % | 0.99 | +0.28 |
 
-### 7.3 Three findings
+### 7.3 Per-tank view — figures X, Y, Z
+
+Three figures, one per model, four tanks each. The tanks are the repository's existing
+representative set (`results/chronos2/review/representative_tanks.json`) — highest, median and
+lowest demand among live tanks plus the highest-MASE tank, chosen by measured role in
+`review_plots.pick_representatives`, so the panel cannot be cherry-picked and lines up with
+figures I and J.
+
+| Tank | Role | Trust | Demand | Chronos-2 daily MAE | Band coverage |
+|---|---|---|---|---|---|
+| `BE_BLOCK_OHT` | high demand | healthy | 41.9 KL/day | 7.74 → **7.04 KL** | 70 % |
+| `GJBC_LAW_BLOCK_3__A3_GIRLS` | medium demand | healthy | 8.7 KL/day | 1.80 → 1.92 KL | 67 % |
+| `GJBC_BLOCK_1_A4_RO` | low demand | degraded | 0.1 KL/day | 0.07 → 0.07 KL | **16 %** |
+| `GJBC_LAW_BLOCK_3__A1` | hardest (highest MASE) | healthy | 15.5 KL/day | 6.34 → **6.10 KL** | **21 %** |
+
+**Per-tank daily bands land close to nominal — median coverage 0.781 across all 24 tanks against
+a nominal 0.80.** The campus-total band covers only 0.628. That is not a contradiction: tank
+errors are positively correlated, so they do not cancel in the sum the way an independent-sum
+assumption would predict.
+
+Two tanks carry nearly all of the per-tank failure, and they fail for different reasons:
+
+* `GJBC_LAW_BLOCK_3__A1` (band 21 %) is the **known modelling failure** — a healthy sensor with a
+  genuinely spiky draw that the model smooths away. Already flagged in `review_summary.md` §11.
+* `GJBC_BLOCK_1_A4_RO` (band 16 %) is a **regime change**. It averaged 0.0005 KL/h during the
+  calibration window — below the 0.01 KL/h threshold, so no bias factor was fitted for it — then
+  woke up to ~0.08 KL/day in the reported window. **No correction fitted on an earlier window can
+  anticipate a tank changing behaviour**, which is precisely why a production system must refit on
+  a rolling basis and monitor coverage continuously.
+
+NPTS is flat on all four tanks, confirming that the campus-level flatness is not an aggregation
+artefact. SeasonalNaive-24 is visually the closest tracker — it reproduces every peak — yet has
+the worst MAE, because every feature it reproduces arrives a day late.
+
+### 7.4 Three findings
 
 1. **The correction works, and the cost is stated.** Hourly MAE rises slightly (0.205 → 0.214)
    because scaling toward the conditional mean moves away from the conditional median, which is

@@ -172,6 +172,10 @@ def main() -> None:
     band = fit_daily_band(cal_daily); band.to_csv(OUT / "daily_band.csv", index=False)
     daily = apply_daily_band(daily_campus(test_cal), band)
     daily.to_csv(OUT / "daily_campus.csv", index=False)
+
+    cal_tank = daily_per_tank(cal.apply(cal_df, params))
+    tank_band = fit_tank_band(cal_tank); tank_band.to_csv(OUT / "daily_band_per_tank.csv", index=False)
+    daily_per_tank(test_cal).to_csv(OUT / "daily_per_tank.csv", index=False)
     summ = daily_summary(daily, test_cal); summ.to_csv(OUT / "summary.csv", index=False)
 
     (OUT / "manifest.json").write_text(json.dumps({
@@ -201,9 +205,6 @@ def main() -> None:
     print(summ.to_string(index=False))
     print(f"\n-> {OUT}")
 
-
-if __name__ == "__main__":
-    main()
 
 
 # ---------------------------------------------------------------- figures
@@ -301,3 +302,132 @@ def plot_all() -> None:
             fig.savefig(plots / f"{fname[model]}.{ext}")
         plt.close(fig)
         print(f"  [plot] {fname[model]}")
+
+
+# ---------------------------------------------------------------- per-tank view
+
+REPRESENTATIVE = Path("results/chronos2/review/representative_tanks.json")
+
+
+def daily_per_tank(preds: pd.DataFrame) -> pd.DataFrame:
+    """Daily totals per (model, tank). Same pairing rule as the campus view: rows with a missing
+    actual are dropped from both series so the pair stays comparable."""
+    p = preds.copy()
+    p["day"] = p["timestamp"].dt.normalize()
+    n_expected = p.groupby(["model", "item_id", "day"]).size().rename("n_expected")
+    ok = p.dropna(subset=["actual", "pred_cal"])
+    agg = ok.groupby(["model", "item_id", "day"]).agg(
+        actual_kl=("actual", "sum"), pred_raw_kl=("pred", "sum"), pred_kl=("pred_cal", "sum"),
+        n_scored=("actual", "size"),
+    ).join(n_expected)
+    agg["coverage_pct"] = 100 * agg["n_scored"] / agg["n_expected"]
+    agg["error_kl"] = agg["pred_kl"] - agg["actual_kl"]
+    return agg.reset_index()
+
+
+def fit_tank_band(cal_tank: pd.DataFrame, *, alpha: float = 0.20) -> pd.DataFrame:
+    rows = []
+    for (model, tank), g in cal_tank.groupby(["model", "item_id"]):
+        g = g[g["coverage_pct"] >= 95]
+        r = (g["actual_kl"] - g["pred_kl"]).to_numpy()
+        rows.append({"model": model, "item_id": tank, "n_days": int(len(r)),
+                     "d_lo": float(np.quantile(r, alpha / 2)) if len(r) else 0.0,
+                     "d_hi": float(np.quantile(r, 1 - alpha / 2)) if len(r) else 0.0})
+    return pd.DataFrame(rows)
+
+
+def plot_per_tank() -> None:
+    """One figure per model, four tanks each.
+
+    The four tanks are the repository's existing representative set — highest, median and lowest
+    demand among live tanks plus the highest-MASE tank, chosen by measured role in
+    ``review_plots.pick_representatives`` and recorded in ``representative_tanks.json``. Reusing
+    it means this panel cannot be cherry-picked and lines up with figures I and J.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from .phase3_analysis import _caption
+    from .review_plots import COLOR, GRID, INK, INK2, SURFACE
+
+    plots = OUT / "plots"; plots.mkdir(parents=True, exist_ok=True)
+    reps = json.loads(REPRESENTATIVE.read_text())
+    tanks = list(reps.values()); roles = {v: k for k, v in reps.items()}
+
+    tank_daily = pd.read_csv(OUT / "daily_per_tank.csv", parse_dates=["day"])
+    band = pd.read_csv(OUT / "daily_band_per_tank.csv")
+    trust = json.loads(Path("eda/tank_trust.json").read_text())
+
+    d = tank_daily.merge(band, on=["model", "item_id"], how="left")
+    d["band_lo"] = np.clip(d["pred_kl"] + d["d_lo"], 0.0, None)
+    d["band_hi"] = d["pred_kl"] + d["d_hi"]
+
+    col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
+           REFERENCE: COLOR["SeasonalNaive"]}
+    label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
+             REFERENCE: "SeasonalNaive-24 (reference)"}
+    fname = {CHRONOS: "X_tanks45_chronos2", INCUMBENT: "Y_tanks45_npts",
+             REFERENCE: "Z_tanks45_seasonal_naive"}
+
+    for model in (CHRONOS, INCUMBENT, REFERENCE):
+        c = col[model]
+        fig, axes = plt.subplots(2, 2, figsize=(12.4, 6.8))
+        fig.subplots_adjust(hspace=0.44, wspace=0.20, top=0.83, bottom=0.10)
+
+        for ax, tank in zip(axes.ravel(), tanks):
+            g = d[(d.model == model) & (d.item_id == tank)].sort_values("day").reset_index(drop=True)
+            full = g[g["coverage_pct"] >= 95]
+            a, pr, pc = full["actual_kl"], full["pred_raw_kl"], full["pred_kl"]
+            mae = (pc - a).abs().mean()
+            mae_raw = (pr - a).abs().mean()
+            bias = 100 * (pc.sum() - a.sum()) / a.sum() if a.sum() else np.nan
+            cov = float(((full["actual_kl"] >= full["band_lo"]) &
+                         (full["actual_kl"] <= full["band_hi"])).mean())
+
+            for dd in g[g["coverage_pct"] < 95]["day"]:
+                ax.axvspan(dd - pd.Timedelta(hours=12), dd + pd.Timedelta(hours=12),
+                           color="#f0efec", zorder=0)
+            ax.fill_between(g["day"], g["band_lo"], g["band_hi"], color=c, alpha=0.16, zorder=1)
+            ax.plot(g["day"], g["actual_kl"], color=INK, lw=1.9, zorder=4)
+            ax.plot(g["day"], g["pred_raw_kl"], color=c, lw=1.0, ls=":", alpha=0.75, zorder=2)
+            ax.plot(g["day"], g["pred_kl"], color=c, lw=1.7, ls="--", zorder=3)
+
+            ax.set_title(f"{tank}", fontsize=9.5, color=INK, loc="left", pad=13)
+            ax.text(0, 1.015, f"{roles[tank]} · {trust.get(tank, '?')} · "
+                              f"{a.mean():.1f} KL/day", transform=ax.transAxes,
+                    fontsize=7.8, color=INK2, va="bottom")
+            ax.text(0.985, 0.955,
+                    f"MAE {mae_raw:.2f}→{mae:.2f} KL\nbias {bias:+.1f}%\nband {100*cov:.0f}%",
+                    transform=ax.transAxes, ha="right", va="top", fontsize=7.4,
+                    family="monospace", color=INK2,
+                    bbox=dict(boxstyle="round,pad=0.35", fc=SURFACE, ec=GRID, lw=0.8))
+            ax.set_ylim(0, max(g["actual_kl"].max(), g["band_hi"].max()) * 1.42)
+            ax.set_ylabel("KL/day", fontsize=8.5)
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=14))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
+            ax.tick_params(labelsize=8)
+
+        handles = [plt.Line2D([], [], color=INK, lw=1.9, label="Actual"),
+                   plt.Line2D([], [], color=c, lw=1.7, ls="--", label="Predicted — calibrated"),
+                   plt.Line2D([], [], color=c, lw=1.0, ls=":", label="Predicted — uncalibrated"),
+                   plt.Rectangle((0, 0), 1, 1, fc=c, alpha=0.16, label="conformal band")]
+        fig.legend(handles=handles, loc="upper left", bbox_to_anchor=(0.012, 0.925),
+                   frameon=False, fontsize=8.4, ncol=4)
+        fig.suptitle(f"{label[model]} — four representative tanks, 45 consecutive days",
+                     fontsize=11.5, color=INK, x=0.012, ha="left", y=0.97)
+
+        _caption(fig, "Daily demand per tank, 9 Mar – 22 Apr 2026. Tanks are the repository's "
+                      "existing representative set — highest, median and lowest demand among live "
+                      "tanks plus the highest-MASE tank — chosen by measured role, not by hand, so "
+                      "the panel cannot be cherry-picked. Each panel has its own y-scale: these "
+                      "tanks span two orders of magnitude of demand. Corrections are fitted on the "
+                      "earlier, disjoint 8 Jan – 8 Mar window. Shaded columns are days below 95% "
+                      "sensor coverage.", y=-0.015)
+        for ext in ("png", "svg"):
+            fig.savefig(plots / f"{fname[model]}.{ext}")
+        plt.close(fig)
+        print(f"  [plot] {fname[model]}")
+
+if __name__ == "__main__":
+    main()
