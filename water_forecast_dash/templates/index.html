@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Forecast Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <p class="eyebrow">Extension Module</p>
+        <h1>Water Forecast Dashboard</h1>
+        <p class="subtext">Data pipeline + model layer + API dashboard for 24-hour per-tank forecasting.</p>
+      </div>
+      <span id="healthBadge" class="status-chip">Checking model status...</span>
+    </header>
+
+    <section class="panel architecture-strip">
+      <p><strong>Data Layer:</strong> Daily JSON ingestion with auto-refresh when new tank files arrive.</p>
+      <p><strong>Model Layer:</strong> AutoGluon and PatchTST for hourly demand forecasting.</p>
+      <p><strong>API + Dashboard Layer:</strong> Forecast, retrain status, and operational monitoring in one UI.</p>
+    </section>
+
+    <section class="panel controls">
+      <div class="control">
+        <label for="tankSelect">Tank</label>
+        <select id="tankSelect">
+          {% for tank in tanks %}
+          <option value="{{ tank }}">{{ tank }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="predictionLength">Forecast horizon (hours)</label>
+        <input id="predictionLength" type="number" min="1" max="48" value="24" />
+      </div>
+
+      <div class="control model-group">
+        <label>Models</label>
+        <div class="model-list">
+          {% for key, cfg in model_registry.items() %}
+          <label class="model-option">
+            <input
+              type="checkbox"
+              name="modelKeys"
+              value="{{ key }}"
+              {% if cfg.available %}checked{% endif %}
+              {% if not cfg.available %}disabled{% endif %}
+            />
+            <span>{{ cfg.label }}{% if not cfg.available %} (not trained yet){% endif %}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="control action-wrap">
+        <button id="runForecastBtn" class="primary-btn">Run 24h Forecast</button>
+      </div>
+
+      <div class="control action-wrap">
+        <label for="retrainModelKey">Retrain Target</label>
+        <select id="retrainModelKey">
+          <option value="autogluon">AutoGluon</option>
+          <option value="patchtst" selected>PatchTST</option>
+        </select>
+      </div>
+
+      <div class="control action-wrap">
+        <button id="retrainModelBtn" class="secondary-btn">Retrain Forecast Model</button>
+      </div>
+
+      <div class="control action-wrap">
+        <button id="stopRetrainBtn" class="secondary-btn">Stop Training</button>
+      </div>
+    </section>
+
+    <section class="panel controls">
+      <div class="control">
+        <label for="waltrToken">Waltr JWT Token</label>
+        <input id="waltrToken" type="password" placeholder="Paste JWT token" />
+      </div>
+
+      <div class="control">
+        <label for="locationId">Location ID (optional)</label>
+        <input id="locationId" type="text" placeholder="Leave blank to sync all tanks in default location" />
+      </div>
+
+      <div class="control">
+        <label for="syncStartDate">Start Date</label>
+        <input id="syncStartDate" type="date" value="2025-01-01" />
+      </div>
+
+      <div class="control">
+        <label for="syncEndDate">End Date</label>
+        <input id="syncEndDate" type="date" />
+      </div>
+
+      <div class="control action-wrap">
+        <button id="syncDataBtn" class="secondary-btn">Sync Latest Data</button>
+      </div>
+    </section>
+
+    <section class="panel retrain-panel">
+      <div class="section-head">
+        <h2>Data Sync Status</h2>
+        <p id="syncState" class="subtext">Idle</p>
+      </div>
+      <pre id="syncLog" class="log-box">No sync logs yet.</pre>
+    </section>
+
+    <section class="panel retrain-panel">
+      <div class="section-head">
+        <h2>Model Retraining Status</h2>
+        <p id="retrainState" class="subtext">Idle</p>
+      </div>
+      <pre id="retrainLog" class="log-box">No retrain logs yet.</pre>
+    </section>
+
+    <section class="metrics-grid">
+      <article class="panel metric">
+        <p class="metric-label">Latest Actual Outflow</p>
+        <p id="latestActual" class="metric-value">-</p>
+      </article>
+      <article class="panel metric">
+        <p class="metric-label">AutoGluon Avg Forecast</p>
+        <p id="autogluonAvg" class="metric-value">-</p>
+      </article>
+      <article class="panel metric">
+        <p class="metric-label">PatchTST Avg Forecast</p>
+        <p id="patchtstAvg" class="metric-value">-</p>
+      </article>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="section-head">
+        <h2>Recent History + Next 24h Forecast</h2>
+        <p id="chartMeta" class="subtext"></p>
+      </div>
+      <canvas id="forecastChart"></canvas>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="section-head">
+        <div>
+          <h2>Forecast Table</h2>
+          <p class="subtext">View one model at a time for cleaner comparison.</p>
+        </div>
+        <div class="table-toolbar">
+          <label for="tableModelView">Table Model</label>
+          <select id="tableModelView">
+            <option value="autogluon">AutoGluon</option>
+            <option value="patchtst">PatchTST</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="forecastTable">
+          <thead>
+            <tr>
+              <th>Hour</th>
+              <th>Timestamp</th>
+              <th>Forecast (KL)</th>
+              <th>P10</th>
+              <th>P90</th>
+              <th>Range</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script id="modelRegistryData" type="application/json">{{ model_registry | tojson }}</script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

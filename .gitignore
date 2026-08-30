@@ -1,0 +1,108 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Virtual environments  — never commit these (venv/ alone is 2.2 GB)
+# ─────────────────────────────────────────────────────────────────────────────
+venv/
+.venv/
+.venv*/
+env/
+ENV/
+water_forecast_dash/.venv310/
+water_forecast_dash/.venv/
+**/site-packages/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Model artifacts and bulky outputs
+#
+# The benchmark is reproducible from source: `src/models/chronos2_forecasting.py`
+# and `baselines_autogluon.py` regenerate the parquets in ~60 min, and
+# `score_benchmark.py` regenerates every metric from them in ~7 s. What is
+# committed is the *evidence* (metrics, tables, figures), not the binaries.
+# ─────────────────────────────────────────────────────────────────────────────
+AutogluonModels/
+ag_daily_model/
+results/autogluon/
+results/patchtst/
+results/chronos2/_ag_models/
+results/chronos2/*.parquet
+*.pkl
+*.ckpt
+*.pt
+*.joblib
+*.safetensors
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Regenerable plot directories (`python eda/eda_hourly.py`, ~25 s)
+# ─────────────────────────────────────────────────────────────────────────────
+eda/plots_hourly/
+eda/plots_regen/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Logs and runtime state
+# ─────────────────────────────────────────────────────────────────────────────
+*.log
+logs/
+water_forecast_dash/runtime/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Node
+# ─────────────────────────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Secrets — never commit a WALTR token or any .env
+# ─────────────────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Editor / OS
+# ─────────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.~lock.*#
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Archives and scratch
+# ─────────────────────────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.tmp
+*.bak
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Third-party literature — publisher PDFs (MDPI, arXiv, journals) are
+# copyrighted and are not ours to redistribute from a public repository.
+# Kept locally; excluded from version control.
+# ─────────────────────────────────────────────────────────────────────────────
+papers/
+__MACOSX/

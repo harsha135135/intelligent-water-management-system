@@ -1,0 +1,52 @@
+﻿Loading AutoGluon holdout results...
+  Per-tank results: 24 tanks
+  Holdout predictions: 576 rows
+
+Computing holdout metrics from predictions...
+
+======================================================================
+AutoGluon RESULTS — Per-Tank Holdout (Last 24 Hours)
+======================================================================
+                   item_id          mae         rmse  mean_actual     mean_pred
+                   G_BLOCK 9.881830e-01 2.720169e+00     1.021250  6.438484e-01
+  GJBC_LAW_BLOCK_3_A4_BOYS 8.316120e-01 1.314989e+00     1.398333  8.018931e-01
+              BE_BLOCK_OHT 7.024931e-01 8.521350e-01     1.097083  1.513190e+00
+      GJBC_LAW_BLOCK_3__A1 6.841386e-01 1.671555e+00     0.978750  3.686703e-01
+                 I&H_BLOCK 6.822965e-01 8.873722e-01     0.690417  8.120202e-03
+                 MRD_BLOCK 5.522650e-01 9.774634e-01     1.142500  7.636841e-01
+                   F_BLOCK 4.452719e-01 6.922582e-01     0.722917  3.228554e-01
+                  MM_BLOCK 4.158832e-01 5.348437e-01     1.131667  1.013604e+00
+                       NBX 3.589367e-01 4.362666e-01     0.658750  6.987336e-01
+                 TECH_PARK 3.093238e-01 4.847558e-01     0.506667  2.133267e-01
+      GJBC_LAW_BLOCK_3__A2 2.746962e-01 4.661804e-01     0.510417  4.313600e-01
+           GJBC_BLOCK_2_A1 2.712448e-01 4.281381e-01     0.446667  1.968294e-01
+GJBC_LAW_BLOCK_3__A3_GIRLS 1.340709e-01 2.230860e-01     0.430417  4.347531e-01
+           GJBC_BLOCK_1_A3 1.010358e-01 1.281115e-01     0.132917  1.821486e-01
+     GJBC_BLOCK_1_A2_GIRLS 8.837645e-02 9.905297e-02     0.106667  1.382395e-01
+      GJBC_BLOCK_1_A1_BOYS 7.848973e-02 9.318654e-02     0.107917  1.175061e-01
+                 NEW_BLOCK 4.839513e-02 6.527042e-02     0.163333  1.390064e-01
+                  IT_BLOCK 4.500894e-02 8.611125e-02     0.057083  2.736768e-02
+               BE_BLOCK_RO 3.268846e-02 5.867343e-02     0.033333  1.676867e-03
+         ME_WORKSHOP_BLOCK 2.041442e-02 2.572355e-02     0.027083  2.256573e-02
+        INFORMATION_CENTRE 1.837202e-02 7.591638e-02     0.018750  1.435194e-03
+        CRICKET_GROUND_OHT 5.187507e-03 1.519470e-02     0.004583  6.018706e-04
+        GJBC_BLOCK_1_A4_RO 8.540802e-04 2.888014e-03     0.000833  1.996501e-05
+              NEW_BLOCK_RO 1.615515e-14 2.512502e-14     0.000000 -2.846480e-15
+
+======================================================================
+OVERALL METRICS (all tanks combined)
+======================================================================
+  MAE:  0.295383
+  RMSE: 0.818770
+  Total test rows: 576
+  Tanks evaluated: 24
+
+======================================================================
+COMPARISON: AutoGluon vs LightGBM
+======================================================================
+  AutoGluon:  MAE=0.2954, RMSE=0.8188
+  LightGBM:   MAE=0.0228, RMSE=0.1652
+  LightGBM MAE  improvement over AutoGluon: +92.3%
+  LightGBM RMSE improvement over AutoGluon: +79.8%
+
+Done!

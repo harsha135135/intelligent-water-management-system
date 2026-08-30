@@ -1,0 +1,181 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC BLOCK 1 A1 BOY'S",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "175.000 cm(Height) X 461.000 cm(Length) X 138.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2026-04-12 00",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.07,
+      "Opening Value in KL": 4.63,
+      "Closing Value in KL": 4.56
+    },
+    {
+      "Date Time": "2026-04-12 01",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.1,
+      "Opening Value in KL": 4.56,
+      "Closing Value in KL": 4.46
+    },
+    {
+      "Date Time": "2026-04-12 02",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.06,
+      "Opening Value in KL": 4.46,
+      "Closing Value in KL": 4.4
+    },
+    {
+      "Date Time": "2026-04-12 03",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.11,
+      "Opening Value in KL": 4.4,
+      "Closing Value in KL": 4.29
+    },
+    {
+      "Date Time": "2026-04-12 04",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.06,
+      "Opening Value in KL": 4.29,
+      "Closing Value in KL": 4.24
+    },
+    {
+      "Date Time": "2026-04-12 05",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.12,
+      "Opening Value in KL": 4.24,
+      "Closing Value in KL": 4.12
+    },
+    {
+      "Date Time": "2026-04-12 06",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.1,
+      "Opening Value in KL": 4.12,
+      "Closing Value in KL": 4.03
+    },
+    {
+      "Date Time": "2026-04-12 07",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.37,
+      "Opening Value in KL": 4.03,
+      "Closing Value in KL": 3.66
+    },
+    {
+      "Date Time": "2026-04-12 08",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.11,
+      "Opening Value in KL": 3.66,
+      "Closing Value in KL": 3.55
+    },
+    {
+      "Date Time": "2026-04-12 09",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.57,
+      "Opening Value in KL": 3.55,
+      "Closing Value in KL": 2.99
+    },
+    {
+      "Date Time": "2026-04-12 10",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.25,
+      "Opening Value in KL": 2.99,
+      "Closing Value in KL": 2.74
+    },
+    {
+      "Date Time": "2026-04-12 11",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.75,
+      "Opening Value in KL": 2.74,
+      "Closing Value in KL": 1.99
+    },
+    {
+      "Date Time": "2026-04-12 12",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 1.11,
+      "Opening Value in KL": 1.99,
+      "Closing Value in KL": 0.88
+    },
+    {
+      "Date Time": "2026-04-12 13",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.63,
+      "Opening Value in KL": 0.88,
+      "Closing Value in KL": 0.25
+    },
+    {
+      "Date Time": "2026-04-12 14",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.03,
+      "Opening Value in KL": 0.25,
+      "Closing Value in KL": 0.23
+    },
+    {
+      "Date Time": "2026-04-12 15",
+      "Inflow in KL": 0.07,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.23,
+      "Closing Value in KL": 0.3
+    },
+    {
+      "Date Time": "2026-04-12 16",
+      "Inflow in KL": 0.73,
+      "Outflow in KL": 0.25,
+      "Opening Value in KL": 0.3,
+      "Closing Value in KL": 0.78
+    },
+    {
+      "Date Time": "2026-04-12 17",
+      "Inflow in KL": 0.21,
+      "Outflow in KL": 0.36,
+      "Opening Value in KL": 0.78,
+      "Closing Value in KL": 0.63
+    },
+    {
+      "Date Time": "2026-04-12 18",
+      "Inflow in KL": 0.96,
+      "Outflow in KL": 0.24,
+      "Opening Value in KL": 0.63,
+      "Closing Value in KL": 1.36
+    },
+    {
+      "Date Time": "2026-04-12 19",
+      "Inflow in KL": 0.89,
+      "Outflow in KL": 0.18,
+      "Opening Value in KL": 1.36,
+      "Closing Value in KL": 2.07
+    },
+    {
+      "Date Time": "2026-04-12 20",
+      "Inflow in KL": 0.57,
+      "Outflow in KL": 0.15,
+      "Opening Value in KL": 2.07,
+      "Closing Value in KL": 2.49
+    },
+    {
+      "Date Time": "2026-04-12 21",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.01,
+      "Opening Value in KL": 2.49,
+      "Closing Value in KL": 2.47
+    },
+    {
+      "Date Time": "2026-04-12 22",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.08,
+      "Opening Value in KL": 2.47,
+      "Closing Value in KL": 2.4
+    },
+    {
+      "Date Time": "2026-04-12 23",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.15,
+      "Opening Value in KL": 2.4,
+      "Closing Value in KL": 2.25
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 3.45,
+    "Outflow in KL": 5.86
+  }
+}

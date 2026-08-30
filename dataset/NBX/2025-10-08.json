@@ -1,0 +1,181 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "NBX",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "153.000 cm(Height) X 650.000 cm(Length) X 265.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2025-10-08 00",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.8,
+      "Opening Value in KL": 11.9,
+      "Closing Value in KL": 11.25
+    },
+    {
+      "Date Time": "2025-10-08 01",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.52,
+      "Opening Value in KL": 11.1,
+      "Closing Value in KL": 10.57
+    },
+    {
+      "Date Time": "2025-10-08 02",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.31,
+      "Opening Value in KL": 10.57,
+      "Closing Value in KL": 10.26
+    },
+    {
+      "Date Time": "2025-10-08 03",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.33,
+      "Opening Value in KL": 10.26,
+      "Closing Value in KL": 9.96
+    },
+    {
+      "Date Time": "2025-10-08 04",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.3,
+      "Opening Value in KL": 9.93,
+      "Closing Value in KL": 9.63
+    },
+    {
+      "Date Time": "2025-10-08 05",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.61,
+      "Opening Value in KL": 9.63,
+      "Closing Value in KL": 9.09
+    },
+    {
+      "Date Time": "2025-10-08 06",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 1.97,
+      "Opening Value in KL": 9.02,
+      "Closing Value in KL": 7.15
+    },
+    {
+      "Date Time": "2025-10-08 07",
+      "Inflow in KL": 4.13,
+      "Outflow in KL": 2.1,
+      "Opening Value in KL": 7.06,
+      "Closing Value in KL": 8.57
+    },
+    {
+      "Date Time": "2025-10-08 08",
+      "Inflow in KL": 12.11,
+      "Outflow in KL": 1.23,
+      "Opening Value in KL": 9.09,
+      "Closing Value in KL": 19.83
+    },
+    {
+      "Date Time": "2025-10-08 09",
+      "Inflow in KL": 2.46,
+      "Outflow in KL": 0.53,
+      "Opening Value in KL": 19.97,
+      "Closing Value in KL": 21.9
+    },
+    {
+      "Date Time": "2025-10-08 10",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.23,
+      "Opening Value in KL": 21.9,
+      "Closing Value in KL": 21.67
+    },
+    {
+      "Date Time": "2025-10-08 11",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.38,
+      "Opening Value in KL": 21.67,
+      "Closing Value in KL": 21.31
+    },
+    {
+      "Date Time": "2025-10-08 12",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.33,
+      "Opening Value in KL": 21.29,
+      "Closing Value in KL": 20.99
+    },
+    {
+      "Date Time": "2025-10-08 13",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.78,
+      "Opening Value in KL": 20.96,
+      "Closing Value in KL": 20.21
+    },
+    {
+      "Date Time": "2025-10-08 14",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 1.13,
+      "Opening Value in KL": 20.18,
+      "Closing Value in KL": 19.05
+    },
+    {
+      "Date Time": "2025-10-08 15",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.66,
+      "Opening Value in KL": 19.05,
+      "Closing Value in KL": 18.4
+    },
+    {
+      "Date Time": "2025-10-08 16",
+      "Inflow in KL": 4.22,
+      "Outflow in KL": 0.74,
+      "Opening Value in KL": 18.38,
+      "Closing Value in KL": 21.86
+    },
+    {
+      "Date Time": "2025-10-08 17",
+      "Inflow in KL": 0.03,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 21.86,
+      "Closing Value in KL": 21.9
+    },
+    {
+      "Date Time": "2025-10-08 18",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.19,
+      "Opening Value in KL": 21.9,
+      "Closing Value in KL": 21.74
+    },
+    {
+      "Date Time": "2025-10-08 19",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 1.04,
+      "Opening Value in KL": 21.71,
+      "Closing Value in KL": 20.7
+    },
+    {
+      "Date Time": "2025-10-08 20",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.68,
+      "Opening Value in KL": 20.66,
+      "Closing Value in KL": 20.02
+    },
+    {
+      "Date Time": "2025-10-08 21",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.97,
+      "Opening Value in KL": 19.99,
+      "Closing Value in KL": 19.03
+    },
+    {
+      "Date Time": "2025-10-08 22",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.94,
+      "Opening Value in KL": 19.01,
+      "Closing Value in KL": 18.21
+    },
+    {
+      "Date Time": "2025-10-08 23",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.77,
+      "Opening Value in KL": 18.07,
+      "Closing Value in KL": 17.31
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 22.95,
+    "Outflow in KL": 17.54
+  }
+}

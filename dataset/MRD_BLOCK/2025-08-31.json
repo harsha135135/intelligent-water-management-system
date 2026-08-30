@@ -1,0 +1,83 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "MRD BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "180.000 cm(Height) X 770.000 cm(Length) X 480.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2025-08-31 14",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.22,
+      "Opening Value in KL": 33.52,
+      "Closing Value in KL": 33.45
+    },
+    {
+      "Date Time": "2025-08-31 15",
+      "Inflow in KL": 5.56,
+      "Outflow in KL": 4.36,
+      "Opening Value in KL": 33.3,
+      "Closing Value in KL": 34.01
+    },
+    {
+      "Date Time": "2025-08-31 16",
+      "Inflow in KL": 7.89,
+      "Outflow in KL": 3.04,
+      "Opening Value in KL": 34.5,
+      "Closing Value in KL": 39.35
+    },
+    {
+      "Date Time": "2025-08-31 17",
+      "Inflow in KL": 0.19,
+      "Outflow in KL": 0.07,
+      "Opening Value in KL": 39.35,
+      "Closing Value in KL": 39.46
+    },
+    {
+      "Date Time": "2025-08-31 18",
+      "Inflow in KL": 0.04,
+      "Outflow in KL": 1.27,
+      "Opening Value in KL": 39.46,
+      "Closing Value in KL": 38.3
+    },
+    {
+      "Date Time": "2025-08-31 19",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 1.94,
+      "Opening Value in KL": 38.23,
+      "Closing Value in KL": 36.29
+    },
+    {
+      "Date Time": "2025-08-31 20",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 1.49,
+      "Opening Value in KL": 36.29,
+      "Closing Value in KL": 34.83
+    },
+    {
+      "Date Time": "2025-08-31 21",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.78,
+      "Opening Value in KL": 34.79,
+      "Closing Value in KL": 34.01
+    },
+    {
+      "Date Time": "2025-08-31 22",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.71,
+      "Opening Value in KL": 34.01,
+      "Closing Value in KL": 33.3
+    },
+    {
+      "Date Time": "2025-08-31 23",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.71,
+      "Opening Value in KL": 33.3,
+      "Closing Value in KL": 32.59
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 13.68,
+    "Outflow in KL": 14.59
+  }
+}

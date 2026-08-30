@@ -1,0 +1,181 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC BLOCK 1 A4 RO",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "165.000 cm(Height) X 352.000 cm(Length) X 57.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2025-12-06 00",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 01",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 02",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 03",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 04",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 05",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 06",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 07",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 08",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 09",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 10",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 11",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 12",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 13",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 14",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 15",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 16",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.22
+    },
+    {
+      "Date Time": "2025-12-06 17",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 18",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.22,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 19",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 20",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 21",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 22",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    },
+    {
+      "Date Time": "2025-12-06 23",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 2.21,
+      "Closing Value in KL": 2.21
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.01,
+    "Outflow in KL": 0.0
+  }
+}

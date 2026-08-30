@@ -1,0 +1,32 @@
+{
+  "generated_from": "results/chronos2/predictions_*.parquet (completed benchmark)",
+  "refits": 0,
+  "rescores": 0,
+  "paired_rows": 188664,
+  "n_origins": 24,
+  "n_tanks": 24,
+  "bootstrap_resamples": 10000,
+  "seed": 20260830,
+  "tables": [
+    "cumulative_volume_h24.csv",
+    "diurnal_error_h24.csv",
+    "error_by_leadtime.csv",
+    "reliability.csv",
+    "significance_by_horizon.csv",
+    "significance_per_tank_h24.csv",
+    "skill_scores_h24.csv",
+    "win_matrix.csv",
+    "zero_inflation_diagnosis.csv"
+  ],
+  "figures": [
+    "O_significance_forest",
+    "P_per_tank_significance_h24",
+    "Q_diurnal_error",
+    "R_error_by_leadtime",
+    "S_reliability_diagram",
+    "T_skill_vs_demand",
+    "U_cumulative_volume",
+    "V_win_matrix",
+    "W_zero_inflation_diagnosis"
+  ]
+}

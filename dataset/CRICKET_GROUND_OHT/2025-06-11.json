@@ -1,0 +1,76 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "CRICKET GROUND OHT",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "500.000 cm(Height) X 67.5 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2025-06-11 15",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.01,
+      "Opening Value in KL": 6.6,
+      "Closing Value in KL": 6.59
+    },
+    {
+      "Date Time": "2025-06-11 16",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 6.58,
+      "Closing Value in KL": 6.57
+    },
+    {
+      "Date Time": "2025-06-11 17",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.57,
+      "Closing Value in KL": 6.57
+    },
+    {
+      "Date Time": "2025-06-11 18",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.03,
+      "Opening Value in KL": 6.57,
+      "Closing Value in KL": 6.54
+    },
+    {
+      "Date Time": "2025-06-11 19",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.54,
+      "Closing Value in KL": 6.54
+    },
+    {
+      "Date Time": "2025-06-11 20",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.01,
+      "Opening Value in KL": 6.54,
+      "Closing Value in KL": 6.53
+    },
+    {
+      "Date Time": "2025-06-11 21",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.53,
+      "Closing Value in KL": 6.53
+    },
+    {
+      "Date Time": "2025-06-11 22",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.01,
+      "Opening Value in KL": 6.53,
+      "Closing Value in KL": 6.52
+    },
+    {
+      "Date Time": "2025-06-11 23",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.52,
+      "Closing Value in KL": 6.52
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.0,
+    "Outflow in KL": 0.08
+  }
+}

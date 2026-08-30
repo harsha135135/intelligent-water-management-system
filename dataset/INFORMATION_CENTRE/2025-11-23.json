@@ -1,0 +1,62 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "INFORMATION CENTRE",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "113.000 cm(Height) X 54.0 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2025-11-23 07",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.79,
+      "Closing Value in KL": 0.79
+    },
+    {
+      "Date Time": "2025-11-23 08",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.01,
+      "Opening Value in KL": 0.79,
+      "Closing Value in KL": 0.8
+    },
+    {
+      "Date Time": "2025-11-23 09",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.8,
+      "Closing Value in KL": 0.79
+    },
+    {
+      "Date Time": "2025-11-23 10",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.79,
+      "Closing Value in KL": 0.79
+    },
+    {
+      "Date Time": "2025-11-23 11",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.79,
+      "Closing Value in KL": 0.8
+    },
+    {
+      "Date Time": "2025-11-23 16",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.7,
+      "Closing Value in KL": 0.72
+    },
+    {
+      "Date Time": "2025-11-23 17",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 0.7,
+      "Closing Value in KL": 0.7
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.02,
+    "Outflow in KL": 0.01
+  }
+}

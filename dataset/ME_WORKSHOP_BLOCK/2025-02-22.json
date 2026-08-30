@@ -1,0 +1,69 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "ME WORKSHOP BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "178.000 cm(Height) X 95.0 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2025-02-22 00",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 4.3,
+      "Closing Value in KL": 4.31
+    },
+    {
+      "Date Time": "2025-02-22 01",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 4.31,
+      "Closing Value in KL": 4.31
+    },
+    {
+      "Date Time": "2025-02-22 02",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 4.31,
+      "Closing Value in KL": 4.31
+    },
+    {
+      "Date Time": "2025-02-22 03",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 4.31,
+      "Closing Value in KL": 4.31
+    },
+    {
+      "Date Time": "2025-02-22 04",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.01,
+      "Opening Value in KL": 4.31,
+      "Closing Value in KL": 4.31
+    },
+    {
+      "Date Time": "2025-02-22 05",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 4.31,
+      "Closing Value in KL": 4.31
+    },
+    {
+      "Date Time": "2025-02-22 06",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.1,
+      "Opening Value in KL": 4.3,
+      "Closing Value in KL": 4.22
+    },
+    {
+      "Date Time": "2025-02-22 12",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 3.85,
+      "Closing Value in KL": 3.85
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.01,
+    "Outflow in KL": 0.19
+  }
+}

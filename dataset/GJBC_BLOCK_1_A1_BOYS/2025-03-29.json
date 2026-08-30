@@ -1,0 +1,62 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC BLOCK 1 A1 BOY'S",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "175.000 cm(Height) X 461.000 cm(Length) X 138.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2025-03-29 01",
+      "Inflow in KL": 0.09,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 1.39,
+      "Closing Value in KL": 1.39
+    },
+    {
+      "Date Time": "2025-03-29 04",
+      "Inflow in KL": 0.09,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 0.98,
+      "Closing Value in KL": 0.98
+    },
+    {
+      "Date Time": "2025-03-29 05",
+      "Inflow in KL": 0.09,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 0.72,
+      "Closing Value in KL": 0.72
+    },
+    {
+      "Date Time": "2025-03-29 07",
+      "Inflow in KL": 0.21,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 0.55,
+      "Closing Value in KL": 0.58
+    },
+    {
+      "Date Time": "2025-03-29 08",
+      "Inflow in KL": 0.12,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 0.67,
+      "Closing Value in KL": 0.7
+    },
+    {
+      "Date Time": "2025-03-29 10",
+      "Inflow in KL": 0.09,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 3.69,
+      "Closing Value in KL": 3.69
+    },
+    {
+      "Date Time": "2025-03-29 15",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 2.64,
+      "Closing Value in KL": 2.64
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.69,
+    "Outflow in KL": 0.28
+  }
+}

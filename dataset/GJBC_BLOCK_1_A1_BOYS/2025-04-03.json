@@ -1,0 +1,20 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC BLOCK 1 A1 BOY'S",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "175.000 cm(Height) X 461.000 cm(Length) X 138.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2025-04-03 17",
+      "Inflow in KL": 0.53,
+      "Outflow in KL": 0.21,
+      "Opening Value in KL": 2.83,
+      "Closing Value in KL": 3.15
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.53,
+    "Outflow in KL": 0.21
+  }
+}

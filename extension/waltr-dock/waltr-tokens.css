@@ -1,0 +1,325 @@
+/* Waltr extension design tokens — matched to waltr.in light theme */
+:root {
+  /* Surfaces */
+  --bg: #F6F8FB;
+  --panel: #FFFFFF;
+  --panel-2: #F1F5FA;
+  --hairline: #E6EBF2;
+  --hairline-2: #EEF2F7;
+
+  /* Ink */
+  --ink-900: #0E1726;
+  --ink-700: #334155;
+  --ink-500: #64748B;
+  --ink-400: #94A3B8;
+  --ink-300: #CBD5E1;
+
+  /* Waltr brand */
+  --blue-600: #1E78E8;
+  --blue-500: #2B8BF5;
+  --blue-400: #5BA4F8;
+  --blue-100: #DCEAFB;
+  --blue-50:  #EEF5FE;
+  --wave:     #D9EAFB;
+
+  /* Semantic */
+  --green-500: #10B981;
+  --green-100: #D1FADF;
+  --amber-500: #F59E0B;
+  --amber-100: #FEF0C7;
+  --red-500:   #EF4444;
+  --red-100:   #FEE2E2;
+  --violet-500:#8B5CF6;
+  --violet-100:#EDE9FE;
+
+  /* Radii + shadow */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(16,24,40,.04), 0 1px 1px rgba(16,24,40,.03);
+  --shadow-pop: 0 12px 32px rgba(16,24,40,.12), 0 2px 4px rgba(16,24,40,.06);
+
+  /* Type */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--ink-900);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Waltr shell — lives inside artboards */
+.waltr-shell {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--ink-900);
+}
+
+.waltr-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--hairline);
+  background: #fff;
+}
+.waltr-logo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; letter-spacing: -0.01em;
+  color: var(--ink-900);
+}
+.waltr-logo .dot {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 11px;
+}
+.waltr-location {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--ink-700);
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  background: var(--panel-2);
+  font-size: 13px;
+}
+.waltr-navtabs {
+  display: flex; align-items: center; gap: 2px;
+  margin-left: 18px;
+}
+.waltr-navtab {
+  padding: 8px 12px; border-radius: 8px;
+  color: var(--ink-500); font-size: 13px; font-weight: 500;
+  cursor: default;
+}
+.waltr-navtab.active {
+  color: var(--blue-600); background: var(--blue-50);
+}
+.waltr-topbar .spacer { flex: 1; }
+.waltr-iconbtn {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-500);
+}
+.waltr-iconbtn:hover { background: var(--panel-2); }
+.waltr-avatar {
+  width: 28px; height: 28px; border-radius: var(--r-pill);
+  background: linear-gradient(135deg, #D7E4F7, #BFD3EE);
+  color: var(--blue-600); font-weight: 600; font-size: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.waltr-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  overflow: hidden;
+}
+.waltr-side {
+  border-right: 1px solid var(--hairline);
+  background: #fff;
+  padding: 16px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+  overflow: auto;
+}
+.side-section {
+  padding: 10px 10px 6px;
+  font-size: 11px; font-weight: 600;
+  color: var(--ink-400); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.side-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  color: var(--ink-700); font-size: 13px; font-weight: 500;
+}
+.side-item .ic { width: 16px; height: 16px; color: var(--ink-400); }
+.side-item.active {
+  background: var(--blue-50); color: var(--blue-600);
+}
+.side-item.active .ic { color: var(--blue-500); }
+.side-item .badge {
+  margin-left: auto;
+  background: var(--blue-100); color: var(--blue-600);
+  border-radius: var(--r-pill);
+  font-size: 10px; font-weight: 600; padding: 2px 6px;
+}
+.side-item.child { padding-left: 34px; font-size: 12px; }
+
+.waltr-main {
+  overflow: auto;
+  padding: 20px 24px 40px;
+}
+
+/* Page header */
+.page-hd {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  margin-bottom: 18px;
+}
+.page-hd h1 {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.015em; margin: 0;
+}
+.page-hd .sub { color: var(--ink-500); font-size: 13px; margin-top: 2px; }
+
+.crumbs { font-size: 12px; color: var(--ink-400); margin-bottom: 6px; }
+.crumbs b { color: var(--ink-700); font-weight: 500; }
+
+/* Cards */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-card);
+}
+.card .hd {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hairline-2);
+  display: flex; align-items: center; gap: 10px;
+}
+.card .hd h3 {
+  margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.002em;
+}
+.card .hd .sub { color: var(--ink-500); font-size: 12px; }
+.card .bd { padding: 16px; }
+
+/* Chips / pills */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px; border-radius: var(--r-pill);
+  font-size: 12px; font-weight: 500;
+  background: var(--panel-2); color: var(--ink-700);
+  border: 1px solid transparent;
+}
+.chip.blue { background: var(--blue-50); color: var(--blue-600); }
+.chip.green { background: var(--green-100); color: #047857; }
+.chip.amber { background: var(--amber-100); color: #B45309; }
+.chip.red { background: var(--red-100); color: #B42318; }
+.chip.violet { background: var(--violet-100); color: #6D28D9; }
+.chip.ghost { background: transparent; border: 1px solid var(--hairline); color: var(--ink-700); }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .85; }
+
+/* Buttons */
+.btn {
+  height: 34px; padding: 0 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--hairline); background: #fff; color: var(--ink-900);
+  cursor: pointer;
+}
+.btn:hover { background: var(--panel-2); }
+.btn.primary {
+  background: var(--blue-500); border-color: var(--blue-500); color: #fff;
+}
+.btn.primary:hover { background: var(--blue-600); border-color: var(--blue-600); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-700); }
+.btn.ghost:hover { background: var(--panel-2); }
+.btn.danger { background: #fff; border-color: var(--red-100); color: var(--red-500); }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
+
+.segment {
+  display: inline-flex; padding: 3px; background: var(--panel-2);
+  border-radius: 10px; gap: 2px;
+  border: 1px solid var(--hairline-2);
+}
+.segment button {
+  height: 26px; padding: 0 10px; font-size: 12px; font-weight: 500;
+  border-radius: 7px; border: none; background: transparent; color: var(--ink-500);
+  cursor: pointer;
+}
+.segment button.on { background: #fff; color: var(--ink-900); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+
+/* KPI */
+.kpi-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
+.kpi {
+  padding: 14px 16px; border-radius: var(--r-md);
+  border: 1px solid var(--hairline); background: #fff;
+}
+.kpi .lbl { font-size: 11px; font-weight: 600; color: var(--ink-400); text-transform: uppercase; letter-spacing: 0.06em; }
+.kpi .val { font-family: var(--font-mono); font-size: 26px; font-weight: 500; letter-spacing: -0.02em; color: var(--ink-900); margin-top: 4px; }
+.kpi .val .u { font-size: 13px; color: var(--ink-400); margin-left: 4px; font-weight: 400; }
+.kpi .trend { margin-top: 6px; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; color: var(--ink-500); }
+.kpi.accent { background: linear-gradient(180deg, var(--blue-50), #fff 70%); }
+
+/* Table */
+table.tbl {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+table.tbl th, table.tbl td {
+  text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--hairline-2);
+}
+table.tbl th {
+  font-weight: 500; color: var(--ink-500); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  background: #FBFCFE;
+}
+table.tbl tbody tr:hover { background: #FBFCFE; }
+table.tbl td.mono { font-family: var(--font-mono); font-size: 12px; color: var(--ink-700); }
+
+/* Utility */
+.row { display: flex; align-items: center; gap: 10px; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.spread { display: flex; justify-content: space-between; align-items: center; }
+.mono { font-family: var(--font-mono); }
+.muted { color: var(--ink-500); }
+.tiny { font-size: 11px; }
+.hline { height: 1px; background: var(--hairline-2); }
+
+/* Waltr water wave backdrop for hero cards */
+.wave-bg {
+  position: relative; overflow: hidden;
+}
+.wave-bg::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46%;
+  background:
+    radial-gradient(1000px 140px at 80% 120%, var(--blue-100), transparent 70%),
+    linear-gradient(180deg, transparent, var(--blue-50) 60%);
+  pointer-events: none;
+}
+
+/* Tank list item — mimics Waltr tank cards */
+.tankcard {
+  display: grid; grid-template-columns: 1fr 40px; gap: 8px;
+  align-items: center;
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--blue-50);
+  color: var(--ink-900);
+  font-size: 12px; font-weight: 500;
+  position: relative; overflow: hidden;
+}
+.tankcard .fill {
+  position: absolute; inset: 0; background: var(--blue-100);
+  width: var(--pct, 0%); transition: width .3s;
+}
+.tankcard .label, .tankcard .pct { position: relative; z-index: 1; }
+.tankcard .pct { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+.tankcard.low .pct { color: var(--red-500); }
+.tankcard.warn .pct { color: var(--amber-500); }
+.tankcard.active {
+  outline: 2px solid var(--blue-500);
+  outline-offset: -2px;
+}
+
+/* Severity marker */
+.sev {
+  display: inline-block; width: 6px; height: 22px; border-radius: 3px;
+  background: var(--ink-300);
+}
+.sev.low { background: var(--amber-500); }
+.sev.high { background: var(--red-500); }
+.sev.ok { background: var(--green-500); }
+
+/* Progress */
+.progress {
+  height: 6px; border-radius: 999px; background: var(--hairline-2); overflow: hidden;
+}
+.progress > div {
+  height: 100%; background: var(--blue-500); border-radius: inherit;
+}

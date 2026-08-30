@@ -1,0 +1,83 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "ME WORKSHOP BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "178.000 cm(Height) X 95.0 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2026-02-08 09",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 1.87,
+      "Closing Value in KL": 1.87
+    },
+    {
+      "Date Time": "2026-02-08 10",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 1.87,
+      "Closing Value in KL": 1.85
+    },
+    {
+      "Date Time": "2026-02-08 11",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.19,
+      "Opening Value in KL": 1.85,
+      "Closing Value in KL": 1.66
+    },
+    {
+      "Date Time": "2026-02-08 12",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.09,
+      "Opening Value in KL": 1.66,
+      "Closing Value in KL": 1.58
+    },
+    {
+      "Date Time": "2026-02-08 13",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.06,
+      "Opening Value in KL": 1.57,
+      "Closing Value in KL": 1.51
+    },
+    {
+      "Date Time": "2026-02-08 14",
+      "Inflow in KL": 0.01,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 1.51,
+      "Closing Value in KL": 1.49
+    },
+    {
+      "Date Time": "2026-02-08 15",
+      "Inflow in KL": 2.7,
+      "Outflow in KL": 0.06,
+      "Opening Value in KL": 1.5,
+      "Closing Value in KL": 4.14
+    },
+    {
+      "Date Time": "2026-02-08 16",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 2.69,
+      "Opening Value in KL": 4.14,
+      "Closing Value in KL": 1.45
+    },
+    {
+      "Date Time": "2026-02-08 17",
+      "Inflow in KL": 2.77,
+      "Outflow in KL": 0.07,
+      "Opening Value in KL": 1.45,
+      "Closing Value in KL": 4.14
+    },
+    {
+      "Date Time": "2026-02-08 18",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 4.14,
+      "Closing Value in KL": 4.14
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 5.5,
+    "Outflow in KL": 3.2
+  }
+}

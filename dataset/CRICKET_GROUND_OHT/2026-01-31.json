@@ -1,0 +1,62 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "CRICKET GROUND OHT",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "500.000 cm(Height) X 67.5 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2026-01-31 00",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.7,
+      "Closing Value in KL": 6.69
+    },
+    {
+      "Date Time": "2026-01-31 01",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.69,
+      "Closing Value in KL": 6.69
+    },
+    {
+      "Date Time": "2026-01-31 02",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.69,
+      "Closing Value in KL": 6.7
+    },
+    {
+      "Date Time": "2026-01-31 03",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.7,
+      "Closing Value in KL": 6.69
+    },
+    {
+      "Date Time": "2026-01-31 04",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.69,
+      "Closing Value in KL": 6.69
+    },
+    {
+      "Date Time": "2026-01-31 05",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.69,
+      "Closing Value in KL": 6.69
+    },
+    {
+      "Date Time": "2026-01-31 06",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.0,
+      "Opening Value in KL": 6.69,
+      "Closing Value in KL": 6.69
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.0,
+    "Outflow in KL": 0.0
+  }
+}

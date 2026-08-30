@@ -1,0 +1,55 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "ME WORKSHOP BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "178.000 cm(Height) X 95.0 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2025-05-07 00",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.03,
+      "Opening Value in KL": 2.12,
+      "Closing Value in KL": 2.1
+    },
+    {
+      "Date Time": "2025-05-07 01",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 2.09,
+      "Closing Value in KL": 2.07
+    },
+    {
+      "Date Time": "2025-05-07 02",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 2.07,
+      "Closing Value in KL": 2.03
+    },
+    {
+      "Date Time": "2025-05-07 03",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.06,
+      "Opening Value in KL": 2.03,
+      "Closing Value in KL": 1.98
+    },
+    {
+      "Date Time": "2025-05-07 04",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.05,
+      "Opening Value in KL": 1.98,
+      "Closing Value in KL": 1.92
+    },
+    {
+      "Date Time": "2025-05-07 05",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 1.92,
+      "Closing Value in KL": 1.89
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.0,
+    "Outflow in KL": 0.24
+  }
+}

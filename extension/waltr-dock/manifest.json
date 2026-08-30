@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Waltr Forecast Dock",
+  "version": "1.0.0",
+  "description": "Adds a water-demand forecast panel to the right edge of the Waltr dashboard. Chronos-2 predictions for 24 PES University RR tanks across 6 horizons.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://app.waltr.in/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://app.waltr.in/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["dock.css", "waltr-tokens.css", "forecast_bundle.json"],
+      "matches": ["https://app.waltr.in/*"]
+    }
+  ],
+  "action": { "default_title": "Toggle forecast dock" },
+  "icons": { "128": "icons/icon128.png" }
+}

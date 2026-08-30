@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Waltr Forecast Dock — preview</title>
+<!-- Renders the real content script against a mock Waltr page, so the dock can be reviewed
+     without loading the unpacked extension. It shims the two Chrome APIs content.js uses
+     (chrome.runtime.getURL and chrome.storage.local) and otherwise runs the identical code. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#F6F8FB; --panel:#fff; --hairline:#E6EBF2; --ink-900:#0E1726;
+          --ink-500:#64748B; --ink-400:#94A3B8; --blue-600:#1E78E8; --blue-100:#DCEAFB;
+          --red-500:#EF4444; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); font-family:Inter,system-ui,sans-serif;
+         color:var(--ink-900); padding-right:400px; }
+  .topbar { height:56px; background:#fff; border-bottom:1px solid var(--hairline);
+            display:flex; align-items:center; gap:12px; padding:0 20px; }
+  .mark { width:22px;height:22px;border-radius:6px;
+          background:linear-gradient(135deg,#2B8BF5,#1E78E8); display:grid;place-items:center;
+          color:#fff;font-size:12px;font-weight:700; }
+  .brand { font-weight:600; }
+  .loc { font-size:12px; color:var(--ink-500); background:#F1F5FA; padding:5px 10px;
+         border-radius:999px; }
+  main { max-width:820px; margin:0 auto; padding:28px 20px 60px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-400);
+       margin:26px 0 12px; font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .tank { background:#fff; border:1px solid var(--hairline); border-radius:12px;
+          padding:12px 14px; position:relative; overflow:hidden; }
+  .tank .fill { position:absolute; inset:0 auto 0 0; background:var(--blue-100); }
+  .tank .row { position:relative; display:flex; justify-content:space-between;
+               align-items:center; gap:8px; }
+  .tank .nm { font-size:11px; font-weight:600; color:#334155; letter-spacing:.02em; }
+  .tank .pc { font-size:13px; font-weight:600; font-family:"JetBrains Mono",monospace; }
+  .tank .pc.low { color:var(--red-500); }
+  .note { margin-top:34px; font-size:12px; color:var(--ink-500); line-height:1.7;
+          border-top:1px solid var(--hairline); padding-top:14px; }
+</style>
+
+<div class="topbar">
+  <div class="mark">W</div><div class="brand">waltr</div>
+  <div class="loc">PES University RR ▾</div>
+</div>
+
+<main>
+  <h2>Overhead Tanks</h2>
+  <div class="grid" id="ohts"></div>
+  <h2>Underground Sumps</h2>
+  <div class="grid" id="sumps"></div>
+  <p class="note">
+    Mock Waltr page. The panel on the right is the real content script
+    (<code>content.js</code>) running unmodified against the same
+    <code>forecast_bundle.json</code> the extension ships.
+  </p>
+</main>
+
+<script>
+// ── Chrome API shims ────────────────────────────────────────────────────────
+const _mem = {};
+window.chrome = {
+  runtime: { getURL: (p) => p },
+  storage: { local: {
+    get: (keys, cb) => cb(Object.fromEntries((keys || []).map((k) => [k, _mem[k]]))),
+    set: (obj) => Object.assign(_mem, obj),
+  } },
+};
+
+// ── Mock Waltr tank cards, driven by the same bundle ─────────────────────────
+fetch("forecast_bundle.json").then((r) => r.json()).then((b) => {
+  const cards = Object.values(b.tanks)
+    .sort((a, c) => c.mean_kl - a.mean_kl)
+    .map((t) => {
+      const pct = t.level_pct == null ? 0 : Math.min(100, t.level_pct);
+      return `<div class="tank">
+        <div class="fill" style="width:${pct}%"></div>
+        <div class="row"><span class="nm">${t.name}</span>
+          <span class="pc ${pct < 15 ? "low" : ""}">${Math.round(pct)}%</span></div>
+      </div>`;
+    });
+  document.getElementById("ohts").innerHTML = cards.slice(0, 16).join("");
+  document.getElementById("sumps").innerHTML = cards.slice(16).join("");
+  const s = document.createElement("script");
+  s.src = "content.js";
+  document.body.appendChild(s);
+}).catch((e) => {
+  document.querySelector("main").insertAdjacentHTML("beforeend",
+    `<p style="color:#B42318;margin-top:20px">Could not load forecast_bundle.json (${e}).
+     Serve this directory over HTTP:<br>
+     <code>python3 -m http.server 8080</code> then open
+     <code>http://localhost:8080/preview.html</code></p>`);
+});
+</script>

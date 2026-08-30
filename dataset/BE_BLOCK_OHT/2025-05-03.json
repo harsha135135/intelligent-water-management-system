@@ -1,0 +1,160 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "BE BLOCK OHT",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "280.000 cm(Height) X 608.000 cm(Length) X 390.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2025-05-03 00",
+      "Inflow in KL": 0.4,
+      "Outflow in KL": 0.52,
+      "Opening Value in KL": 57.63,
+      "Closing Value in KL": 57.67
+    },
+    {
+      "Date Time": "2025-05-03 02",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 0.52,
+      "Opening Value in KL": 56.96,
+      "Closing Value in KL": 56.96
+    },
+    {
+      "Date Time": "2025-05-03 03",
+      "Inflow in KL": 0.45,
+      "Outflow in KL": 0.48,
+      "Opening Value in KL": 56.79,
+      "Closing Value in KL": 56.88
+    },
+    {
+      "Date Time": "2025-05-03 04",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 0.48,
+      "Opening Value in KL": 56.48,
+      "Closing Value in KL": 56.48
+    },
+    {
+      "Date Time": "2025-05-03 05",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 0.63,
+      "Opening Value in KL": 56.36,
+      "Closing Value in KL": 56.33
+    },
+    {
+      "Date Time": "2025-05-03 06",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 0.7,
+      "Opening Value in KL": 56.16,
+      "Closing Value in KL": 55.95
+    },
+    {
+      "Date Time": "2025-05-03 07",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 0.48,
+      "Opening Value in KL": 55.49,
+      "Closing Value in KL": 55.49
+    },
+    {
+      "Date Time": "2025-05-03 09",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 3.4,
+      "Opening Value in KL": 52.07,
+      "Closing Value in KL": 48.96
+    },
+    {
+      "Date Time": "2025-05-03 10",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 1.74,
+      "Opening Value in KL": 47.11,
+      "Closing Value in KL": 45.65
+    },
+    {
+      "Date Time": "2025-05-03 11",
+      "Inflow in KL": 0.35,
+      "Outflow in KL": 0.18,
+      "Opening Value in KL": 43.81,
+      "Closing Value in KL": 43.81
+    },
+    {
+      "Date Time": "2025-05-03 13",
+      "Inflow in KL": 1.62,
+      "Outflow in KL": 0.08,
+      "Opening Value in KL": 43.81,
+      "Closing Value in KL": 45.08
+    },
+    {
+      "Date Time": "2025-05-03 14",
+      "Inflow in KL": 5.46,
+      "Outflow in KL": 0.86,
+      "Opening Value in KL": 48.43,
+      "Closing Value in KL": 52.76
+    },
+    {
+      "Date Time": "2025-05-03 15",
+      "Inflow in KL": 0.27,
+      "Outflow in KL": 0.08,
+      "Opening Value in KL": 58.61,
+      "Closing Value in KL": 58.61
+    },
+    {
+      "Date Time": "2025-05-03 16",
+      "Inflow in KL": 0.04,
+      "Outflow in KL": 0.66,
+      "Opening Value in KL": 59.18,
+      "Closing Value in KL": 59.01
+    },
+    {
+      "Date Time": "2025-05-03 17",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.4,
+      "Opening Value in KL": 58.61,
+      "Closing Value in KL": 58.61
+    },
+    {
+      "Date Time": "2025-05-03 18",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.25,
+      "Opening Value in KL": 58.2,
+      "Closing Value in KL": 58.2
+    },
+    {
+      "Date Time": "2025-05-03 19",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.2,
+      "Opening Value in KL": 58.03,
+      "Closing Value in KL": 57.91
+    },
+    {
+      "Date Time": "2025-05-03 20",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.23,
+      "Opening Value in KL": 57.67,
+      "Closing Value in KL": 57.67
+    },
+    {
+      "Date Time": "2025-05-03 21",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.05,
+      "Opening Value in KL": 57.53,
+      "Closing Value in KL": 57.53
+    },
+    {
+      "Date Time": "2025-05-03 22",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.12,
+      "Opening Value in KL": 56.79,
+      "Closing Value in KL": 56.79
+    },
+    {
+      "Date Time": "2025-05-03 23",
+      "Inflow in KL": 0.0,
+      "Outflow in KL": 0.24,
+      "Opening Value in KL": 56.62,
+      "Closing Value in KL": 56.48
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 11.04,
+    "Outflow in KL": 12.3
+  }
+}

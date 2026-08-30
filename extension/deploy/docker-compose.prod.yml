@@ -1,0 +1,15 @@
+# Overlay used on the PESU host for pull-by-tag deploys.
+# Usage:  docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d
+# IMAGE_TAG is injected by the deploy workflow (e.g. v1.0.3 or sha-abc1234).
+
+services:
+  api:
+    build: !reset null
+    image: ghcr.io/harsha135135/capstone_ex/water-forecast-api:${IMAGE_TAG:?set IMAGE_TAG}
+  worker:
+    image: ghcr.io/harsha135135/capstone_ex/water-forecast-api:${IMAGE_TAG:?set IMAGE_TAG}
+  beat:
+    image: ghcr.io/harsha135135/capstone_ex/water-forecast-api:${IMAGE_TAG:?set IMAGE_TAG}
+  web:
+    build: !reset null
+    image: ghcr.io/harsha135135/capstone_ex/water-forecast-web:${IMAGE_TAG:?set IMAGE_TAG}
