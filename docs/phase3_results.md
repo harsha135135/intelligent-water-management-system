@@ -21,7 +21,7 @@ estimated. Where something was not done, it says so.
 | 6 | **Complete Research Paper Draft** | 🔴 **Not written** | `docs/review_summary.md` (16 sections) is the raw material — results, methodology, limitations — but it is a technical report, not a paper |
 
 **Three of six complete, one partial, two not started — plus the two calibration layers the
-benchmark had listed as future work, now implemented (§9).** The honest framing for the
+benchmark had listed as future work, now implemented (§7).** The honest framing for the
 review: the *modelling* half of Phase III is finished and now statistically defended; the
 *systems* half (testing, deployment) is designed in detail but unbuilt.
 
