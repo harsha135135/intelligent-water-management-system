@@ -383,7 +383,7 @@ flowchart LR
 * **Separation.** The calibration window and the window used to report coverage must not overlap,
   or the reported coverage is circular. A rolling split: calibrate on days `[t−28, t−7)`, report
   coverage on `[t−7, t]`.
-* **Seed.** `results/chronos2/review/volume_bias.csv` (signed bias per model × horizon) and
+* **Seed.** `results/chronos2/unified/leaderboard.csv` (signed volume bias per model × horizon) and
   `per_tank_daily_volume_accuracy.csv` (per-tank 24 h bias) give the offline starting table. The
   runtime version refits from `forecast_errors`.
 * **Update cadence.** Nightly recompute; immediate recompute if rolling coverage leaves

@@ -41,8 +41,11 @@ AutogluonModels/
 ag_daily_model/
 results/autogluon/
 results/patchtst/
-results/chronos2/_ag_models/
+# AutoGluon / PatchTST fitting scratch (~420 MB)
+results/chronos2/_*/
 results/chronos2/**/_npts*/
+# uncalibrated diagnostic run; superseded by calibrated/
+results/chronos2/holdout45/
 results/chronos2/*.parquet
 results/chronos2/**/*.parquet
 *.pkl
@@ -109,6 +112,9 @@ Thumbs.db
 papers/
 __MACOSX/
 
-# Generated report page (~5.5 MB of base64-embedded figures already tracked as PNG/SVG).
-# Regenerate with: python reports/build_results_page.py
+# Generated deliverables — both embed figures that are already tracked as PNG/SVG, so
+# committing them would duplicate several MB for no gain. Regenerate with:
+#   python reports/build_results_page.py     -> the HTML results page
+#   python reports/build_review_deck.py      -> the PPTX review deck
 reports/phase3_results_page.html
+reports/*.pptx

@@ -198,7 +198,7 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
     changes the project, and the definitions you'll need if someone asks.</p>
   <div class="facts">
     <span><b>24</b> tanks</span><span><b>9</b> models</span><span><b>6</b> horizons</span>
-    <span><b>188,664</b> scored rows per model</span><span><b>26</b> figures</span>
+    <span><b>188,664</b> scored rows per model</span><span><b>30</b> figures</span>
     <span><b>0</b> leakage rows</span>
     <span>2025-01-01 → 2026-04-22</span>
   </div>
@@ -211,9 +211,11 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
     <div class="note">
       <p>We replaced the water-demand forecasting model running on campus with <b>Chronos-2</b>, a
       pretrained time-series foundation model used <b>zero-shot</b> — no training at all. On a single
-      evaluation grid where all nine models score the same <span class="num">188,664</span> rows, it
-      beats the deployed incumbent at <b>every one of six forecast horizons</b>, and we proved the
-      margin is <b>statistically significant</b> at all six by two independent tests.</p>
+      evaluation grid where all 9 models score the same <span class="num">188,664</span> rows,
+      it beats the deployed incumbent at <b>every one of six forecast horizons</b>, and we proved the
+      margin is <b>statistically significant</b> at all six by two independent tests. It also beats a
+      <b>PatchTST trained on this campus</b> by 16.5–18.6% — and so does the incumbent, which
+      says something about the size of the dataset.</p>
       <p>It had two known weaknesses. We <b>diagnosed the cause of both</b> and <b>implemented the
       corrections</b>, measured on data the correction never saw. Its overconfident intervals went
       from <span class="num">72%</span> coverage to <span class="num">78.5%</span> against a target
@@ -303,7 +305,7 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
 <!-- ─────────────────────────────── WHAT WAS DONE ─────────────────────────────── -->
 <section id="done">
   <div class="sec-head"><span class="sec-n">02</span><h2>What was done</h2></div>
-  <p class="sec-sub">Eight pieces of work. The first was in place before this round; the rest are
+  <p class="sec-sub">Nine pieces of work. The first was in place before this round; the rest are
     new. Each one is stated as: what we did, what it showed, and what it changes.</p>
 
   <div class="stack">
@@ -532,13 +534,42 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
       </div>
     </div>
 
+    <!-- 9 -->
+    <div class="item">
+      <div class="item-h"><h3>9 · The deep-learning control — PatchTST</h3><span class="chip new">new</span></div>
+      <div class="item-b">
+        <div class="row"><span class="k">What</span><span class="v">Trained <b>PatchTST</b> on this
+          campus and scored it on the <b>identical grid</b> — same 24 origins, same six horizons,
+          same 188,664 rows, same row-parity assertion. Two configurations:
+          AutoGluon's defaults, and a second at the settings the PatchTST paper uses for hourly data
+          (<span class="num">context 512 h, 100 epochs</span>),
+          because Chronos-2 sees 2,048 hours of context and a win over a handicapped opponent is not
+          a win.</span></div>
+        <div class="row"><span class="k">Showed</span><span class="v">Chronos-2 zero-shot is
+          <b>16.5–18.6% better in MASE</b> than the stronger PatchTST at <b>every</b> horizon,
+          significant at all six by both tests, winning
+          <span class="num">120/144</span>
+          tank×horizon cells. Per tank at 1 day: <b>19 significantly better,
+          4 indistinguishable, 1 significantly worse</b>. PatchTST needed
+          <span class="num">55 min</span> of training against Chronos-2's
+          <span class="num">89 s</span> of inference.</span></div>
+        <div class="row means"><span class="k">Means</span><span class="v">This closes the last
+          obvious hole: every previous opponent was statistical, so "you never tried a real deep
+          model" was a fair objection. It no longer is. <b>The more interesting result is that the
+          trained transformer also loses to the incumbent</b> — on 24 short, noisy, zero-inflated
+          series, training a transformer from scratch buys less than a well-chosen non-parametric
+          method, and far less than a pretrained one. That is the argument for a foundation model,
+          stated as a measurement rather than a preference.</span></div>
+      </div>
+    </div>
+
   </div>
 </section>
 
 <!-- ─────────────────────────────── IMPACT ─────────────────────────────── -->
 <section id="impact">
   <div class="sec-head"><span class="sec-n">03</span><h2>How this changes the project</h2></div>
-  <p class="sec-sub">Four things are true now that were not true before this round of work.</p>
+  <p class="sec-sub">Five things are true now that were not true before this round of work.</p>
   <div class="stack">
     <div class="tw"><table>
       <caption>Before and after</caption>
@@ -556,6 +587,10 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
         <tr><th scope="row">Can we size a refill with it?</th>
           <td class="bad">No — 12% under-forecast, ~800 KL short across the window.</td>
           <td class="good">Bias corrected to −1.8%; daily campus error down 21%.</td></tr>
+        <tr><th scope="row">Did you try a real deep model?</th>
+          <td class="bad">No. Every opponent was statistical — a fair objection, and an open one.</td>
+          <td class="good">PatchTST, trained here at two configurations on identical rows.
+            Chronos-2 wins by 16.5–18.6% MASE at every horizon.</td></tr>
         <tr><th scope="row">Is it deployed?</th>
           <td class="dim">No.</td>
           <td class="bad">Still no. Designed in detail across six documents, but nothing is serving.</td></tr>
@@ -573,7 +608,7 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
 <!-- ─────────────────────────────── QUESTIONS ─────────────────────────────── -->
 <section id="questions">
   <div class="sec-head"><span class="sec-n">04</span><h2>Likely questions, with answers</h2></div>
-  <p class="sec-sub">The eight most probable, in roughly the order they tend to come.</p>
+  <p class="sec-sub">The nine most probable, in roughly the order they tend to come.</p>
   <div class="stack">
 
     <div class="qa"><div class="q">Your model isn't trained on your data at all. How can it work?</div>
@@ -611,6 +646,15 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
       though hourly MAE rises 4%. The correction is for volume and refill sizing, which is what it's
       for.</p></div></div>
 
+
+    <div class="qa"><div class="q">Did you try an actual deep-learning model, or only statistical baselines?</div>
+      <div class="a"><p>Both. PatchTST — the same patched-transformer family Chronos-2 belongs to —
+      trained on this campus at two configurations, on the identical rows. Chronos-2 beats the
+      stronger one by <b>16.5–18.6% MASE at every horizon</b>, significant at all six.</p>
+      <p>The part worth saying out loud: <b>PatchTST also loses to the incumbent.</b> Twenty-four
+      short, zero-inflated series is not enough data to train a transformer from scratch — which is
+      exactly the situation a pretrained model exists for.</p></div></div>
+
     <div class="qa"><div class="q">Is this running anywhere?</div>
       <div class="a"><p>No. There's a browser extension that displays real forecasts from a
       precomputed file, but nothing is serving live. The production architecture is fully
@@ -643,6 +687,11 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
       <p>6/6 metric tests and 15/15 methodology checks pass, which validates the <em>measurement
       apparatus</em>. There's no integration test suite, because the system it would test isn't
       built. Say that rather than presenting model tests as system tests.</p></div>
+    <div class="note warn"><h4>PatchTST was not architecture-searched</h4>
+      <p>Two configurations were run — AutoGluon's defaults and the PatchTST paper's hourly settings —
+      not a per-tank sweep. The claim is that <b>a competently configured PatchTST loses by
+      16.5–18.6% on 24 series this short</b>, not that no PatchTST could ever win, and not a
+      statement about deep forecasting given substantially more data.</p></div>
     <div class="note warn"><h4>Two honest limitations in the results themselves</h4>
       <p>The evaluation covers one 23-day window in one season — the improvement figures shouldn't be
       extrapolated to a monsoon. And the daily-total confidence bands transfer worse than the hourly
@@ -676,8 +725,11 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
         <div class="s">after per-tank correction</div></div>
       <div class="stat"><div class="k">Variation captured</div><div class="v">89% vs 6%</div>
         <div class="s">Chronos-2 against the incumbent</div></div>
+      <div class="stat"><div class="k">vs trained PatchTST</div>
+        <div class="v">16.5–18.6%</div>
+        <div class="s">lower MASE, every horizon, significant at all six</div></div>
       <div class="stat"><div class="k">Cost</div><div class="v">89 s</div>
-        <div class="s">full backtest, no training at all</div></div>
+        <div class="s">full backtest, no training at all — PatchTST needed 55 min</div></div>
     </div>
 
     <div class="note">

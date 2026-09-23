@@ -15,8 +15,8 @@ estimated. Where something was not done, it says so.
 | 1 | **System Testing** | 🟡 **Partial** | 6/6 metric unit tests pass (`tests/test_metrics.py`); 15/15 methodology checks pass under `score_benchmark --strict`. **No system/integration test suite exists** — the real-time system it would test is designed but not built |
 | 2 | **Validation & Verification** | 🟢 **Done, and now stronger** | Row parity, leakage assertions, MASE identity, independent re-score — **plus the paired bootstrap + Diebold-Mariano significance tests added in this session**, which closed the single largest gap (`review_summary.md` §13.2) |
 | 3 | **Deployment** | 🔴 **Not deployed** | A Chrome MV3 dock runs offline against a bundled forecast; `docker-compose.yml` exists but targets the **retired** AutoGluon models. Nothing is serving live |
-| 4 | **Final Experimental Results** | 🟢 **Done** | 9 models × 6 horizons × 24 tanks on one shared grid. §2 below |
-| 5 | **Performance Analysis (tables + graphs)** | 🟢 **Done — 14 figures, now 26** | 14 existing (A–N), **9 new diagnostic (O–W)**, and **3 calibrated 45-day holdout charts (X–Z)**. §3–§4, §7 |
+| 4 | **Final Experimental Results** | 🟢 **Done** | 11 models × 6 horizons × 24 tanks on one shared grid, now including a PatchTST trained on this campus. §2, §2.4 below |
+| 5 | **Performance Analysis (tables + graphs)** | 🟢 **Done — 14 figures, now 30** | 14 existing (A–N), **9 diagnostic (O–W)**, **3 calibrated 45-day holdout charts (X–Z)**, and **4 for the PatchTST control (AA–AD)**. §2.4, §3–§4, §7 |
 | 5b | **Conformal calibration + bias correction** | 🟢 **Implemented** | Fitted on 8 Jan – 8 Mar 2026, measured on the disjoint 9 Mar – 22 Apr window: coverage 0.741 → 0.785, volume bias −10.5 % → −1.8 %. `src/models/calibration.py`, §7 below |
 | 6 | **Complete Research Paper Draft** | 🔴 **Not written** | `docs/review_summary.md` (16 sections) is the raw material — results, methodology, limitations — but it is a technical report, not a paper |
 
@@ -35,8 +35,8 @@ review: the *modelling* half of Phase III is finished and now statistically defe
 | `results/chronos2/metrics_by_horizon.csv` | 54 rows — macro + volume-weighted metrics, coverage, interval width |
 | `results/chronos2/metrics_per_tank.csv` | 1,296 rows |
 | `results/chronos2/per_tank_comparison.csv` | 144 rows — Chronos-2 vs NPTS vs SeasonalNaive per tank × horizon |
-| `results/chronos2/review/` | 10 CSVs incl. `volume_bias.csv`, `per_tank_daily_volume_accuracy.csv` |
-| `results/chronos2/review/plots/` | **Figures A–N** (14), PNG + SVG |
+| `results/chronos2/unified/` | 10 CSVs + `summary.json` — the leaderboard, significance against every opponent, win matrix, per-tank, skill, calibration and cost |
+| `results/chronos2/unified/plots/` | **Figures U1–U12**, PNG + SVG, every panel carrying every model |
 | `docs/review_summary.md` | 16-section technical report |
 
 ### Figures A–N (already in the deck)
@@ -66,7 +66,7 @@ review: the *modelling* half of Phase III is finished and now statistically defe
 | Physical tanks | 24 (26 directories de-duplicated; loader **raises** if ≠ 24) |
 | Forecast origins | 24, at a **23-hour stride** (co-prime with 24 → every hour-of-day visited exactly once) |
 | Horizons | 6 h, 12 h, 1 d, 2 d, 3 d, 7 d |
-| Models | 9, on **identical rows** — enforced by `assert_comparable()`, fatal under `--strict` |
+| Models | 11, on **identical rows** — enforced by `assert_comparable()`, fatal under `--strict` |
 | Scored rows | 3,405 / 6,861 / 13,530 / 27,323 / 41,140 / 96,405 → **188,664 total per model** |
 | Leakage rows | **0** — every scored row satisfies `timestamp > origin` |
 | Duplicates | **0** |
@@ -87,7 +87,7 @@ review: the *modelling* half of Phase III is finished and now statistically defe
 MASE is a ratio to a seasonal-naive baseline: **1.0 = no better than naive**. It is *not* a
 percentage. SeasonalNaive-24 scoring ≈ 1.0 is the sanity check that the whole scale is correct.
 
-### 2.3 All nine models at the 1-day horizon
+### 2.3 All eleven models at the 1-day horizon
 
 | Rank | Model | MASE | MAE | RMSE | RMSSE | p10–p90 coverage |
 |---|---|---|---|---|---|---|
@@ -105,6 +105,115 @@ percentage. SeasonalNaive-24 scoring ≈ 1.0 is the sanity check that the whole 
 Zero-shot is chosen because it costs **89 s** against 5.9–15.5 min for the covariate variants,
 needs no covariate pipeline, and has no extra failure mode. That is a compute decision, not an
 accuracy one, and it is defensible precisely because the accuracy difference is nil.
+
+---
+
+### 2.4 The deep-learning control — PatchTST
+
+Every model above is either statistical or Chronos-2 itself, which left one question open:
+**would a supervised transformer trained on this campus have done better?** PatchTST (Nie et al.,
+ICLR 2023) is the natural candidate — the same patched-transformer family Chronos-2 belongs to,
+but fitted on this data rather than pretrained on someone else's.
+
+It is now on the identical grid: same 24 origins, same six horizons, same
+188,664 scored rows, same row-parity assertion. **Two configurations were run,
+because one would have been unfair:**
+
+| Configuration | Context | Epochs | Batches/epoch | Wall clock |
+|---|---|---|---|---|
+| `PatchTST` (AutoGluon defaults) | 96 h | 30 | 50 | 2.2 min |
+| `PatchTST-Tuned` (paper settings for hourly) | 512 h | 100 | 200 | 55.2 min |
+
+Chronos-2 conditions on **2,048 hours** of context; a win over a model restricted to
+96 would not be a win worth reporting. Both are fitted only on data
+at or before the first origin (2026-03-24 22:00) and rolled forward, exactly as the statistical
+baselines are. **The significance test below uses whichever configuration is better — measured,
+not chosen.**
+
+#### Macro MASE by horizon, on the paired frame
+
+| Model | 6 h | 12 h | 1 d | 2 d | 3 d | 7 d | MAE @ 1 d |
+|---|---|---|---|---|---|---|---|
+| **Chronos-2 (zero-shot)** | 0.5962 | 0.6278 | 0.6563 | 0.6668 | 0.6670 | 0.6653 | 0.2111 |
+| PatchTST (defaults) | 0.7680 | 0.8233 | 0.8575 | 0.8577 | 0.8655 | 0.8681 | 0.2820 |
+| PatchTST (tuned) | 0.7141 | 0.7601 | 0.8061 | 0.8058 | 0.8104 | 0.8152 | 0.2608 |
+| NPTS *(incumbent)* | 0.6813 | 0.6908 | 0.7109 | 0.7126 | 0.7095 | 0.7057 | 0.2297 |
+| SeasonalNaive-24 *(reference)* | 0.9697 | 0.9639 | 1.0363 | 1.0529 | 1.0637 | 1.0692 | 0.3170 |
+
+#### Chronos-2 vs PatchTST-Tuned — paired bootstrap (10,000 resamples) + Diebold–Mariano
+
+| Horizon | MASE improvement | 95 % CI | Bootstrap *p* | DM stat | DM *p* | Origins won | Verdict |
+|---|---|---|---|---|---|---|---|
+| **6 h** | **16.51 %** | [9.93, 24.04] | < 0.0001 | -4.52 | 1.5e-04 | 21/24 | ✅ significant |
+| **12 h** | **17.40 %** | [10.88, 23.37] | < 0.0001 | -5.28 | 2.4e-05 | 23/24 | ✅ significant |
+| **1 d** | **18.58 %** | [13.63, 22.79] | < 0.0001 | -6.45 | 1.4e-06 | 23/24 | ✅ significant |
+| **2 d** | **17.25 %** | [13.42, 21.04] | < 0.0001 | -5.99 | 4.2e-06 | 23/24 | ✅ significant |
+| **3 d** | **17.69 %** | [14.95, 20.40] | < 0.0001 | -7.20 | 2.5e-07 | 24/24 | ✅ significant |
+| **7 d** | **18.39 %** | [17.04, 19.80] | < 0.0001 | -12.21 | 1.6e-11 | 24/24 | ✅ significant |
+
+**Chronos-2 zero-shot is 16.5–18.6 % better in MASE at every one of the six horizons**,
+significant at all six by both tests, winning
+**120 of 144** tank×horizon cells.
+Per tank at 1 d: **19 significantly better,
+4 indistinguishable,
+1 significantly worse.**
+
+The three tanks where PatchTST does best:
+
+| Tank | tier | Chronos-2 improvement | 95 % CI | Verdict |
+|---|---|---|---|---|
+| `NEW_BLOCK_RO` | dead | -19.93 % | [-22.84, -17.11] | PatchTST better |
+| `CRICKET_GROUND_OHT` | degraded | -1.17 % | [-3.03, +0.72] | no significant difference |
+| `INFORMATION_CENTRE` | dead | -0.83 % | [-1.83, +0.02] | no significant difference |
+
+#### Interval calibration at 1 d
+
+| Model | p10–p90 coverage | Gap to 0.80 | Mean width (KL/h) | Rows with p10 < 0 |
+|---|---|---|---|---|
+| **Chronos-2 (zero-shot)** | 0.722 | -0.078 | 0.599 | 0.0 % |
+| PatchTST (defaults) | 0.808 | +0.008 | 0.806 | 62.4 % |
+| PatchTST (tuned) | 0.835 | +0.035 | 0.806 | 65.9 % |
+| NPTS *(incumbent)* | 0.842 | +0.042 | 0.680 | 0.0 % |
+| SeasonalNaive-24 *(reference)* | 0.900 | +0.100 | 1.709 | 79.7 % |
+
+On coverage alone **PatchTST is the best-calibrated model in this table** — it lands within a
+point of nominal where Chronos-2 misses by eight. That comparison does not survive the last column.
+PatchTST reaches nominal coverage with a substantially wider band whose **lower bound is below zero
+on a large fraction of rows** — a negative water outflow, which cannot happen.
+
+This is the §4.3 zero-inflation mechanism seen from the other side. A continuous density can only
+cover a series that is ~24 % exact zeros by spending probability mass on impossible values.
+Chronos-2 refuses to go negative and under-covers; PatchTST goes negative and covers. **Neither is
+calibrated**, and an interval that tells an operator a tank might draw a negative volume is not
+usable for sizing a refill. The fix for both is the asymmetric conformal calibration of §7 — not a
+wider band.
+
+#### What each model cost to produce the same 188,664 forecasts
+
+| Model | Regime | Wall clock | Minutes | MASE @ 1 d |
+|---|---|---|---|---|
+| **Chronos-2 (zero-shot)** | zero-shot — no training | 89 s | 1.5 min | 0.6563 |
+| PatchTST (defaults) | trained — 30 epochs, context 96 h, one predictor per horizon | 132 s | 2.2 min | 0.8575 |
+| PatchTST (tuned) | trained — 100 epochs, context 512 h, one predictor per horizon | 3,311 s | 55.2 min | 0.8061 |
+| NPTS (+4 statistical baselines, one pass) | fitted — one predictor per horizon | 1,579 s | 26.3 min | 0.7109 |
+
+#### The inference
+
+**PatchTST is not a bad model here.** It beats ETS, Theta and DynamicOptimizedTheta, and it beats
+the seasonal-naive reference at every horizon. **It loses to the *incumbent* as well as to
+Chronos-2**, which is the more interesting finding: on 24 short, noisy, zero-inflated series,
+training a transformer from scratch buys less than a well-chosen non-parametric method, and far
+less than a pretrained one. That is the argument for a foundation model on this problem, stated as
+a measurement rather than a preference.
+
+The operational asymmetry is larger than the accuracy gap. PatchTST needed **55 minutes**
+of training against Chronos-2's **89 seconds** of inference — a **37×**
+difference — and it must be refitted whenever the campus changes, whereas the zero-shot model holds
+no fitted state that can go stale.
+
+Full analysis: `results/chronos2/unified/`. Regenerate with
+`python -m src.models.patchtst_benchmark` (both presets) then
+`python -m src.models.unified_analysis`.
 
 ---
 
@@ -257,7 +366,7 @@ pipeline, since they were recomputed here from the raw parquets by different cod
 
 ## 5. New artefacts produced this session
 
-Generated by `python -m src.models.phase3_analysis` (~90 s). **Refits nothing, re-scores nothing** —
+Generated by `python -m src.models.unified_analysis` (~4 min). **Refits nothing, re-scores nothing** —
 it reads the completed prediction parquets. Seeded (`20260830`), so it is reproducible.
 
 | Figure | File | Shows |
@@ -278,7 +387,7 @@ it reads the completed prediction parquets. Seeded (`20260830`), so it is reprod
 Tables: `significance_by_horizon.csv`, `significance_per_tank_h24.csv`, `diurnal_error_h24.csv`,
 `error_by_leadtime.csv`, `reliability.csv`, `win_matrix.csv`, `skill_scores_h24.csv`,
 `cumulative_volume_h24.csv`, `zero_inflation_diagnosis.csv`, `phase3_manifest.json` — all under
-`results/chronos2/phase3/`.
+`results/chronos2/unified/`.
 
 ---
 
@@ -313,8 +422,8 @@ the dock as a deployment: it is a demo surface with precomputed data, and descri
 is more credible than describing it generously.
 
 ### 4. Final Experimental Results — 🟢 complete and defensible
-9 models, 6 horizons, 24 tanks, 188,664 rows per model on one shared grid, zero leakage, zero
-duplicates. **Chronos-2 zero-shot beats the incumbent NPTS at every horizon on every point
+Eleven models, 6 horizons, 24 tanks, 188,664 rows per model on one shared grid, zero leakage,
+zero duplicates. **Chronos-2 zero-shot beats the incumbent NPTS at every horizon on every point
 metric, by 5.7–12.5 % MASE, and the margin is statistically significant everywhere.** It costs
 89 seconds for the entire backtest.
 
@@ -386,9 +495,9 @@ calibration takes it from 0.268 to 0.804 — essentially exact.
 ### 7.3 Per-tank view — figures X, Y, Z
 
 Three figures, one per model, four tanks each. The tanks are the repository's existing
-representative set (`results/chronos2/review/representative_tanks.json`) — highest, median and
+representative set (`results/chronos2/representative_tanks.json`) — highest, median and
 lowest demand among live tanks plus the highest-MASE tank, chosen by measured role in
-`review_plots.pick_representatives`, so the panel cannot be cherry-picked and lines up with
+the recorded representative set, so the panel cannot be cherry-picked and lines up with
 figures I and J.
 
 | Tank | Role | Trust | Demand | Chronos-2 daily MAE | Band coverage |
@@ -459,10 +568,11 @@ the worst MAE, because every feature it reproduces arrives a day late.
 source venv/bin/activate
 python -m tests.test_metrics                  # 6/6, ~3 s   — trust nothing if this fails
 python -m src.models.score_benchmark --strict # ~7 s        — re-scores from existing parquets
-python -m src.models.phase3_analysis          # ~90 s       — §3-§4, figures O-W
+python -m src.models.unified_analysis         # ~4 min      — every table, all models
+python -m src.models.unified_figures          # ~25 s       — figures U1-U12
 python -m src.models.calibrated_holdout       # ~3 min      — §7, figures X-Z
 ```
 
-`phase3_analysis` refits nothing and re-scores nothing; it reads
+`unified_analysis` refits nothing and re-scores nothing; it reads
 `results/chronos2/predictions_*.parquet` and asserts 188,664 paired rows, matching the published
 row count exactly. Bootstrap seed `20260830` is fixed, so the CIs reproduce.

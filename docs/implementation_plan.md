@@ -8,7 +8,7 @@ Phased delivery of the system specified in [`realtime_architecture.md`](realtime
   modified.** `src/` is imported, not edited, except for additive helpers that leave existing
   function signatures untouched — and `tests/test_metrics.py` must still pass 6/6 after any such
   addition.
-* PatchTST is out of scope.
+* PatchTST is on the evaluation grid as the trained deep control (`src/models/patchtst_benchmark.py`); it is not a candidate for the production path.
 * No expensive re-run of the benchmark. The one permitted re-execution is
   `python -m src.models.score_benchmark --strict` (~7 s from existing predictions) as a regression
   check that `src/` was not disturbed.
@@ -400,8 +400,8 @@ research step, not a scheduled job.
 `realtime/calibration/service.py` (nightly refit, drift-triggered refit) ·
 `realtime/calibration/monitor.py` (rolling coverage on a **disjoint** window).
 
-**Seed:** `results/chronos2/review/volume_bias.csv` and
-`results/chronos2/review/per_tank_daily_volume_accuracy.csv` for the initial offline table; the
+**Seed:** `results/chronos2/unified/leaderboard.csv` (signed volume bias) and
+`results/chronos2/unified/per_tank.csv` for the initial offline table; the
 runtime version refits from `forecast_errors`.
 
 **Tests.**

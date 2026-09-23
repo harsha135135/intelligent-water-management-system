@@ -215,8 +215,7 @@ def plot_all() -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    from .phase3_analysis import _caption
-    from .review_plots import COLOR, GRID, INK, INK2, SURFACE
+    from .style import caption as _caption, COLOR, GRID, INK, INK2, SURFACE
 
     plots = OUT / "plots"; plots.mkdir(parents=True, exist_ok=True)
     daily = pd.read_csv(OUT / "daily_campus.csv", parse_dates=["day"])
@@ -306,7 +305,7 @@ def plot_all() -> None:
 
 # ---------------------------------------------------------------- per-tank view
 
-REPRESENTATIVE = Path("results/chronos2/review/representative_tanks.json")
+REPRESENTATIVE = Path("results/chronos2/representative_tanks.json")
 
 
 def daily_per_tank(preds: pd.DataFrame) -> pd.DataFrame:
@@ -341,15 +340,14 @@ def plot_per_tank() -> None:
 
     The four tanks are the repository's existing representative set — highest, median and lowest
     demand among live tanks plus the highest-MASE tank, chosen by measured role in
-    ``review_plots.pick_representatives`` and recorded in ``representative_tanks.json``. Reusing
+    the representative-tank selection recorded in ``representative_tanks.json``. Reusing
     it means this panel cannot be cherry-picked and lines up with figures I and J.
     """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    from .phase3_analysis import _caption
-    from .review_plots import COLOR, GRID, INK, INK2, SURFACE
+    from .style import caption as _caption, COLOR, GRID, INK, INK2, SURFACE
 
     plots = OUT / "plots"; plots.mkdir(parents=True, exist_ok=True)
     reps = json.loads(REPRESENTATIVE.read_text())
