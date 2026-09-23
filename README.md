@@ -48,12 +48,12 @@ Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
 | Path | Contents |
 |---|---|
 | `src/data/` | `curate.py` — 26 directories → 24 tanks, gapless hourly reindex, raises on drift. `calendar_pesu.py` — academic-calendar covariates |
-| `src/models/` | **Forecasting** — `chronos2_forecasting.py` (the production model), `baselines_autogluon.py` (NPTS + classical), `patchtst_benchmark.py` (the trained deep control). **Evaluation** — `backtest.py` (the shared grid), `metrics.py`, `score_benchmark.py` (row parity, fatal under `--strict`), `significance.py` (paired bootstrap + Diebold-Mariano). **Reporting** — `unified_analysis.py` + `unified_figures.py` (every table and figure, all models), `calibration.py` + `calibrated_holdout.py`, `style.py` (one palette for every figure) |
+| `src/models/` | **Forecasting** — `chronos2_forecasting.py` (the production model), `baselines_autogluon.py` (NPTS + classical), `patchtst_benchmark.py` (the trained deep control), `mlp_forecaster.py` (plain-PyTorch MLP + linear baselines; scored by `mlp_comparison.py`). **Evaluation** — `backtest.py` (the shared grid), `metrics.py`, `score_benchmark.py` (row parity, fatal under `--strict`), `significance.py` (paired bootstrap + Diebold-Mariano). **Reporting** — `unified_analysis.py` + `unified_figures.py` (every table and figure, all models), `calibration.py` + `calibrated_holdout.py`, `style.py` (one palette for every figure) |
 | `dataset/` | Per-tank daily JSON — hourly inflow, outflow, opening and closing level. 2025-01-01 → 2026-04-22 |
 | `eda/` | `eda_hourly.py` — mass-balance sensor integrity, trust tiers, covariate mutual-information study. Outputs `tank_trust.json` |
 | `results/chronos2/` | `unified/` — the evidence: 10 CSVs, `summary.json` and **12 figures** covering all 11 models. `calibrated/` — conformal calibration and the 45-day operational view. `benchmark_table.md` and the metric CSVs. Model binaries, fitting scratch and prediction parquets are regenerable and not committed |
 | `docs/` | Results reports and the full design specification for the real-time system |
-| `tests/` | `test_metrics.py` — 6 tests, no pytest needed. Run these before trusting any number |
+| `tests/` | `test_metrics.py` — 6 tests; `test_mlp.py` — 8 leakage, shape and training tests. No pytest needed. Run these before trusting any number |
 | `reports/` | `build_results_page.py` → the full HTML results page; `build_review_deck.py` → the PPTX review deck; `review_briefing.html` — the defence briefing. Both generated deliverables read the same CSVs, so they cannot disagree |
 | `extension/` | FastAPI service, Next.js dashboard, and the Waltr MV3 forecast dock |
 | `water_forecast_dash/` | Standalone Flask dashboard prototype |
@@ -101,6 +101,8 @@ Full step-by-step reproduction, with measured runtimes for every stage, is in
 | [`docs/architecture.md`](docs/architecture.md) | The forecasting engine, and the measurement behind each design choice |
 | [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) | Complete benchmark: 11 models × 6 horizons × 6 metrics |
 | [`results/chronos2/unified/`](results/chronos2/unified/) | The machine-readable evidence behind every claim: leaderboard, significance against every opponent, win matrix, per-tank, skill, calibration, cost |
+| [`docs/mlp_baseline.md`](docs/mlp_baseline.md) | A plain-PyTorch MLP and linear baseline trained here, scored against every model on the same 6–24 h rows, with significance on all tanks and on healthy tanks only |
+| [`docs/results_audit.md`](docs/results_audit.md) | Re-verification of the committed results: scoring regenerates byte-identically, where each headline number comes from, and defects found |
 
 ### Real-time system — designed, not yet built
 
@@ -125,6 +127,7 @@ documents; **none of the pipeline they describe is implemented yet.**
 | Data curation, calendar features, backtest harness, metrics | **Implemented** |
 | Chronos-2 inference (4 variants), benchmark, unified analysis, 12 figures | **Implemented** |
 | PatchTST control (two configurations) | **Implemented** |
+| PyTorch MLP + linear baselines (6–24 h) | **Implemented** — `docs/mlp_baseline.md` |
 | Sensor trust tiering, mass-balance integrity (`eda/`) | **Implemented** |
 | Significance against every opponent, calibration diagnosis | **Implemented** |
 | Waltr forecast dock (offline, precomputed bundle) | **Implemented** |
@@ -250,6 +253,19 @@ default **2.2 min**, tuned
 
 Both are scored by the same `score_benchmark` pass as every other model, and compared in
 step 7 alongside the rest of the field — there is no separate PatchTST study to run.
+
+### 5c. Model execution — the PyTorch MLP baseline
+
+```bash
+python -m tests.test_mlp                 # 8/8
+python -m src.models.mlp_forecaster      # ~50 s on CPU
+python -m src.models.mlp_comparison      # needs the step 4-5b parquets
+```
+
+Per-tank MLP (168 → 64 → 32 → 24) and linear models in plain PyTorch, fitted on data before the
+first origin with a chronological validation split. Predictions go to `results/chronos2/mlp/`,
+outside the glob `score_benchmark` and `unified_analysis` read, so the 11-model study is unchanged.
+Results and interpretation: [`docs/mlp_baseline.md`](docs/mlp_baseline.md).
 
 ### 6. Evaluation and scoring
 
