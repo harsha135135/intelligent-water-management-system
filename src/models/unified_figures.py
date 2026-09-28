@@ -10,6 +10,13 @@ model keeps its colour in every figure and cannot change identity by scoring dif
     foundation  blue      trained deep  purple
     incumbent   orange    statistical   ochre        reference  green
 
+One exception, by design: TimesFM 2.5 is a foundation model but is drawn in **magenta**
+(``#b0177f``), not a fifth shade of blue. Chronos-2 against TimesFM is the comparison these
+figures have to make legible, and a blue indistinguishable from the Chronos-2 variants would hide
+it. The hue was checked with the palette validator against every colour in the set: worst
+normal-vision deltaE 17.5 and worst CVD deltaE 11.6 (both against PatchTST-tuned's purple), and
+all gates pass alongside the blue / orange / aqua identity colours.
+
 Reads only the CSVs written by ``unified_analysis``; recomputes nothing.
 
     python -m src.models.unified_figures     # ~25 s -> results/chronos2/unified/plots/
@@ -18,10 +25,12 @@ Reads only the CSVs written by ``unified_analysis``; recomputes nothing.
 from __future__ import annotations
 
 import json
+import textwrap
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -29,7 +38,11 @@ from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 from .unified_analysis import (
     CHRONOS, FAMILY, HLABEL, HORIZONS, INCUMBENT, LABEL, ORDER, OUT, PLOTS, REFERENCE, SHORT,
+    TIMESFM,
 )
+
+# The covariate variants of the production candidate: near-identical to it by construction.
+C2_VARIANTS = [m for m in ORDER if m.startswith("Chronos2") and m != CHRONOS]
 
 SURFACE = "#fcfcfb"
 INK = "#0b0b0b"
@@ -41,6 +54,7 @@ GRID = "#e6e5e1"
 COLOR = {
     "Chronos2-ZS": "#2a78d6", "Chronos2-COV-XL": "#5598e7",
     "Chronos2-COV": "#82b6f0", "Chronos2-COV-LEAN": "#a8ccf4",
+    TIMESFM: "#b0177f",
     "PatchTST-Tuned": "#6d3fc4", "PatchTST": "#a78bfa",
     "NPTS": "#eb6834",
     "ETS": "#8a6d3b", "Theta": "#b08a4f", "DynamicOptimizedTheta": "#cbab77",
@@ -72,14 +86,23 @@ def _save(fig, name: str) -> None:
     print(f"  [plot] {name}")
 
 
-def _title(ax, text, sub=None):
+def _title(ax, text, sub=None, wrap=None):
     """Title above a subtitle, both left-aligned to the axes. The subtitle is placed in offset
-    points so it never lands on the title however tall the figure is."""
+    points so it never lands on the title however tall the figure is.
+
+    ``wrap`` (characters) folds a long subtitle onto several lines instead of letting
+    ``bbox_inches="tight"`` widen the canvas to fit one long line; the title is lifted by one line
+    height per extra line so the two never touch.
+    """
+    if sub and wrap:
+        sub = textwrap.fill(sub, wrap)
+    extra = sub.count("\n") * 12 if sub else 0
     ax.set_title(text, fontsize=13, fontweight="600", color=INK, loc="left",
-                 pad=30 if sub else 11)
+                 pad=(30 + extra) if sub else 11)
     if sub:
         ax.annotate(sub, xy=(0, 1.0), xycoords="axes fraction", xytext=(0, 9),
-                    textcoords="offset points", fontsize=9.4, color=INK2, ha="left", va="bottom")
+                    textcoords="offset points", fontsize=9.4, color=INK2, ha="left", va="bottom",
+                    linespacing=1.3)
 
 
 def _end_labels(ax, entries, *, fontsize=8.5, dx=9):
@@ -114,10 +137,13 @@ def _end_labels(ax, entries, *, fontsize=8.5, dx=9):
     inv = ax.transData.inverted()
     for ((px, _py), text, colour, weight), newy in zip(items, ys):
         xdata, ydata = inv.transform((px, newy))
+        # A surface-coloured halo keeps a label legible where it crosses a line or gridline
+        # (TimesFM's label in U7 sits exactly on the nominal-coverage line).
         ax.annotate(text, xy=(xdata, ydata), xycoords="data",
                     xytext=(dx, 0), textcoords="offset points",
                     color=colour, fontsize=fontsize, va="center", ha="left",
-                    fontweight=weight, annotation_clip=False)
+                    fontweight=weight, annotation_clip=False,
+                    path_effects=[pe.withStroke(linewidth=3, foreground=SURFACE)])
 
 
 def _horizon_axis(ax):
@@ -192,9 +218,16 @@ def u2_heatmap(lb: pd.DataFrame) -> None:
     ax.set_xlabel("Forecast horizon")
     ax.grid(False)
     fig.colorbar(im, ax=ax, shrink=0.72, label="macro MASE", pad=0.02)
+    # Both numbers in the subtitle are read off the table above, never typed.
+    c2 = [m for m in models if m.startswith("Chronos2")]
+    spread = float((p.loc[c2].max() - p.loc[c2].min()).max())
+    rest = p.drop(index=c2)
+    nxt, gap = rest.idxmin(), rest.min() - p.loc[c2].min()
+    who = LABEL[nxt.iloc[0]] if nxt.nunique() == 1 else "the best of the rest"
     _title(ax, "Leaderboard — macro MASE and rank in every cell",
-           "The four Chronos-2 variants are separated by 0.003 MASE; the gap to the next family "
-           "is twenty times that.")
+           f"The four Chronos-2 variants are separated by at most {spread:.4f} MASE; the next "
+           f"model, {who}, trails the best of them by {gap.min():.3f}–{gap.max():.3f}.",
+           wrap=110)
     _save(fig, "U2_leaderboard_heatmap")
 
 
@@ -216,7 +249,12 @@ def u3_significance(sig: pd.DataFrame) -> None:
         ax.plot([r.ci_lo_pct, r.ci_hi_pct], [y, y], color=col, lw=3 if sigf else 1.6,
                 solid_capstyle="round", alpha=1 if sigf else 0.45, zorder=3)
         ax.plot([r.improvement_pct], [y], "o", ms=9, color=col, mec=SURFACE, mew=2, zorder=4)
-        ax.annotate(f"{r.improvement_pct:+.1f}%" + ("" if sigf else "  n.s."),
+        # The two tests are read together: a bootstrap-significant row that Diebold-Mariano does
+        # not confirm says so, rather than looking as settled as one both tests agree on.
+        note = "" if sigf else "  n.s."
+        if sigf and r.p_dm >= 0.05:
+            note = f"  DM p = {r.p_dm:.2f}"
+        ax.annotate(f"{r.improvement_pct:+.1f}%" + note,
                     (r.ci_hi_pct, y), xytext=(9, 0), textcoords="offset points",
                     color=col if sigf else INK2, fontsize=9,
                     va="center", fontweight="600")
@@ -231,7 +269,7 @@ def u3_significance(sig: pd.DataFrame) -> None:
     ends = []
     for o in opponents:
         g = s[s.opponent == o].sort_values("horizon")
-        faint = FAMILY[o] == "foundation"
+        faint = o in C2_VARIANTS
         ax.plot(g.horizon, g.improvement_pct, color=COLOR[o], lw=1.5 if faint else 2.2,
                 marker="o", ms=4.5, alpha=0.55 if faint else 1, zorder=3)
         ends.append((g.horizon.iloc[-1], g.improvement_pct.iloc[-1], SHORT[o], COLOR[o], "600"))
@@ -318,7 +356,8 @@ def u6_skill(sk: pd.DataFrame) -> None:
         lead = m == CHRONOS
         ax.scatter(g.mean_actual, g.skill, s=52 if lead else 26, color=COLOR[m],
                    ec=SURFACE, lw=1.1, alpha=1 if lead else 0.66, zorder=4 if lead else 3,
-                   label=SHORT[m] if lead or m in (INCUMBENT, "PatchTST-Tuned") else None)
+                   label=SHORT[m] if lead or m in (TIMESFM, INCUMBENT, "PatchTST-Tuned")
+                   else None)
     ax.axhline(0, color=INK2, lw=1.2, zorder=2)
     ax.annotate("below this line the model is worse than seasonal naive",
                 (ax.get_xlim()[0], 0), xytext=(4, -13), textcoords="offset points",
@@ -376,17 +415,31 @@ def u8_cost(ca: pd.DataFrame) -> None:
         lead = r.model == CHRONOS
         ax.scatter(r.wall_clock_s, r.macro_mase_h24, s=200 if lead else 118,
                    color=COLOR[r.model], ec=SURFACE, lw=2, zorder=4 if lead else 3)
+        dev = f"  ·  {r.device.upper()}" if isinstance(r.device, str) and r.device else ""
         ends.append((r.wall_clock_s, r.macro_mase_h24,
-                     f"{SHORT[r.model]}  ·  {r.wall_clock_s/60:.1f} min",
+                     f"{SHORT[r.model]}  ·  {r.wall_clock_s/60:.1f} min{dev}",
                      COLOR[r.model], "700" if lead else "600"))
     ax.set_xscale("log")
     ax.set_xlabel("wall clock for the full 24-origin × 6-horizon backtest (s, log)")
     ax.set_ylabel("macro MASE at 1 d  (lower is better)")
     ax.set_xlim(right=ax.get_xlim()[1] * 6.0)
     _end_labels(ax, ends, dx=12)
-    _title(ax, "Accuracy against what it cost to get it",
-           "Down and to the left is better. The production candidate is the leftmost point on "
-           "the chart and within 0.003 MASE of the best.")
+    # Read off cost.csv rather than typed, so the claim cannot outlive the numbers.
+    di = d.set_index("model")
+    where = ("the leftmost point on the chart" if di["wall_clock_s"].idxmin() == CHRONOS
+             else "not the leftmost point")
+    gap = float(di.loc[CHRONOS, "macro_mase_h24"] - di["macro_mase_h24"].min())
+    sub = (f"Down and to the left is better. The production candidate is {where} and within "
+           f"{gap:.4f} MASE of the best. Devices are shown where the run recorded one.")
+    cpu = di["wall_clock_s_same_cpu"].dropna() if "wall_clock_s_same_cpu" in di else pd.Series()
+    if CHRONOS in cpu.index and TIMESFM in cpu.index:
+        sub += (f" Same CPU: Chronos-2 zero-shot {cpu[CHRONOS]:.0f} s, "
+                f"TimesFM 2.5 {cpu[TIMESFM]:.0f} s.")
+    # Labels of the near-coincident Chronos-2 points are pushed apart vertically; leave them
+    # room inside the axes rather than letting the lowest one land on the x-axis.
+    lo, hi = ax.get_ylim()
+    ax.set_ylim(lo - 0.06 * (hi - lo), hi)
+    _title(ax, "Accuracy against what it cost to get it", sub, wrap=118)
     _save(fig, "U8_cost_accuracy")
 
 
@@ -422,9 +475,14 @@ def u9_leadtime(lt: pd.DataFrame) -> None:
 def u10_diurnal(dn: pd.DataFrame) -> None:
     models = [m for m in ORDER if m in set(dn.model)]
     fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.4), sharex=True)
+    # Room for the left panel's demand axis label, which otherwise runs into the right panel's.
+    fig.subplots_adjust(wspace=0.42)
     dem = dn[dn.model == CHRONOS].sort_values("hour")
+    # ``bias`` is the mean of actual − predicted (unified_analysis.diurnal), so a *positive*
+    # value is an under-forecast. The label used to say the opposite.
     for ax, col, lab in zip(axes, ("mae", "bias"),
-                            ("MAE (KL/h)", "signed bias (KL/h) — negative is under-forecast")):
+                            ("MAE (KL/h)",
+                             "mean of actual − predicted (KL/h) — positive is under-forecast")):
         for m in models:
             g = dn[dn.model == m].sort_values("hour")
             lead = m == CHRONOS
@@ -441,6 +499,12 @@ def u10_diurnal(dn: pd.DataFrame) -> None:
     ax2.grid(False)
     _title(axes[0], "Error tracks demand, hour by hour")
     _title(axes[1], "The under-forecast is present in every hour")
+    # Twelve lines cannot be told apart by colour alone: one shared legend under both panels.
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], color=COLOR[m], lw=2.4 if m == CHRONOS else 1.6, label=SHORT[m])
+               for m in models]
+    fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.0), ncol=6,
+               frameon=False, fontsize=8.8)
     _save(fig, "U10_diurnal")
 
 
@@ -515,10 +579,12 @@ def u12_volume_bias(lb: pd.DataFrame) -> None:
     ax.set_xlim(HORIZONS[0] * 0.88, HORIZONS[-1] * 3.4)
     _end_labels(ax, ends)
     d24 = lb[lb.horizon == 24].set_index("model")["volume_bias_pct"]
+    over = sorted(m for m in d24.index if d24[m] > 0)
+    tfm = f", TimesFM 2.5 {d24[TIMESFM]:+.1f}%" if TIMESFM in d24.index else ""
     _title(ax, "Signed volume bias — the number that sizes a refill",
-           f"At 1 d every model under-forecasts except ETS and the naive reference, which sit near "
-           f"zero. Chronos-2 is {d24[CHRONOS]:+.1f}%, the trained deep models "
-           f"{d24['PatchTST-Tuned']:+.1f}% and {d24['PatchTST']:+.1f}%.")
+           f"At 1 d every model under-forecasts except {' and '.join(SHORT[m] for m in over)}, "
+           f"which sit near zero. Chronos-2 is {d24[CHRONOS]:+.1f}%{tfm}, the trained deep "
+           f"models {d24['PatchTST-Tuned']:+.1f}% and {d24['PatchTST']:+.1f}%.", wrap=118)
     _save(fig, "U12_volume_bias")
 
 

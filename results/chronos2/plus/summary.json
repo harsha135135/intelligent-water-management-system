@@ -1,0 +1,102 @@
+{
+  "validation_grid": {
+    "origins": 24,
+    "first": "2026-02-23 21:00:00",
+    "last": "2026-03-17 22:00:00"
+  },
+  "test_grid": {
+    "origins": 24,
+    "first": "2026-03-24 22:00:00",
+    "last": "2026-04-15 23:00:00"
+  },
+  "contexts": [
+    512,
+    1024,
+    2048
+  ],
+  "L1_point_estimator": {
+    "chosen": "published (q0.50)",
+    "adopted": false,
+    "val_macro_mase": {
+      "published (q0.50)": 0.684,
+      "trimmed q25-q75": 0.6915,
+      "lower q10-q50": 0.7856,
+      "q0.25": 0.7918,
+      "integrated mean": 0.7083
+    }
+  },
+  "L2_hurdle_tau": {
+    "chosen": 0.8,
+    "adopted": true,
+    "val_macro_mase": {
+      "0.5": 0.6802,
+      "0.6": 0.6804,
+      "0.7": 0.6801,
+      "0.8": 0.6801,
+      "0.85": 0.6801,
+      "0.9": 0.6804,
+      "0.95": 0.6819,
+      "0.99": 0.6832
+    }
+  },
+  "L3_context_ensemble": {
+    "adopted": false
+  },
+  "L4_volume_calibration": {
+    "objective": "volume bias, not MASE \u2014 reported as a separate operational track",
+    "median_factor": 1.0141,
+    "min": 0.7597,
+    "max": 2.0,
+    "n_corrected": 21,
+    "test_volume_bias_pct": {
+      "6 h": -6.32,
+      "12 h": -6.55,
+      "1 d": -9.54,
+      "2 d": -10.2,
+      "3 d": -10.19,
+      "7 d": -10.35
+    },
+    "test_macro_mase": {
+      "6 h": 0.6328,
+      "12 h": 0.6639,
+      "1 d": 0.6864,
+      "2 d": 0.696,
+      "3 d": 0.696,
+      "7 d": 0.6924
+    }
+  },
+  "accuracy_track_layer": "L2 \u00b7 + zero hurdle (tau=0.8)",
+  "test_macro_mase_by_horizon": {
+    "6 h": {
+      "L0": 0.6017,
+      "final": 0.599,
+      "improvement_pct": 0.45
+    },
+    "12 h": {
+      "L0": 0.6294,
+      "final": 0.6267,
+      "improvement_pct": 0.43
+    },
+    "1 d": {
+      "L0": 0.6552,
+      "final": 0.6524,
+      "improvement_pct": 0.44
+    },
+    "2 d": {
+      "L0": 0.6656,
+      "final": 0.6627,
+      "improvement_pct": 0.43
+    },
+    "3 d": {
+      "L0": 0.6664,
+      "final": 0.6636,
+      "improvement_pct": 0.42
+    },
+    "7 d": {
+      "L0": 0.6653,
+      "final": 0.6621,
+      "improvement_pct": 0.48
+    }
+  },
+  "overall_improvement_pct": 0.44
+}

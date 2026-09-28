@@ -6,6 +6,12 @@ scipy
 matplotlib
 pyarrow
 
+# TimesFM 2.5 zero-shot baseline (src/models/timesfm_forecasting.py). Pinned to the release the
+# published TimesFM numbers were produced with; it still ships the TimesFM 2.5 code path. The
+# checkpoint revision is pinned in the module, and the weights (~0.9 GB) download to the standard
+# Hugging Face cache on first use - never into this repository.
+timesfm[torch]==3.0.2
+
 # report generation
 python-pptx
 pillow

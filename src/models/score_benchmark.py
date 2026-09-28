@@ -6,8 +6,16 @@ Outputs written to ``--out-dir`` (default ``results/chronos2``):
 * ``metrics_by_horizon.csv``    - one row per (model, horizon); macro + volume-weighted rollup.
 * ``per_tank_comparison.csv``   - Chronos-2 vs NPTS vs SeasonalNaive per tank and horizon, with
                                   improvement %, winner and the sensor trust tier from the EDA.
+* ``timesfm_comparison.csv``    - TimesFM against Chronos-2, NPTS and SeasonalNaive per horizon
+                                  and metric: both scores, relative difference stated in words,
+                                  tanks won / lost / tied, median and mean per-tank difference.
+* ``timesfm_per_tank.csv``      - TimesFM vs Chronos-2 per tank and horizon, on all four metrics.
 * ``benchmark_table.md``        - the complete benchmark document (every model, every horizon,
-                                  every metric, plus per-tank, covariate and calibration tables).
+                                  every metric, plus per-tank, covariate, calibration and TimesFM
+                                  tables).
+
+Only the models in the benchmark roster (``unified_analysis.ORDER``) are scored; a predictions
+file holding any other model is work in progress and is skipped with a warning.
 
 Nothing here refits or re-forecasts anything: it reads ``predictions_*.parquet`` produced by the
 completed rolling-origin run. Metrics that cannot be computed are left blank, never imputed.
@@ -26,6 +34,9 @@ import pandas as pd
 from ..data.curate import load_curated_hourly
 from .backtest import assert_comparable
 from .metrics import aggregate_metrics, attach_scales, coverage, per_tank_metrics
+from .timesfm_forecasting import MODEL_NAME as TIMESFM
+# One list of models for the whole study: the roster lives beside the display metadata.
+from .unified_analysis import ORDER as BENCHMARK_MODELS
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +75,13 @@ def load_all_predictions(out_dir: Path) -> pd.DataFrame:
     frames = []
     for path in sorted(out_dir.glob("predictions_*.parquet")):
         df = pd.read_parquet(path)
+        extra = sorted(set(df["model"]) - set(BENCHMARK_MODELS))
+        if extra:
+            logger.warning("skipping %s in %s: not in the benchmark roster "
+                           "(unified_analysis.ORDER)", extra, path.name)
+            df = df[df["model"].isin(BENCHMARK_MODELS)]
+            if df.empty:
+                continue
         frames.append(df)
         logger.info("loaded %-46s %8d rows  models=%s",
                     path.name, len(df), sorted(df["model"].unique()))
@@ -153,6 +171,128 @@ def per_tank_comparison(per_tank: pd.DataFrame, quality: pd.DataFrame) -> pd.Dat
              if c in out.columns]
     horder = {h: i for i, h in enumerate(HORIZON_ORDER)}
     return out[cols].sort_values(
+        ["horizon", "tank"], key=lambda s: s.map(horder) if s.name == "horizon" else s
+    ).reset_index(drop=True)
+
+
+# ── TimesFM against the headline models ──────────────────────────────────────
+
+# In the order the questions get asked: the other zero-shot foundation model, the deployed
+# incumbent (NPTS - the AutoGluon model that ships), and the reference MASE/RMSSE scale to.
+TIMESFM_OPPONENTS = [CHRONOS, INCUMBENT, REFERENCE]
+NAME = {TIMESFM: "TimesFM 2.5", CHRONOS: "Chronos-2 zero-shot",
+        INCUMBENT: "NPTS", REFERENCE: "SeasonalNaive-24"}
+METRICS = ("mae", "rmse", "mase", "rmsse")
+# Two per-tank scores within this relative tolerance are the same score, not a win.
+TIE_RTOL = 1e-9
+
+
+def relative_words(impr_pct: float, nd: int = 2) -> str:
+    """``improvement_pct`` as a direction in words. Every metric here is an error, so a bare
+    signed percentage ("improved by -5 %") is easy to misread; "5 % higher" is not."""
+    if impr_pct is None or not np.isfinite(impr_pct):
+        return ""
+    if round(abs(impr_pct), nd) == 0:
+        return "the same"
+    return f"{abs(impr_pct):.{nd}f} % {'lower' if impr_pct > 0 else 'higher'}"
+
+
+def relative_statement(model: str, opponent: str, metric: str, impr_pct: float) -> str:
+    if impr_pct is None or not np.isfinite(impr_pct):
+        return ""
+    a, b, m = NAME.get(model, model), NAME.get(opponent, opponent), metric.upper()
+    if round(abs(impr_pct), 2) == 0:
+        return f"{a} and {b} have the same {m} (within 0.01 %)"
+    if impr_pct > 0:
+        return f"{a} reduced {m} by {impr_pct:.2f} % relative to {b}"
+    return f"{a} produced {-impr_pct:.2f} % higher {m} than {b}"
+
+
+def head_to_head(per_tank: pd.DataFrame, agg: pd.DataFrame, model: str,
+                 opponents: list[str]) -> pd.DataFrame:
+    """``model`` against each opponent, per horizon and metric.
+
+    ``improvement_pct`` is the formula every other comparison in this document uses,
+    ``100 * (opponent - model) / opponent`` on the macro score, so positive means ``model`` has
+    the lower error; ``statement`` says the same thing in words. The per-tank columns compare the
+    scores ``metrics.per_tank_metrics`` produced for each tank; a tank whose scaled metric is
+    undefined for either model is not counted.
+    """
+    rows = []
+    for opp in opponents:
+        for h in HORIZON_ORDER:
+            a = per_tank[(per_tank["model"] == model) & (per_tank["horizon"] == h)]
+            b = per_tank[(per_tank["model"] == opp) & (per_tank["horizon"] == h)]
+            ga = agg[(agg["model"] == model) & (agg["horizon"] == h)]
+            gb = agg[(agg["model"] == opp) & (agg["horizon"] == h)]
+            if a.empty or b.empty or ga.empty or gb.empty:
+                continue
+            a, b = a.set_index("item_id"), b.set_index("item_id")
+            for m in METRICS:
+                va, vb = float(ga[f"macro_{m}"].iloc[0]), float(gb[f"macro_{m}"].iloc[0])
+                impr = 100 * (vb - va) / vb
+                pa, pb = a[m].align(b[m], join="inner")
+                ok = pa.notna() & pb.notna()
+                pa, pb = pa[ok], pb[ok]
+                d = pa - pb
+                tie = np.isclose(pa, pb, rtol=TIE_RTOL, atol=0.0)
+                rows.append({
+                    "model": model, "opponent": opp, "horizon": h,
+                    "horizon_label": HORIZON_LABEL[h], "metric": m.upper(),
+                    "model_value": va, "opponent_value": vb, "abs_diff": va - vb,
+                    "improvement_pct": impr,
+                    "model_error_relative": relative_words(impr),
+                    "statement": relative_statement(model, opp, m, impr),
+                    "tanks_compared": int(ok.sum()),
+                    "model_wins": int(((d < 0) & ~tie).sum()),
+                    "opponent_wins": int(((d > 0) & ~tie).sum()),
+                    "ties": int(tie.sum()),
+                    "median_tank_diff": float(d.median()) if len(d) else np.nan,
+                    "mean_tank_diff": float(d.mean()) if len(d) else np.nan,
+                })
+    return pd.DataFrame(rows)
+
+
+def timesfm_per_tank(per_tank: pd.DataFrame, quality: pd.DataFrame) -> pd.DataFrame:
+    """TimesFM vs Chronos-2 zero-shot for every (tank, horizon), on all four metrics.
+
+    ``timesfm_vs_chronos2_pct`` is ``100 * (Chronos-2 - TimesFM) / Chronos-2`` on MASE, so
+    positive means TimesFM is better on that tank. ``winner`` is decided on MASE, as in
+    ``per_tank_comparison``, with NPTS and SeasonalNaive-24 MASE alongside for context.
+    """
+    def wide(model):
+        return per_tank[per_tank["model"] == model].set_index(["item_id", "horizon"])
+
+    t, c = wide(TIMESFM), wide(CHRONOS)
+    idx = t.index.intersection(c.index).sort_values()
+    out = pd.DataFrame(index=idx)
+    out.index.names = ["item_id", "horizon"]
+    out["n_observations"] = t["n"].reindex(idx)
+    out["mean_actual_kl_h"] = t["mean_actual"].reindex(idx)
+    for m in METRICS:
+        out[f"timesfm_{m}"] = t[m].reindex(idx)
+        out[f"chronos2_{m}"] = c[m].reindex(idx)
+    out["npts_mase"] = wide(INCUMBENT)["mase"].reindex(idx)
+    out["seasonal_naive_mase"] = wide(REFERENCE)["mase"].reindex(idx)
+    tm, cm = out["timesfm_mase"], out["chronos2_mase"]
+    out["timesfm_vs_chronos2_pct"] = 100 * (cm - tm) / cm
+    defined = tm.notna() & cm.notna()
+    tv, cv = tm.to_numpy(), cm.to_numpy()                  # positional, in out's own row order
+    winner = np.where(np.isclose(tv, cv, rtol=TIE_RTOL, atol=0.0), "tie",
+                      np.where(tv < cv, "TimesFM", "Chronos-2"))
+    out["winner"] = pd.Series(winner, index=out.index).where(defined)
+
+    out = out.reset_index().rename(columns={"item_id": "tank"})
+    out["horizon_label"] = out["horizon"].map(HORIZON_LABEL)
+    q = quality.rename(columns={"item_id": "tank"})
+    out = out.merge(q[[c for c in ("tank", "sensor_trust_tier") if c in q.columns]],
+                    on="tank", how="left")
+    cols = (["tank", "horizon", "horizon_label", "sensor_trust_tier", "n_observations",
+             "mean_actual_kl_h"]
+            + [f"{p}_{m}" for m in METRICS for p in ("timesfm", "chronos2")]
+            + ["npts_mase", "seasonal_naive_mase", "timesfm_vs_chronos2_pct", "winner"])
+    horder = {h: i for i, h in enumerate(HORIZON_ORDER)}
+    return out[[c for c in cols if c in out.columns]].sort_values(
         ["horizon", "tank"], key=lambda s: s.map(horder) if s.name == "horizon" else s
     ).reset_index(drop=True)
 
@@ -344,8 +484,87 @@ def _per_tank_block(cmp_df: pd.DataFrame) -> list[str]:
     return lines
 
 
+def _timesfm_block(agg: pd.DataFrame, h2h: pd.DataFrame, tpt: pd.DataFrame) -> list[str]:
+    if h2h.empty:
+        return []
+    lines = ["## 8. TimesFM 2.5 zero-shot against Chronos-2, NPTS and SeasonalNaive-24", "",
+             f"`{TIMESFM}` = `google/timesfm-2.5-200m-pytorch`, zero-shot, target series only, "
+             "2,048-hour context truncated at each origin, point forecast = the median - the "
+             f"protocol `{CHRONOS}` uses, scored on the identical rows. Checkpoint revision, "
+             "config, device and measured runtime: `timesfm_manifest.json`. Machine-readable "
+             "versions of every table below: [`timesfm_comparison.csv`](timesfm_comparison.csv) "
+             "and [`timesfm_per_tank.csv`](timesfm_per_tank.csv).", "",
+             "Every metric is an error, so lower is better. Relative differences use the formula "
+             "of section 2, `100 x (opponent - TimesFM) / opponent`, and are written as a "
+             "direction: **\"x % lower\"** means TimesFM's error is lower than the opponent's "
+             "(TimesFM better), **\"x % higher\"** means TimesFM's error is higher (TimesFM "
+             "worse).", "",
+             "### 8.1 The four models at every horizon", "",
+             "| Horizon | Model | MAE | RMSE | MASE | RMSSE |", "|---|---|---|---|---|---|"]
+    show = [REFERENCE, INCUMBENT, CHRONOS, TIMESFM]
+    for h in HORIZON_ORDER:
+        for model in show:
+            r = agg[(agg["model"] == model) & (agg["horizon"] == h)]
+            if r.empty:
+                continue
+            r = r.iloc[0]
+            name = {REFERENCE: "SeasonalNaive-24", INCUMBENT: "NPTS (incumbent, AutoGluon)",
+                    CHRONOS: "Chronos-2 zero-shot", TIMESFM: "**TimesFM 2.5 zero-shot**"}[model]
+            lines.append(f"| {HORIZON_LABEL[h]} | {name} | {_fmt(r.macro_mae)} | "
+                         f"{_fmt(r.macro_rmse)} | {_fmt(r.macro_mase)} | {_fmt(r.macro_rmsse)} |")
+    lines.append("")
+
+    lines += ["### 8.2 TimesFM's error relative to each opponent", "",
+              "| Horizon | Metric | vs Chronos-2 zero-shot | vs NPTS | vs SeasonalNaive-24 |",
+              "|---|---|---|---|---|"]
+    for h in HORIZON_ORDER:
+        for m in METRICS:
+            cells = []
+            for opp in TIMESFM_OPPONENTS:
+                r = h2h[(h2h["opponent"] == opp) & (h2h["horizon"] == h)
+                        & (h2h["metric"] == m.upper())]
+                cells.append(r["model_error_relative"].iloc[0] if len(r) else "")
+            lines.append(f"| {HORIZON_LABEL[h]} | {m.upper()} | " + " | ".join(cells) + " |")
+    lines.append("")
+
+    c2 = h2h[h2h["opponent"] == CHRONOS]
+    lines += ["### 8.3 Per tank - TimesFM against Chronos-2 zero-shot", "",
+              "Tanks where each model has the lower per-tank error, out of the tanks where the "
+              "metric is defined for both. Differences are TimesFM minus Chronos-2, in the "
+              "metric's own units (KL/h for MAE and RMSE, ratio for MASE and RMSSE); negative "
+              "means TimesFM is better on the typical tank.", "",
+              "| Horizon | Metric | TimesFM wins | Chronos-2 wins | ties | median per-tank diff | "
+              "mean per-tank diff |", "|---|---|---|---|---|---|---|"]
+    for h in HORIZON_ORDER:
+        for m in METRICS:
+            r = c2[(c2["horizon"] == h) & (c2["metric"] == m.upper())]
+            if r.empty:
+                continue
+            r = r.iloc[0]
+            lines.append(f"| {HORIZON_LABEL[h]} | {m.upper()} | {int(r.model_wins)}/"
+                         f"{int(r.tanks_compared)} | {int(r.opponent_wins)}/"
+                         f"{int(r.tanks_compared)} | {int(r.ties)} | "
+                         f"{r.median_tank_diff:+.4f} | {r.mean_tank_diff:+.4f} |")
+    lines.append("")
+
+    d = tpt[tpt["horizon"] == 24].sort_values("timesfm_vs_chronos2_pct", ascending=False)
+    if len(d):
+        lines += ["### 8.4 Per tank at 1 d - MASE, best TimesFM tank first", "",
+                  "| Tank | tier | TimesFM MASE | Chronos-2 MASE | TimesFM's MASE vs Chronos-2 "
+                  "| NPTS MASE | SN MASE | winner |", "|---|---|---|---|---|---|---|---|"]
+        for r in d.itertuples(index=False):
+            tier = r.sensor_trust_tier if isinstance(r.sensor_trust_tier, str) else ""
+            lines.append(f"| `{r.tank}` | {tier} | {_fmt(r.timesfm_mase)} | "
+                         f"{_fmt(r.chronos2_mase)} | {relative_words(r.timesfm_vs_chronos2_pct)} "
+                         f"| {_fmt(r.npts_mase)} | {_fmt(r.seasonal_naive_mase)} | "
+                         f"{r.winner if isinstance(r.winner, str) else ''} |")
+        lines.append("")
+    return lines
+
+
 def to_markdown(agg: pd.DataFrame, cmp_df: pd.DataFrame, counts: pd.DataFrame | None,
-                grid: dict) -> str:
+                grid: dict, h2h: pd.DataFrame | None = None,
+                tpt: pd.DataFrame | None = None) -> str:
     lines = [
         "# Chronos-2 benchmark - PESU campus water demand",
         "",
@@ -403,6 +622,8 @@ def to_markdown(agg: pd.DataFrame, cmp_df: pd.DataFrame, counts: pd.DataFrame | 
                          f"{_fmt(r.macro_mase)} | {_fmt(r.macro_rmsse)} | {_fmt(r.macro_mae)} | "
                          f"{_fmt(r.macro_rmse)} |")
         lines.append("")
+    if h2h is not None and tpt is not None:
+        lines += _timesfm_block(agg, h2h, tpt)
     return "\n".join(lines)
 
 
@@ -423,6 +644,15 @@ def main() -> None:
     leak = int((scored["timestamp"] <= scored["origin"]).sum())
     if leak:
         raise AssertionError(f"{leak} evaluation rows are at or before their forecast origin")
+
+    # A row with an actual but no forecast is a failed forecast, not a row to skip: averaging
+    # without it would score the model as though the failed series never existed.
+    missing = scored[scored["actual"].notna() & scored["pred"].isna()].groupby("model").size()
+    if len(missing):
+        msg = f"rows with an actual but no prediction (failed forecasts):\n{missing.to_string()}"
+        if args.strict:
+            raise AssertionError(msg)
+        logger.warning("%s", msg)
 
     counts = None
     try:
@@ -445,6 +675,14 @@ def main() -> None:
     quality = load_sensor_quality()
     cmp_df = per_tank_comparison(per_tank, quality)
 
+    h2h = tpt = None
+    if TIMESFM in set(agg["model"]):
+        h2h = head_to_head(per_tank, agg, TIMESFM, TIMESFM_OPPONENTS)
+        tpt = timesfm_per_tank(per_tank, quality)
+        h2h.to_csv(out_dir / "timesfm_comparison.csv", index=False)
+        tpt.to_csv(out_dir / "timesfm_per_tank.csv", index=False)
+        logger.info("Wrote timesfm_comparison.csv, timesfm_per_tank.csv")
+
     origins = sorted(pd.to_datetime(pd.Series(scored["origin"].unique())))
     strides = sorted({int(d.total_seconds() // 3600) for d in np.diff(origins)})
     grid = {
@@ -462,7 +700,8 @@ def main() -> None:
     per_tank.to_csv(out_dir / "metrics_per_tank.csv", index=False)
     agg.to_csv(out_dir / "metrics_by_horizon.csv", index=False)
     cmp_df.to_csv(out_dir / "per_tank_comparison.csv", index=False)
-    (out_dir / "benchmark_table.md").write_text(to_markdown(agg, cmp_df, counts, grid))
+    (out_dir / "benchmark_table.md").write_text(
+        to_markdown(agg, cmp_df, counts, grid, h2h=h2h, tpt=tpt))
 
     logger.info("Wrote metrics_per_tank.csv, metrics_by_horizon.csv, "
                 "per_tank_comparison.csv, benchmark_table.md")

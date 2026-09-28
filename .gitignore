@@ -44,6 +44,7 @@ results/patchtst/
 # AutoGluon / PatchTST fitting scratch (~420 MB)
 results/chronos2/_*/
 results/chronos2/**/_npts*/
+results/chronos2/**/_model/
 # uncalibrated diagnostic run; superseded by calibrated/
 results/chronos2/holdout45/
 results/chronos2/*.parquet

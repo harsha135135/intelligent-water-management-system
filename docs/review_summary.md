@@ -24,12 +24,18 @@ Measured, on a single evaluation grid where every model scores the *same* 188,66
   **SeasonalNaive-24 wins zero tanks at every horizon.**
 * Zero-shot costs **89 seconds** for the entire 24-origin × 6-horizon backtest on an Apple MPS
   laptop GPU. The covariate variants cost 4–10× that for a MASE difference of **at most 0.0025**.
+* A **second foundation model, Google's TimesFM 2.5** (zero-shot, `google/timesfm-2.5-200m-pytorch`),
+  was run on the identical grid. It ranks **fifth of twelve at every horizon, behind all four
+  Chronos-2 variants**, with **2.71–9.04 % higher MASE** than Chronos-2 zero-shot — a gap the
+  paired bootstrap finds significant at every horizon but Diebold–Mariano only at 7 d. It has the
+  best-calibrated intervals in the study. It does not change the recommendation (§17).
 
 The two caveats, both measured:
 
 1. **Its prediction intervals are too narrow.** The p10–p90 band should cover 80 % of outcomes;
-   it covers **0.714–0.743**. NPTS covers 0.836–0.850 and is the better-calibrated model. This
-   is the one axis on which the incumbent wins.
+   it covers **0.714–0.743**. NPTS covers 0.836–0.850 and is the better-calibrated model of the
+   two (TimesFM 2.5, at 0.801–0.823, is closer to nominal than either — §17.5). This is the one
+   axis on which the incumbent wins.
 2. **It under-forecasts total volume.** Pooled over all tanks its 24 h forecasts sum to
    **12.2 % below** actual outflow (NPTS −9.9 %, SeasonalNaive +0.4 %). For sizing a refill this
    is the failure direction that matters.
@@ -114,13 +120,13 @@ pass; no result in this review rests on an unverified assumption.
 | 4 | **23-hour origin stride** | PASS — all 23 inter-origin gaps are exactly 23 h; the set of observed strides is `{23}` |
 | 5 | **All 24 hours-of-day represented** | PASS — origin hours = `{0,1,…,23}`, each exactly once |
 | 6 | **Six forecast horizons** | PASS — `{6, 12, 24, 48, 72, 168}`, and `max(step) == horizon` for each |
-| 7 | **Identical evaluation rows across models** | PASS — the set of `(item_id, origin, horizon, timestamp)` keys is **byte-identical across all 9 models**, 188,664 keys each. Row counts per horizon: 3,405 / 6,861 / 13,530 / 27,323 / 41,140 / 96,405, with exactly 1 distinct value per horizon |
-| 8 | **No leakage from future observations** | PASS — 0 rows with `timestamp ≤ origin`; `step` equals hours-after-origin on every one of 1,710,720 rows; scaling denominators use pre-origin history only |
+| 7 | **Identical evaluation rows across models** | PASS — the set of scored `(item_id, origin, horizon, timestamp)` keys is **identical across all 12 models**, 188,664 keys each. Row counts per horizon: 3,405 / 6,861 / 13,530 / 27,323 / 41,140 / 96,405, with exactly 1 distinct value per horizon |
+| 8 | **No leakage from future observations** | PASS — 0 rows with `timestamp ≤ origin`; `step` equals hours-after-origin on every one of 2,280,960 rows (12 models); scaling denominators use pre-origin history only. TimesFM's runner additionally checks `context_end ≤ origin < forecast_start` on each of its 3,456 windows: 0 violations |
 | 9 | **Chronological train/test separation** | PASS — AutoGluon baselines fitted on rows `≤ 2026-03-24 22:00` (the first origin) and never refitted; Chronos-2 is zero-shot with context truncated at each origin |
 | 10 | **No duplicate prediction rows** | PASS — 0 duplicated `(model, item_id, origin, horizon, timestamp)` |
 | 11 | **SeasonalNaive-24 sanity: MASE ≈ 1** | PASS — measured 0.967 – 1.069 across the six horizons; RMSSE 0.717 – 0.812 |
 | 12 | **Metric unit tests** | PASS — 6 / 6 in `tests/test_metrics.py`, including the MASE ≈ 1 identity and degenerate-series exclusion |
-| 13 | **Published tables reproduce from the raw predictions** | PASS — an independent re-score of `predictions_*.parquet` reproduces `metrics_by_horizon.csv` and `metrics_per_tank.csv` to ≤ 2.2e-16; two independent metric implementations (`metrics.py` via `score_benchmark`, and `unified_analysis`) agree to 1e-16 across all 66 model x horizon rows |
+| 13 | **Published tables reproduce from the raw predictions** | PASS — an independent re-score of `predictions_*.parquet` reproduces `metrics_by_horizon.csv` and `metrics_per_tank.csv` to ≤ 2.2e-16; two independent metric implementations (`metrics.py` via `score_benchmark`, and `unified_analysis`) agree to ≤ 3.3e-16 across all 72 model x horizon rows. Adding TimesFM left every pre-existing metric, bootstrap interval and test statistic unchanged (all 120 significance rows byte-identical); the only moved value is `rank_mase`, one place down for the seven models TimesFM outranks |
 | 14 | **`per_tank_comparison.csv` matches the predictions** | PASS — all 144 rows × 3 models × 4 metrics reproduce with max abs difference 0.0; `n_observations` totals match the per-horizon row counts exactly |
 | 15 | **Degenerate-series guard** | Not triggered — smallest seasonal-naive denominator on the grid is 0.00198, so `n_tanks_scaled = 24` everywhere and no metric is undefined |
 
@@ -136,6 +142,7 @@ pass; no result in this review rests on an unverified assumption.
 | Chronos2-COV | covariate study | + 10 known-future calendar covariates, + 3 past-only covariates |
 | Chronos2-COV-LEAN | covariate study | + 3 MI-selected known covariates (`hour_sin`, `hour_cos`, `exam_proximity`), + past |
 | Chronos2-COV-XL | covariate study | as COV, plus cross-learning across tanks |
+| **TimesFM2.5-ZS** | **second foundation model** | Google's `google/timesfm-2.5-200m-pytorch` (TimesFM 2.5), zero-shot, target series only, same 2,048 h context — §17 |
 | ETS, Theta, DynamicOptimizedTheta | context | classical baselines, scored on the same grid, reported in `benchmark_table.md` |
 
 **PatchTST is now on this grid.** It is the trained deep control — the same patched-transformer
@@ -208,6 +215,7 @@ Full tables — every model, every horizon, every metric — are in
 | Chronos2-COV | 0.6018 | 0.6292 | 0.6558 | 0.6643 | 0.6648 | 0.6632 |
 | **Chronos2-ZS** | 0.6017 | 0.6294 | 0.6552 | 0.6656 | 0.6664 | 0.6653 |
 | Chronos2-COV-LEAN | 0.6027 | 0.6304 | 0.6562 | 0.6654 | 0.6657 | 0.6640 |
+| **TimesFM2.5-ZS** | 0.6562 | 0.6748 | 0.6898 | 0.6900 | 0.6877 | 0.6833 |
 | **NPTS (incumbent)** | 0.6871 | 0.6923 | 0.7098 | 0.7113 | 0.7090 | 0.7057 |
 | DynamicOptimizedTheta | 0.8963 | 0.9459 | 0.9575 | 0.9856 | 0.9909 | 1.0148 |
 | Theta | 0.8965 | 0.9451 | 0.9561 | 0.9845 | 0.9906 | 1.0162 |
@@ -225,6 +233,7 @@ tiled forward over an increasingly stale 24-hour window.
 | Model | 6 h | 12 h | 1 d | 2 d | 3 d | 7 d |
 |---|---|---|---|---|---|---|
 | **Chronos2-ZS** | 0.4910 | 0.5271 | 0.5670 | 0.5722 | 0.5718 | 0.5647 |
+| TimesFM2.5-ZS | 0.5052 | 0.5352 | 0.5752 | 0.5778 | 0.5765 | 0.5685 |
 | NPTS | 0.5494 | 0.5688 | 0.6064 | 0.6075 | 0.6053 | 0.5957 |
 | ETS | 0.5390 | 0.5698 | 0.6072 | 0.6120 | 0.6138 | 0.6074 |
 | SeasonalNaive-24 | 0.7174 | 0.7399 | 0.8020 | 0.8058 | 0.8117 | 0.8085 |
@@ -557,6 +566,7 @@ best point forecaster and the worst uncertainty quantifier, and here that is nea
 | Chronos2-COV-LEAN | 0.703 | 0.706 | 0.718 | 0.726 | 0.737 | 0.749 |
 | Chronos2-COV | 0.737 | 0.734 | 0.749 | 0.753 | 0.769 | 0.776 |
 | Chronos2-COV-XL | 0.740 | 0.740 | 0.757 | 0.757 | 0.772 | 0.775 |
+| **TimesFM2.5-ZS** | 0.809 | 0.803 | 0.801 | 0.810 | 0.814 | 0.823 |
 | **NPTS** | **0.850** | 0.846 | **0.842** | 0.841 | 0.839 | 0.836 |
 | ETS | 0.915 | 0.913 | 0.912 | 0.915 | 0.916 | 0.923 |
 | SeasonalNaive-24 | 0.903 | 0.902 | 0.900 | 0.921 | 0.933 | 0.959 |
@@ -567,15 +577,19 @@ best point forecaster and the worst uncertainty quantifier, and here that is nea
 | Model | 6 h | 12 h | 1 d | 2 d | 3 d | 7 d |
 |---|---|---|---|---|---|---|
 | Chronos2-ZS | 0.560 | 0.583 | 0.599 | 0.615 | 0.623 | 0.632 |
+| TimesFM2.5-ZS | 0.551 | 0.573 | 0.593 | 0.604 | 0.609 | 0.627 |
 | Chronos2-COV-XL | 0.578 | 0.615 | 0.636 | 0.649 | 0.656 | 0.667 |
 | NPTS | 0.676 | 0.677 | 0.680 | 0.682 | 0.681 | 0.680 |
 | ETS | 1.222 | 1.237 | 1.262 | 1.303 | 1.339 | 1.456 |
 | SeasonalNaive-24 | 1.681 | 1.681 | 1.709 | 2.058 | 2.350 | 3.259 |
 
-**Verdict: Chronos-2 is overconfident.** Its band is the narrowest of any model (0.56–0.63 KL/h)
-and covers 7–9 points below nominal. NPTS is the best-calibrated model in the study: 0.84 with a
-0.68 KL/h band. ETS, Theta and SeasonalNaive reach high coverage only by being 2–5× wider, which
-is not a virtue — coverage and width must be read together.
+**Verdict: Chronos-2 is overconfident.** Its band is the narrowest of any model but one
+(0.56–0.63 KL/h) and covers 7–9 points below nominal. The best-calibrated model in the study is
+**TimesFM 2.5**: 0.801–0.823 coverage with a band narrower still (0.55–0.63 KL/h) — a narrow band
+that is nonetheless right, which is what a calibrated interval looks like (§17.5). Among the
+original models NPTS is the best calibrated: 0.84 with a 0.68 KL/h band. ETS, Theta and
+SeasonalNaive reach high coverage only by being 2–5× wider, which is not a virtue — coverage and
+width must be read together.
 
 *Interpretation.* At a nominal 80 % band, the truth should fall outside 1 time in 5. With
 Chronos-2 it falls outside roughly **1 time in 3.6**. Using its p10–p90 to size a safety margin
@@ -674,11 +688,18 @@ wrappers and a router.**
 6. **Keep NPTS as the fallback.** It is the better-calibrated model, it wins 5–8 tanks, and it
    is already in production — a per-tank champion/challenger split is defensible on the numbers
    for `NBX`, `G_BLOCK`, `CRICKET_GROUND_OHT`, `GJBC_BLOCK_1_A4_RO` and `NEW_BLOCK_RO`.
+7. **TimesFM 2.5 does not displace Chronos-2** (§17). A second, independently developed foundation
+   model is the stronger test of the choice, and it ranks behind all four Chronos-2 variants at
+   every horizon, on every metric, at 2.3× the compute on the same CPU. Its better-calibrated
+   intervals are a reason to keep it as the reference the calibration layer should reach, not a
+   reason to ship it.
 
 **What must not be claimed.** Not "Chronos-2 is accurate for every tank" — it loses to NPTS on
 5–8 tanks depending on horizon and is worse than seasonal naive on 3 tanks at 1 d. Not
 "covariates improve forecasting" — the measured improvement is ≤ 0.4 % and within noise. Not
-"MASE 0.65 means 65 % accuracy" — MASE is a ratio to the naive baseline.
+"MASE 0.65 means 65 % accuracy" — MASE is a ratio to the naive baseline. Not "Chronos-2 is
+significantly better than TimesFM at every horizon" without the qualifier — the bootstrap says so,
+Diebold–Mariano only at 7 d (§17.3).
 
 ---
 
@@ -702,12 +723,17 @@ wrappers and a router.**
 7. **Percentage-of-demand accuracy is undefined where demand is zero.** 26.5 % of observed
    hourly readings are exactly zero; §8.1 percentages on the five near-dead tanks should be read as "unusable",
    not as "96 % error".
-8. **Runtimes are single measurements** on one Apple MPS laptop, not benchmarked means.
+8. **Runtimes are single measurements** on one Apple MPS laptop, not benchmarked means. TimesFM
+   2.5 ran on the same laptop's CPU, because its official code has no MPS path; the fair speed
+   comparison is the same-CPU pair in §17.7, not the published wall clocks.
 9. **TiDE and the AutoGluon ensembles are absent by scope.** PatchTST is no longer absent — it
    is on the grid at two configurations (§3) and Chronos-2 beats the stronger one by
    16.5–18.6 % MASE at every horizon. What this still does not establish is a result
    against a deep model given substantially more data or a per-tank architecture search; the
    claim is about this dataset at this size.
+10. **One TimesFM checkpoint, one configuration.** TimesFM 2.5 zero-shot at a 2,048-hour
+    context. TimesFM 3.0 was not run (its weights are licensed for non-commercial,
+    non-production use), nor TimesFM's covariate regression or a longer context (§17.8).
 
 ---
 
@@ -745,13 +771,18 @@ python -m tests.test_metrics              # MASE(SeasonalNaive) ~= 1.0 must hold
 python eda/eda_hourly.py                  # trust tiers, feature MI study
 python -m src.models.chronos2_forecasting # 4 Chronos-2 variants  (~32 min total)
 python -m src.models.baselines_autogluon  # NPTS, SeasonalNaive, ETS, Theta, DOT (~26 min)
-python -m src.models.score_benchmark      # benchmark_table.md + per_tank_comparison.csv
+python -m src.models.timesfm_forecasting  # TimesFM 2.5 zero-shot (~3 min on CPU)
+python -m tests.test_timesfm              # 16 adapter / leakage / cache / table tests
+python -m src.models.score_benchmark --strict   # benchmark_table.md + per-tank + TimesFM tables
 python -m src.models.unified_analysis     # every table, all models
 python -m src.models.unified_figures      # 12 figures, PNG + SVG
+python -m src.models.calibrated_holdout --add timesfm   # TimesFM in the 45-day view
+python reports/build_timesfm_section.py   # regenerates §17 below from the result files
 ```
 
 Environment: `venv/` — Python 3.13.3, pandas 2.3.3, numpy 2.1.3, matplotlib 3.10.8,
-torch on Apple MPS, `chronos-forecasting`, `autogluon.timeseries`.
+torch 2.9.1 on Apple MPS, `chronos-forecasting`, `autogluon.timeseries`, `timesfm` 3.0.2
+(TimesFM 2.5 checkpoint, CPU).
 
 ### Where every number in this document comes from
 
@@ -769,6 +800,8 @@ torch on Apple MPS, `chronos-forecasting`, `autogluon.timeseries`.
 | §9 runtimes | `results/chronos2/run_manifest.json` (`wall_clock_s`) |
 | §10 | `results/chronos2/metrics_by_horizon.csv` (`p10_p90_coverage`, `p10_p90_width`) |
 | §11 | `eda/tank_mass_balance.csv`, `eda/tank_trust.json` |
+| §17 | generated by `reports/build_timesfm_section.py` from `results/chronos2/timesfm_manifest.json`, `timesfm_comparison.csv`, `timesfm_per_tank.csv`, `metrics_by_horizon.csv`, `unified/{significance_vs_all,significance_timesfm,leaderboard,zero_inflation_h24,cost}.csv`, `cpu_timing/run_manifest.json` and `calibrated/` |
+| TimesFM rows in §5, §10 | `results/chronos2/metrics_by_horizon.csv` |
 | Figures | `results/chronos2/unified/plots/` (PNG + SVG) |
 
 ### Figure index
@@ -802,3 +835,99 @@ torch on Apple MPS, `chronos-forecasting`, `autogluon.timeseries`.
 | Horizons | 24 h only | 6 h, 12 h, 1 d, 2 d, 3 d, 7 d |
 | Origin stride | 24 h — every origin at 23:00, short horizons scored only on the quiet overnight window (MASE flattered to 0.22) | 23 h — every hour-of-day visited exactly once |
 | Missingness | reported as 3–21 hours | true gapless reindex: up to 20.7 % |
+
+---
+
+<!-- BEGIN GENERATED: timesfm_section - python reports/build_timesfm_section.py -->
+
+## 17. TimesFM comparison
+
+> Generated by `python reports/build_timesfm_section.py` from the result files it names; edit the generator, not this text. Every table here is also in [`results/chronos2/benchmark_table.md`](../results/chronos2/benchmark_table.md) §8, machine-readable in `timesfm_comparison.csv` and `timesfm_per_tank.csv`.
+
+### 17.1 What was run
+
+* **Checkpoint.** `google/timesfm-2.5-200m-pytorch` (TimesFM 2.5, Apache-2.0) at pinned revision `1d952420fb`, loaded by the official `timesfm` package 3.0.2 on torch 2.9.1. TimesFM 3.0 is newer, but its weights are licensed for non-commercial, non-production use only; this study chooses a model for a production campus system, so the checkpoint that could be deployed is the one evaluated.
+* **Configuration.** Zero-shot — no training, no fine-tuning; target series only, no covariates; context 2,048 hours truncated at each origin, as for Chronos-2; point forecast = the median, the statistic Chronos-2's point forecast also is. Flags are the official 2.5 example's: `normalize_inputs`, the continuous quantile head, flip invariance, `infer_is_positive`, `fix_quantile_crossing`. `max_horizon` 168 is compiled to 256; batch 24; eager PyTorch.
+* **Grid.** The benchmark's own: 24 origins at a 23-hour stride, horizons 6 h, 12 h, 1 d, 2 d, 3 d, 7 d, 24 tanks, 188,664 scored rows — row-for-row the same as all 12 models (`score_benchmark --strict` passes). Scored by the same `metrics.py`.
+* **Integrity.** 3,456 (origin, horizon, tank) windows checked for `context_end <= origin < forecast_start`: 0 violations. Failed series-forecasts: 0. 574 of 576 contexts contain missing hours and 24 end in a gap; TimesFM's own pipeline fills them (linear interpolation inside the context, the last observed value across a gap that reaches the origin), where Chronos-2 masks them (§17.6).
+* **Hardware.** CPU — Apple M4 Pro, 12 logical CPUs, 24 GB, 8 torch threads. The official 2.5 PyTorch code runs on CUDA or CPU, not Apple MPS.
+
+### 17.2 Accuracy — macro MASE, every horizon
+
+Lower is better. The last three columns are TimesFM's MASE relative to each opponent, `100 × (opponent − TimesFM) / opponent` as elsewhere in this document, written as a direction: **lower** = TimesFM better, **higher** = TimesFM worse.
+
+| Horizon | TimesFM 2.5 | Chronos-2 ZS | NPTS | SeasonalNaive-24 | rank of 12 | vs Chronos-2 | vs NPTS | vs SeasonalNaive-24 |
+|---|---|---|---|---|---|---|---|---|
+| 6 h | **0.6562** | 0.6017 | 0.6871 | 0.9806 | 5 | 9.04 % higher | 4.51 % lower | 33.09 % lower |
+| 12 h | **0.6748** | 0.6294 | 0.6923 | 0.9666 | 5 | 7.21 % higher | 2.53 % lower | 30.19 % lower |
+| 1 d | **0.6898** | 0.6552 | 0.7098 | 1.0320 | 5 | 5.28 % higher | 2.81 % lower | 33.15 % lower |
+| 2 d | **0.6900** | 0.6656 | 0.7113 | 1.0502 | 5 | 3.68 % higher | 2.99 % lower | 34.30 % lower |
+| 3 d | **0.6877** | 0.6664 | 0.7090 | 1.0628 | 5 | 3.20 % higher | 3.00 % lower | 35.29 % lower |
+| 7 d | **0.6833** | 0.6653 | 0.7057 | 1.0688 | 5 | 2.71 % higher | 3.18 % lower | 36.06 % lower |
+
+The models ranked above TimesFM, at every horizon, are exactly the 4 Chronos-2 variants.
+
+The same ordering holds on every metric at every horizon. Against Chronos-2 zero-shot, TimesFM's error is higher by 2.20–5.81 % on MAE, 0.58–2.59 % on RMSE, 2.71–9.04 % on MASE and 0.67–2.90 % on RMSSE; against NPTS it is lower by 3.22–9.40 %, 3.73–7.72 %, 2.53–4.51 % and 4.56–8.04 %. The gap to Chronos-2 narrows with horizon: MASE 9.04 % higher at 6 h, 2.71 % higher at 7 d.
+
+**TimesFM 2.5 does not beat Chronos-2 zero-shot on any metric at any horizon.**
+
+### 17.3 Is the difference real?
+
+The study's two paired tests over the 24 origins (`src/models/significance.py`), read together as everywhere else in this document:
+
+* **Chronos-2 vs TimesFM.** Chronos-2's MASE is lower at every horizon. The bootstrap interval excludes zero at all six horizons (1 d: 5.23 % better, 95 % CI 1.51–11.44 %), but Diebold–Mariano reaches p < 0.05 only at 7 d (p = 0.041 at 7 d; 0.091–0.215 elsewhere). A claim only one test supports is the weaker claim: Chronos-2 is better, bootstrap-significantly so at every horizon and robustly so only at 7 d. (`unified/significance_vs_all.csv`; the percentages there are per-origin macro scores relative to TimesFM, so they differ slightly from the table above.)
+* **TimesFM vs NPTS.** TimesFM's MASE is lower at every horizon, but the bootstrap separates them only at 7 d and Diebold–Mariano at none (p = 0.18–0.85). Better on average, not established as better.
+* **TimesFM vs SeasonalNaive-24.** Better at every horizon, by both tests (MASE 30.19–36.06 % lower).
+* **Against every non-foundation model**, both tests agree at every horizon for: ETS, Theta, DynamicOptimizedTheta, SeasonalNaive (`unified/significance_timesfm.csv`).
+
+### 17.4 Per tank — where TimesFM wins and loses
+
+Winner per tank on MASE (`timesfm_per_tank.csv`); no ties occur.
+
+| | 6 h | 12 h | 1 d | 2 d | 3 d | 7 d |
+|---|---|---|---|---|---|---|
+| TimesFM better than Chronos-2 ZS | 6/24 | 6/24 | 2/24 | 2/24 | 3/24 | 4/24 |
+| Chronos-2 ZS better | 18/24 | 18/24 | 22/24 | 22/24 | 21/24 | 20/24 |
+| median per-tank MASE diff (TimesFM − Chronos-2) | +0.0153 | +0.0206 | +0.0207 | +0.0171 | +0.0165 | +0.0181 |
+| TimesFM better than NPTS | 17/24 | 14/24 | 14/24 | 12/24 | 12/24 | 12/24 |
+| TimesFM better than SeasonalNaive-24 | 24/24 | 24/24 | 24/24 | 24/24 | 24/24 | 24/24 |
+
+Over all 144 tank-horizon cells TimesFM wins 23 against Chronos-2. It wins at every horizon on 2 tanks — `CRICKET_GROUND_OHT` (degraded), `NEW_BLOCK_RO` (dead) — and on no healthy tank at more than 3 of six. On the squared-error metrics the tanks split more evenly: TimesFM has the lower RMSE on 7–11 tanks and the lower RMSSE on 7–11 per horizon.
+
+### 17.5 Uncertainty and volume
+
+* **Intervals.** TimesFM's p10–p90 covers 0.801–0.823 of outcomes against the nominal 0.80 — the closest of all 12 models (worst horizon 0.023 from nominal; NPTS 0.050, Chronos-2 0.086) — with a band narrower than Chronos-2's at every horizon (0.551–0.627 KL/h vs 0.560–0.632 KL/h), and its p10 is never negative. At 1 d it misses below p10 on 0.101 of rows and above p90 on 0.099 (Chronos-2: 0.166 / 0.112); it keeps p10 above zero on 63.5 % of rows against Chronos-2's 79.3 %. This is the one axis on which TimesFM is clearly ahead of Chronos-2.
+* **Volume.** It under-forecasts total volume more than Chronos-2 at every horizon: -10.7 % at 6 h to -15.9 % at 7 d; at 1 d -15.2 % against Chronos-2's -12.2 % and NPTS's -9.9 % (signed, pooled over all tanks).
+
+### 17.6 The 45-day operational view
+
+Added with `python -m src.models.calibrated_holdout --add timesfm`: the same calibration window (08 Jan – 08 Mar 2026), reported window (09 Mar – 22 Apr) and code as the three published models, whose rows are unchanged. Figures `T_holdout45_timesfm_calibrated` and `T_tanks45_timesfm`.
+
+| | TimesFM 2.5 | Chronos-2 ZS | NPTS | SeasonalNaive-24 |
+|---|---|---|---|---|
+| daily campus MAE, raw → calibrated (KL) | 41.7 → 32.6 | 36.7 → 28.8 | 41.1 → 36.3 | 42.9 → 42.7 |
+| volume bias, raw → calibrated | -10.8 % → +1.7 % | -10.3 % → -1.6 % | -6.6 % → -1.4 % | +0.7 % → +0.1 % |
+| hourly p10–p90 coverage, raw → calibrated | 0.812 → 0.798 | 0.741 → 0.785 | 0.850 → 0.827 | 0.268 → 0.804 |
+
+Its one conspicuous miss is a preprocessing effect, not noise. 16 Mar has only 66.3 % of its campus hours observed, and for 22 of 24 tanks the gap runs right up to the 16 Mar 23:00 origin. TimesFM's own pipeline holds the last observed value across such a gap; its raw forecast for 17 Mar is +103.4 KL off the campus total, against -21.7 KL for Chronos-2, which masks the gap. The same mechanism can help: after the 25 Mar outage TimesFM is -13.7 KL off on 26 Mar, Chronos-2 -87.7 KL.
+
+### 17.7 Compute — measured, and kept apart from accuracy
+
+* **TimesFM 2.5:** 158.4 s for the full 144-call backtest on CPU (1.04 s per call of 24 tanks, 43 ms per series-forecast); model load 1.2 s from the local Hugging Face cache (a first run also downloads the checkpoint); peak process memory 2,425 MB. Each call runs two forward passes (flip invariance) and decodes to the compiled 256 steps whatever the horizon.
+* **Same CPU, Chronos-2 zero-shot:** 67.9 s for the same 144 calls (`results/chronos2/cpu_timing/`), so on identical hardware TimesFM took **2.3×** as long. Chronos-2's published 88.9 s is on Apple MPS, which TimesFM's official code cannot use, so the two published wall clocks are not a speed comparison.
+* Both are single measurements, not benchmarked means.
+
+### 17.8 Limitations specific to this comparison
+
+1. **One checkpoint.** TimesFM 2.5 only; TimesFM 3.0 was not evaluated because of its weight licence, and nothing here speaks for it.
+2. **Zero-shot, univariate only.** TimesFM 2.5's covariate support is an external in-context linear regression (XReg), not a model input, so it has no like-for-like counterpart to the Chronos-2 covariate variants and was not run. No fine-tuning.
+3. **Context held at 2,048 hours** for parity with Chronos-2. TimesFM 2.5 accepts up to 16k; a longer context was not tested.
+4. **Missing hours are handled differently** by the two foundation models' own pipelines (interpolation versus masking). Neither sees the future and both are scored on the same rows, but the difference is visible after outages (§17.6).
+5. **Different devices in the published wall clocks** (MPS vs CPU); the same-CPU pair above is the fair speed comparison.
+6. **The same single 23-day evaluation window** as every other model (§13).
+
+### 17.9 Verdict
+
+**Chronos-2 zero-shot remains the recommended production model.** TimesFM 2.5 is the strongest model outside the Chronos-2 family — rank 5 of 12 at every horizon, lower error than the incumbent NPTS on every metric at every horizon (a margin the tests establish only at 7 d), and lower MASE than every classical and trained model at every horizon — confirmed by both tests at every horizon against ETS, Theta, DynamicOptimizedTheta and SeasonalNaive, and against both PatchTST configurations from 12 h on. It does not beat Chronos-2 zero-shot on any metric at any horizon (9.04 % higher MASE at 6 h to 2.71 % higher at 7 d), it under-forecasts volume more, and it took 2.3× Chronos-2's time on the same CPU. Its genuine advantage is its intervals: raw p10–p90 coverage within 0.023 of nominal, better calibrated than any other model before any correction.
+
+<!-- END GENERATED: timesfm_section -->

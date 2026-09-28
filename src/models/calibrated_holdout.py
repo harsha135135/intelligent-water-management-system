@@ -25,7 +25,8 @@ import pandas as pd
 
 from . import calibration as cal
 from .holdout45_continuous import (
-    CHRONOS, HORIZON, INCUMBENT, REFERENCE, build_origins, chronos2, npts, seasonal_naive,
+    CHRONOS, HORIZON, INCUMBENT, REFERENCE, TIMESFM, build_origins, chronos2, npts,
+    seasonal_naive, timesfm,
 )
 
 logger = logging.getLogger(__name__)
@@ -121,6 +122,96 @@ def daily_summary(daily: pd.DataFrame, preds: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values("model", key=lambda s: s.map(order)).reset_index(drop=True)
 
 
+# Output tables, each computed per model: a model's rows never depend on which other models share
+# the run. That is what makes ``add_models`` equivalent to a joint run for the models it adds.
+PER_MODEL_TABLES = ["bias_factors.csv", "conformal_offsets.csv", "calibration_effect.csv",
+                    "calibration_effect_insample.csv", "daily_band.csv", "daily_campus.csv",
+                    "daily_band_per_tank.csv", "daily_per_tank.csv", "summary.csv"]
+ADDABLE = {"timesfm": (TIMESFM, timesfm)}
+
+
+def calibrate(cal_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Fit on the calibration window, report on the later one: every per-model table."""
+    cal.assert_disjoint(cal_df, test_df)
+    params = cal.fit(cal_df)
+    test_cal = cal.apply(test_df, params)
+    cal_applied = cal.apply(cal_df, params)
+    cal_daily = daily_campus(cal_applied)
+    band = fit_daily_band(cal_daily)
+    daily = apply_daily_band(daily_campus(test_cal), band)
+    return {
+        "bias_factors.csv": params["bias"],
+        "conformal_offsets.csv": params["conformal"],
+        "calibration_effect.csv": cal.evaluate(test_cal),
+        "calibration_effect_insample.csv": cal.evaluate(cal_applied),
+        "daily_band.csv": band,
+        "daily_campus.csv": daily,
+        "daily_band_per_tank.csv": fit_tank_band(daily_per_tank(cal_applied)),
+        "daily_per_tank.csv": daily_per_tank(test_cal),
+        "summary.csv": daily_summary(daily, test_cal),
+        "predictions_calibrated.parquet": test_cal,
+    }
+
+
+def add_models(names: list[str], *, context: int) -> None:
+    """Add models to an existing calibrated run without re-running the models already in it.
+
+    Re-running the whole module would refit NPTS on both windows; this appends the new models'
+    rows to every per-model table and leaves every existing row exactly as it was. A model that
+    is already present is replaced, so the command can be re-run.
+    """
+    from ..data.curate import load_curated_hourly
+
+    man_path = OUT / "manifest.json"
+    if not man_path.exists():
+        raise SystemExit(f"{man_path} missing - run the full calibrated holdout first")
+    man = json.loads(man_path.read_text())
+    panel = load_curated_hourly()
+    test_origins = build_origins(panel, man["test_days"])
+    cal_origins = build_origins(panel, man["cal_days"], end=test_origins[0])
+    # The added model must see exactly the windows the published run used.
+    windows = ([str(cal_origins[0] + pd.Timedelta(hours=1)), str(test_origins[0])],
+               [str(test_origins[0] + pd.Timedelta(hours=1)), str(panel["timestamp"].max())])
+    if [man["calibration_window"], man["reported_window"]] != list(windows):
+        raise AssertionError(f"windows {windows} differ from the published run's "
+                             f"{man['calibration_window']} / {man['reported_window']}")
+
+    for name in names:
+        model, runner = ADDABLE[name]
+        logger.info("adding %s: calibration %s, reported %s", model, *windows)
+        cal_df = runner(panel, cal_origins, context=context)
+        test_df = runner(panel, test_origins, context=context)
+        for tag, df in (("calibration", cal_df), ("reported", test_df)):
+            assert (df["timestamp"] > df["origin"]).all(), f"{tag}: leakage"
+        new = calibrate(cal_df, test_df)
+        for fname, rows in new.items():
+            path = OUT / fname
+            if fname.endswith(".parquet"):
+                old = pd.read_parquet(path)
+            else:
+                # Read back as dates the columns the new rows hold as dates, so each merged
+                # column has one dtype and is written in the one format the file already uses.
+                # round_trip: pandas' default float parser can land one ulp off, and the existing
+                # rows would then be rewritten with different trailing digits.
+                dates = [c for c in rows.columns if pd.api.types.is_datetime64_any_dtype(rows[c])]
+                old = pd.read_csv(path, parse_dates=dates, float_precision="round_trip")
+            merged = pd.concat([old[old["model"] != model], rows], ignore_index=True)
+            if fname.endswith(".parquet"):
+                merged.to_parquet(path, index=False)
+            else:
+                merged.to_csv(path, index=False)
+        man["models"] = sorted(set(man["models"]) | {model})
+        man.setdefault("added_later", {})[model] = {
+            "command": f"python -m src.models.calibrated_holdout --add {name}",
+            "note": "fitted and reported on the same two windows as the original models; "
+                    "their rows are unchanged",
+        }
+        logger.info("%s added: %s", model, new["summary.csv"].to_dict("records"))
+    man_path.write_text(json.dumps(man, indent=2))
+    plot_all()
+    plot_per_tank()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--cal-days", type=int, default=CAL_DAYS)
@@ -128,8 +219,21 @@ def main() -> None:
     ap.add_argument("--context", type=int, default=2048)
     ap.add_argument("--device", default="mps")
     ap.add_argument("--time-limit", type=int, default=600)
+    ap.add_argument("--add", nargs="+", choices=sorted(ADDABLE), default=None,
+                    help="Add these models to the existing run (windows, other models and "
+                         "their rows untouched), then redraw the panels.")
+    ap.add_argument("--plots", action="store_true",
+                    help="Only redraw the operational panels from the existing tables.")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+    if args.plots:
+        plot_all()
+        plot_per_tank()
+        return
+    if args.add:
+        add_models(args.add, context=args.context)
+        return
 
     from ..data.curate import load_curated_hourly
 
@@ -223,18 +327,21 @@ def plot_all() -> None:
     eff = pd.read_csv(OUT / "calibration_effect.csv").set_index("model")
 
     col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
-           REFERENCE: COLOR["SeasonalNaive"]}
+           REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM]}
     label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
-             REFERENCE: "SeasonalNaive-24 (reference)"}
+             REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)"}
     fname = {CHRONOS: "X_holdout45_chronos2_calibrated",
              INCUMBENT: "Y_holdout45_npts_calibrated",
-             REFERENCE: "Z_holdout45_seasonal_naive_calibrated"}
+             REFERENCE: "Z_holdout45_seasonal_naive_calibrated",
+             TIMESFM: "T_holdout45_timesfm_calibrated"}
+    # A model gets a panel only if the run actually holds its predictions.
+    models = [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM) if m in set(daily["model"])]
 
     ymax = max(daily["actual_kl"].max(), daily["band_hi"].max()) * 1.16
     rmax = daily["error_kl"].abs().max() * 1.18
     low = daily[daily["coverage_pct"] < 95]["day"].unique()
 
-    for model in (CHRONOS, INCUMBENT, REFERENCE):
+    for model in models:
         g = daily[daily.model == model].sort_values("day").reset_index(drop=True)
         s, e = summ.loc[model], eff.loc[model]
         c = col[model]
@@ -286,16 +393,26 @@ def plot_all() -> None:
         for lab in axr.get_xticklabels():
             lab.set_fontsize(8.5)
 
+        # Each claim in the caption is conditioned on the numbers it describes, so a model for
+        # which it does not hold gets a different sentence rather than a false one.
+        falls = "falls" if abs(s.total_bias_pct) < abs(s.total_bias_raw_pct) else "rises"
+        if s.daily_band_coverage < 0.8:
+            nominal = (", short of nominal — 56 calibration days cannot pin down a daily-total "
+                       "percentile across a regime change")
+        else:
+            nominal = ", at nominal" if s.daily_band_coverage == 0.8 else ", above nominal"
+        hourly_gap, daily_gap = abs(e.coverage_cal - 0.8), abs(s.daily_band_coverage - 0.8)
+        transfer = ("transfer far better" if daily_gap > 2 * hourly_gap else
+                    "transfer better" if daily_gap > hourly_gap else "do no better")
         _caption(fig, f"Corrections are fitted on 8 Jan – 8 Mar 2026 and reported here on "
                       f"9 Mar – 22 Apr, a strictly later and disjoint window, so nothing on this "
-                      f"chart is measured on data the calibration saw. Volume bias falls from "
+                      f"chart is measured on data the calibration saw. Volume bias {falls} from "
                       f"{s.total_bias_raw_pct:+.1f}% to {s.total_bias_pct:+.1f}% and daily MAE from "
                       f"{s.daily_mae_raw_kl:.1f} to {s.daily_mae_kl:.1f} KL. The shaded band is a "
                       f"conformal 80% interval for the daily total, also fitted on the earlier "
-                      f"window; it covers {100*s.daily_band_coverage:.0f}% of these 45 days, short "
-                      f"of nominal — 56 calibration days cannot pin down a daily-total percentile "
-                      f"across a regime change. The hourly intervals, fitted on ~1,400 residuals "
-                      f"per tank, transfer far better ({e.coverage_raw:.3f} to {e.coverage_cal:.3f}).",
+                      f"window; it covers {100*s.daily_band_coverage:.0f}% of these 45 days"
+                      f"{nominal}. The hourly intervals, fitted on ~1,400 residuals "
+                      f"per tank, {transfer} ({e.coverage_raw:.3f} to {e.coverage_cal:.3f}).",
                  y=-0.015)
         for ext in ("png", "svg"):
             fig.savefig(plots / f"{fname[model]}.{ext}")
@@ -362,13 +479,13 @@ def plot_per_tank() -> None:
     d["band_hi"] = d["pred_kl"] + d["d_hi"]
 
     col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
-           REFERENCE: COLOR["SeasonalNaive"]}
+           REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM]}
     label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
-             REFERENCE: "SeasonalNaive-24 (reference)"}
+             REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)"}
     fname = {CHRONOS: "X_tanks45_chronos2", INCUMBENT: "Y_tanks45_npts",
-             REFERENCE: "Z_tanks45_seasonal_naive"}
+             REFERENCE: "Z_tanks45_seasonal_naive", TIMESFM: "T_tanks45_timesfm"}
 
-    for model in (CHRONOS, INCUMBENT, REFERENCE):
+    for model in [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM) if m in set(d["model"])]:
         c = col[model]
         fig, axes = plt.subplots(2, 2, figsize=(12.4, 6.8))
         fig.subplots_adjust(hspace=0.44, wspace=0.20, top=0.83, bottom=0.10)
