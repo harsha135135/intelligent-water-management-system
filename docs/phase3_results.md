@@ -15,10 +15,10 @@ estimated. Where something was not done, it says so.
 | 1 | **System Testing** | 🟡 **Partial** | 6/6 metric unit tests pass (`tests/test_metrics.py`); 15/15 methodology checks pass under `score_benchmark --strict`. **No system/integration test suite exists** — the real-time system it would test is designed but not built |
 | 2 | **Validation & Verification** | 🟢 **Done, and now stronger** | Row parity, leakage assertions, MASE identity, independent re-score — **plus the paired bootstrap + Diebold-Mariano significance tests added in this session**, which closed the single largest gap (`review_summary.md` §13.2) |
 | 3 | **Deployment** | 🔴 **Not deployed** | A Chrome MV3 dock runs offline against a bundled forecast; `docker-compose.yml` exists but targets the **retired** AutoGluon models. Nothing is serving live |
-| 4 | **Final Experimental Results** | 🟢 **Done** | 12 models × 6 horizons × 24 tanks on one shared grid, now including a PatchTST trained on this campus and Google's TimesFM 2.5, a second foundation model. §2, §2.4, §2.5 below |
+| 4 | **Final Experimental Results** | 🟢 **Done** | 13 models × 6 horizons × 24 tanks on one shared grid, now including a PatchTST trained on this campus and two further foundation models, Google's TimesFM 2.5 and Mistral's Timestral 209M. §2, §2.4–§2.6 below |
 | 5 | **Performance Analysis (tables + graphs)** | 🟢 **Done — 14 figures, now 30** | 14 existing (A–N), **9 diagnostic (O–W)**, **3 calibrated 45-day holdout charts (X–Z)**, and **4 for the PatchTST control (AA–AD)**. §2.4, §3–§4, §7 |
 | 5b | **Conformal calibration + bias correction** | 🟢 **Implemented** | Fitted on 8 Jan – 8 Mar 2026, measured on the disjoint 9 Mar – 22 Apr window: coverage 0.741 → 0.785, volume bias −10.5 % → −1.8 %. `src/models/calibration.py`, §7 below |
-| 6 | **Complete Research Paper Draft** | 🔴 **Not written** | `docs/review_summary.md` (16 sections) is the raw material — results, methodology, limitations — but it is a technical report, not a paper |
+| 6 | **Complete Research Paper Draft** | 🔴 **Not written** | `docs/review_summary.md` (18 sections) is the raw material — results, methodology, limitations — but it is a technical report, not a paper |
 
 **Three of six complete, one partial, two not started — plus the two calibration layers the
 benchmark had listed as future work, now implemented (§7).** The honest framing for the
@@ -66,7 +66,7 @@ review: the *modelling* half of Phase III is finished and now statistically defe
 | Physical tanks | 24 (26 directories de-duplicated; loader **raises** if ≠ 24) |
 | Forecast origins | 24, at a **23-hour stride** (co-prime with 24 → every hour-of-day visited exactly once) |
 | Horizons | 6 h, 12 h, 1 d, 2 d, 3 d, 7 d |
-| Models | 12, on **identical rows** — enforced by `assert_comparable()`, fatal under `--strict` |
+| Models | 13, on **identical rows** — enforced by `assert_comparable()`, fatal under `--strict` |
 | Scored rows | 3,405 / 6,861 / 13,530 / 27,323 / 41,140 / 96,405 → **188,664 total per model** |
 | Leakage rows | **0** — every scored row satisfies `timestamp > origin` |
 | Duplicates | **0** |
@@ -87,26 +87,28 @@ review: the *modelling* half of Phase III is finished and now statistically defe
 MASE is a ratio to a seasonal-naive baseline: **1.0 = no better than naive**. It is *not* a
 percentage. SeasonalNaive-24 scoring ≈ 1.0 is the sanity check that the whole scale is correct.
 
-### 2.3 All twelve models at the 1-day horizon
+### 2.3 All thirteen models at the 1-day horizon
 
-Ranks are by macro MASE among all twelve models (`unified/leaderboard.csv`).
+Ranks are by macro MASE among all thirteen models (`unified/leaderboard.csv`).
 
 | Rank | Model | MASE | MAE | RMSE | RMSSE | p10–p90 coverage |
 |---|---|---|---|---|---|---|
-| 1 | Chronos2-COV-XL | 0.6550 | 0.2104 | 0.4620 | 0.5668 | 0.757 |
-| **2** | **Chronos2-ZS** ← *production candidate* | **0.6552** | 0.2116 | 0.4640 | 0.5670 | 0.722 |
-| 3 | Chronos2-COV | 0.6558 | 0.2105 | 0.4624 | 0.5671 | 0.749 |
-| 4 | Chronos2-COV-LEAN | 0.6562 | 0.2102 | 0.4631 | 0.5677 | 0.718 |
-| 5 | TimesFM2.5-ZS *(second foundation model)* | 0.6898 | 0.2206 | 0.4709 | 0.5752 | 0.801 |
-| 6 | NPTS *(incumbent)* | 0.7098 | 0.2303 | 0.4921 | 0.6064 | 0.842 |
-| 7 | PatchTST-Tuned | 0.8019 | 0.2602 | 0.5134 | 0.6493 | 0.835 |
-| 8 | PatchTST | 0.8533 | 0.2812 | 0.5319 | 0.6673 | 0.808 |
-| 9 | Theta | 0.9561 | 0.2798 | 0.4989 | 0.6292 | 0.940 |
-| 10 | DynamicOptimizedTheta | 0.9575 | 0.2806 | 0.4999 | 0.6304 | 0.940 |
-| 11 | ETS | 0.9611 | 0.2685 | 0.4809 | 0.6072 | 0.912 |
-| 12 | SeasonalNaive-24 | 1.0320 | 0.3178 | 0.6456 | 0.8020 | 0.900 |
+| 1 | Timestral-209M-ZS *(third foundation model)* | 0.6533 | 0.2096 | 0.4627 | 0.5687 | 0.820 |
+| 2 | Chronos2-COV-XL | 0.6550 | 0.2104 | 0.4620 | 0.5668 | 0.757 |
+| **3** | **Chronos2-ZS** ← *production candidate* | **0.6552** | 0.2116 | 0.4640 | 0.5670 | 0.722 |
+| 4 | Chronos2-COV | 0.6558 | 0.2105 | 0.4624 | 0.5671 | 0.749 |
+| 5 | Chronos2-COV-LEAN | 0.6562 | 0.2102 | 0.4631 | 0.5677 | 0.718 |
+| 6 | TimesFM2.5-ZS *(second foundation model)* | 0.6898 | 0.2206 | 0.4709 | 0.5752 | 0.801 |
+| 7 | NPTS *(incumbent)* | 0.7098 | 0.2303 | 0.4921 | 0.6064 | 0.842 |
+| 8 | PatchTST-Tuned | 0.8019 | 0.2602 | 0.5134 | 0.6493 | 0.835 |
+| 9 | PatchTST | 0.8533 | 0.2812 | 0.5319 | 0.6673 | 0.808 |
+| 10 | Theta | 0.9561 | 0.2798 | 0.4989 | 0.6292 | 0.940 |
+| 11 | DynamicOptimizedTheta | 0.9575 | 0.2806 | 0.4999 | 0.6304 | 0.940 |
+| 12 | ETS | 0.9611 | 0.2685 | 0.4809 | 0.6072 | 0.912 |
+| 13 | SeasonalNaive-24 | 1.0320 | 0.3178 | 0.6456 | 0.8020 | 0.900 |
 
 **The four Chronos-2 variants are separated by 0.0012 MASE — statistically indistinguishable.**
+Timestral 209M ranks first, 0.0017 below the best of them at 1 d — a margin examined in §2.6.
 Zero-shot is chosen because it costs **89 s** against 5.9–15.5 min for the covariate variants,
 needs no covariate pipeline, and has no extra failure mode. That is a compute decision, not an
 accuracy one, and it is defensible precisely because the accuracy difference is nil.
@@ -234,21 +236,55 @@ use, so the deployable 2.5 checkpoint is the one evaluated.)
 
 | | Measured | Source |
 |---|---|---|
-| Rank (macro MASE, of 12) | **5th at every horizon** — behind all four Chronos-2 variants, ahead of NPTS | `unified/leaderboard.csv` |
+| Rank (macro MASE, of 13) | **6th at every horizon** — behind Timestral and all four Chronos-2 variants, ahead of NPTS | `unified/leaderboard.csv` |
 | MASE vs Chronos-2 zero-shot | **2.71–9.04 % higher** (9.04 % at 6 h narrowing to 2.71 % at 7 d); higher error on every metric at every horizon | `timesfm_comparison.csv` |
 | Significance vs Chronos-2 | bootstrap: significant at all six horizons; Diebold–Mariano: only at 7 d (p = 0.041; 0.091–0.215 elsewhere) | `unified/significance_vs_all.csv` |
 | Tanks won vs Chronos-2 (MASE) | 6, 6, 2, 2, 3, 4 of 24 (6 h → 7 d); every horizon only on `CRICKET_GROUND_OHT` (degraded) and `NEW_BLOCK_RO` (dead) | `timesfm_per_tank.csv` |
 | MASE vs NPTS | 2.53–4.51 % lower at every horizon — significant only at 7 d, by the bootstrap alone | `timesfm_comparison.csv`, `unified/significance_timesfm.csv` |
-| p10–p90 coverage | **0.801–0.823**, the closest to nominal of all 12 models, with a narrower band than Chronos-2's | `unified/leaderboard.csv` |
+| p10–p90 coverage | **0.801–0.823**, the closest to nominal of all 13 models, with a narrower band than Chronos-2's | `unified/leaderboard.csv` |
 | Volume bias at 1 d | −15.2 % (Chronos-2 −12.2 %) | `unified/leaderboard.csv` |
 | Same-CPU backtest time | 158.4 s vs Chronos-2's 67.9 s (2.3×); its official code has no MPS path | `unified/cost.csv` |
 
 **The inference.** The choice of Chronos-2 survives a second, independently developed foundation
-model: TimesFM 2.5 is the strongest model outside the Chronos-2 family, but it trails all four
+model: TimesFM 2.5 is the strongest model outside the Chronos-2 family after Timestral (§2.6), but it trails all four
 Chronos-2 variants on every point metric at every horizon, under-forecasts volume more, and costs
 2.3× the compute on the same CPU. Its calibrated intervals are the one axis on which it leads — and
 the reason the zero-inflation paper framing (§6, "Research Paper Draft") is narrowed to Chronos-2. Full comparison:
 `docs/review_summary.md` §17 (generated from the result files) and `benchmark_table.md` §8.
+
+### 2.6 A third foundation model — Timestral 209M
+
+Mistral released Timestral, a family of zero-shot time-series foundation models in four sizes, in
+October 2026. The largest, `mistralai/Timestral-209M` (code Apache-2.0; weights under a modified
+MIT licence that withholds all rights from a licensee whose global monthly revenue exceeds USD 20M,
+so production use is allowed below that), was run under the same protocol as TimesFM: target only,
+2,048-hour context, median as the point forecast, 188,664 scored rows, 0 leakage violations over
+3,456 checked windows, 0 failed forecasts. It runs on CPU, like TimesFM.
+
+| | Measured | Source |
+|---|---|---|
+| Rank (macro MASE, of 13) | **1st at every horizon** — 0.0006–0.0037 MASE below the best Chronos-2 variant | `unified/leaderboard.csv` |
+| MASE vs Chronos-2 zero-shot | **0.29–0.92 % lower**; lower MAE and RMSE at every horizon, but higher RMSSE at 1 d, 2 d and 3 d | `timestral_comparison.csv` |
+| Significance vs Chronos-2 | MASE: bootstrap at 3 d and 7 d only, Diebold–Mariano at no horizon. MAE: both tests at 3 d and 7 d | `unified/significance_vs_all.csv` |
+| vs Chronos-2 + covariates (XL) | MASE separated by both tests only at 7 d | `unified/significance_timestral.csv` |
+| vs TimesFM 2.5 | MASE 3.54–8.93 % lower — bootstrap at every horizon, Diebold–Mariano at 3 d and 7 d | `timestral_comparison.csv`, `unified/significance_timestral.csv` |
+| Tanks won vs Chronos-2 (MASE) | 16, 19, 17, 17, 17, 19 of 24 (6 h → 7 d); 69 of its 105 winning cells are on healthy sensors | `timestral_per_tank.csv` |
+| MASE vs NPTS | 6.55–13.04 % lower, significant at every horizon by both tests | `timestral_comparison.csv`, `unified/significance_timestral.csv` |
+| p10–p90 coverage | **0.811–0.824**, second closest to nominal after TimesFM; p10 never negative | `unified/leaderboard.csv` |
+| Volume bias at 1 d | −12.3 % (Chronos-2 −12.2 %) | `unified/leaderboard.csv` |
+| 45-day view, calibrated daily campus MAE | 28.0 KL (Chronos-2 28.8 KL) | `calibrated/summary.csv` |
+| Same-CPU backtest time | 144.7 s vs Chronos-2's 67.9 s (2.1×) and TimesFM's 158.4 s | `unified/cost.csv` |
+| Smaller sizes (5M, 28M, 123M; off the roster, untested) | accuracy rises with size at every horizon; every size has lower MASE than TimesFM at every horizon, only 209M lower than Chronos-2 | `timestral_sizes.csv` |
+
+**The inference.** For the first time in this study a model scores ahead of Chronos-2 zero-shot on
+point accuracy, and with near-nominal raw intervals. The margin is small and only weakly
+established: on MASE the bootstrap separates the two at 3 d and 7 d and Diebold–Mariano at no
+horizon, and against the best Chronos-2 variant both tests agree only at 7 d. **Chronos-2
+zero-shot stays the production model** — the calibration layer, the 45-day operational view and
+the system design are built and validated on it, and Timestral is a preview release published days
+before this evaluation — and Timestral is the first model to re-test on the next evaluation window.
+Full comparison: `docs/review_summary.md` §18 (generated from the result files) and
+`benchmark_table.md` §9.
 
 ---
 
@@ -354,9 +390,10 @@ reproduces the zero atom of a zero-inflated series, and a continuous-density fou
 cannot.** This reframes the one axis on which the incumbent wins from a general weakness into a
 specific, fixable structural mismatch.
 
-*Qualified by the second foundation model (§2.5):* the mechanism is measured for Chronos-2, not
-for foundation models in general. TimesFM 2.5 keeps `p10 > 0` on only 63.5 % of rows at 1 d
-(Chronos-2 79.3 %), misses below p10 on 0.101 of rows and above p90 on 0.099, and covers 0.801
+*Qualified by the other foundation models (§2.5, §2.6):* the mechanism is measured for Chronos-2,
+not for foundation models in general. TimesFM 2.5 keeps `p10 > 0` on only 63.5 % of rows at 1 d
+(Chronos-2 79.3 %), misses below p10 on 0.101 of rows and above p90 on 0.099, and covers 0.801;
+Timestral 209M keeps `p10 > 0` on 70.8 %, misses 0.085 below and 0.095 above, and covers 0.820
 (`unified/zero_inflation_h24.csv`).
 
 *And the naive fix is wrong:* clamping p10 to zero moves coverage from 0.722 to **0.888** —
@@ -444,7 +481,7 @@ rather than presenting model tests as system tests. The test strategy is already
 unit, property (safety invariants S1–S6), contract, integration, parity and regression layers.
 
 ### 2. Validation & Verification — 🟢 the strongest part of the project
-Four independent guarantees, all machine-checked: identical evaluation rows for all 12 models
+Four independent guarantees, all machine-checked: identical evaluation rows for all 13 models
 (`assert_comparable()`, fatal under `--strict`); zero leakage rows; MASE ≈ 1.0 for seasonal naive;
 independent re-score reproducing published results.
 
@@ -462,11 +499,13 @@ the dock as a deployment: it is a demo surface with precomputed data, and descri
 is more credible than describing it generously.
 
 ### 4. Final Experimental Results — 🟢 complete and defensible
-Twelve models, 6 horizons, 24 tanks, 188,664 rows per model on one shared grid, zero leakage,
+Thirteen models, 6 horizons, 24 tanks, 188,664 rows per model on one shared grid, zero leakage,
 zero duplicates. **Chronos-2 zero-shot beats the incumbent NPTS at every horizon on every point
 metric, by 5.7–12.5 % MASE, and the margin is statistically significant everywhere.** It costs
 89 seconds for the entire backtest. A second, independently built foundation model — Google's
-TimesFM 2.5, zero-shot — ranks behind all four Chronos-2 variants at every horizon (§2.5).
+TimesFM 2.5, zero-shot — ranks behind all four Chronos-2 variants at every horizon (§2.5). A
+third, Mistral's Timestral 209M, ranks first at every horizon, but Chronos-2 zero-shot's MASE is
+only 0.3–0.9 % higher than its, a gap only the bootstrap separates and only at 3 d and 7 d (§2.6).
 
 The two caveats are equally measured and must be presented with the result: intervals cover
 0.714–0.743 against nominal 0.80, and 24-hour volume is under-forecast by 12.15 %.
@@ -500,7 +539,8 @@ calibration deficit against a nonparametric sampler, and that the obvious correc
 and on the same zero-inflated data its raw p10–p90 covers 0.801–0.823 — near nominal, with a band
 no wider than Chronos-2's. So the deficit is not a property of foundation models as a class; it is
 measured for Chronos-2. A paper should claim it for Chronos-2 and use TimesFM as the contrast case
-(`docs/review_summary.md` §17.5).
+(`docs/review_summary.md` §17.5). Timestral 209M, at 0.811–0.824 with its p10 never negative, is a
+second contrast case (§18.5).
 
 ---
 
@@ -597,7 +637,9 @@ the worst MAE, because every feature it reproduces arrives a day late.
 > beats the naive baseline on all 24 tanks, and is never significantly worse than the incumbent on
 > any tank with a healthy sensor. It costs 89 seconds and requires no training. A second
 > foundation model, Google's TimesFM 2.5 zero-shot, trails it at every horizon on every metric
-> (MASE 2.7–9.0 % higher), a gap Diebold–Mariano confirms only at 7 d.**
+> (MASE 2.7–9.0 % higher), a gap Diebold–Mariano confirms only at 7 d. A third, Mistral's
+> Timestral 209M zero-shot, scores lower MASE than it at every horizon (Chronos-2's is 0.3–0.9 %
+> higher), a gap only the bootstrap separates, at 3 d and 7 d.**
 >
 > **Its two known weaknesses have been diagnosed and corrected.** Intervals covered 72 % against
 > a nominal 80 %, traced here to the model's inability to represent the 24 % of hours with exactly
@@ -618,11 +660,14 @@ source venv/bin/activate
 python -m tests.test_metrics                  # 6/6, ~3 s   — trust nothing if this fails
 python -m src.models.timesfm_forecasting    # ~3 min, CPU — TimesFM 2.5 zero-shot (§2.5)
 python -m tests.test_timesfm                  # 16/16, ~2 s — adapter, leakage, cache, tables
+python -m src.models.timestral_forecasting  # ~3 min, CPU — Timestral 209M zero-shot (§2.6)
+python -m tests.test_timestral                # 15/15, ~2 s — adapter, leakage, roster, draw order
 python -m src.models.score_benchmark --strict # ~7 s        — re-scores from existing parquets
 python -m src.models.unified_analysis         # ~45 s       — every table, all models
 python -m src.models.unified_figures          # ~5 s        — figures U1-U12
 python -m src.models.calibrated_holdout       # ~3 min      — §7, figures X-Z
 python -m src.models.calibrated_holdout --add timesfm   # §7 for TimesFM, figures T
+python -m src.models.calibrated_holdout --add timestral # §7 for Timestral, figures TS
 ```
 
 `unified_analysis` refits nothing and re-scores nothing; it reads

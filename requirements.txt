@@ -12,6 +12,12 @@ pyarrow
 # Hugging Face cache on first use - never into this repository.
 timesfm[torch]==3.0.2
 
+# Mistral Timestral zero-shot baseline (src/models/timestral_forecasting.py). Not on PyPI; pinned
+# to the GitHub commit the published Timestral numbers were produced with. Checkpoint revisions
+# are pinned in the module; the weights (21 MB to 0.8 GB per size) download to the standard
+# Hugging Face cache on first use - never into this repository.
+timestral @ git+https://github.com/mistralai/timestral.git@a534bdbd244d64f3d9d743f46c7bf6fc330ed4ff
+
 # report generation
 python-pptx
 pillow

@@ -4,6 +4,7 @@ Chronos2-COV-XL,foundation,zero-shot — no training,631.5,10.53,0.6550124166937
 Chronos2-COV,foundation,zero-shot — no training,930.5,15.51,0.6557967354557676,0.7490761271249076,mps,
 Chronos2-COV-LEAN,foundation,zero-shot — no training,353.2,5.89,0.6562459433163864,0.7178861788617886,mps,
 TimesFM2.5-ZS,foundation,zero-shot — no training,158.4,2.64,0.6898326523826025,0.8006651884700665,cpu,158.4
+Timestral-209M-ZS,foundation,zero-shot — no training,144.7,2.41,0.6533022723635311,0.8201034737620103,cpu,144.7
 NPTS,statistical,fitted — five models in one AutoGluon pass,1578.6,26.31,0.7097936683262254,0.8422764227642277,,
 PatchTST-Tuned,trained deep,"trained — 100 epochs, context 512 h",3311.4,55.19,0.8018708616635909,0.8354767184035476,,
 PatchTST,trained deep,"trained — 30 epochs, context 96 h",132.3,2.21,0.8532784313773858,0.8082039911308204,,

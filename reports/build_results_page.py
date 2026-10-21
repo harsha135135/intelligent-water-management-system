@@ -62,14 +62,15 @@ LABEL = {
     "PatchTST": "PatchTST (defaults)", "PatchTST-Tuned": "PatchTST (tuned)",
     "ETS": "ETS", "Theta": "Theta", "DynamicOptimizedTheta": "DynamicOptimizedTheta",
     "SeasonalNaive": "SeasonalNaive-24", "TimesFM2.5-ZS": "TimesFM 2.5 (zero-shot)",
+    "Timestral-209M-ZS": "Timestral 209M (zero-shot)",
 }
 TAG = {CHRONOS: "production candidate", INCUMBENT: "deployed incumbent",
        REFERENCE: "metric reference"}
 FAMILY = dict(zip(lb.model, lb.family))
 NM = len(ORDER)
 ORD = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", 6: "sixth", 7: "seventh",
-       8: "eighth", 9: "ninth", 10: "tenth", 11: "eleventh", 12: "twelfth"}
-NWORD = {9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}.get(NM, str(NM))
+       8: "eighth", 9: "ninth", 10: "tenth", 11: "eleventh", 12: "twelfth", 13: "thirteenth"}
+NWORD = {9: "nine", 10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen"}.get(NM, str(NM))
 ROWS_H = {h: int(lb[(lb.horizon == h) & (lb.model == CHRONOS)]["rows"].iloc[0]) for h in HS}
 TOTAL = sum(ROWS_H.values())
 
@@ -271,10 +272,15 @@ for m in ORDER:
     nsig = int(allh.significant_95.sum())
     won = int(allh.base_better.sum())
     dm = int((allh.base_better & (allh.p_dm < 0.05)).sum())
-    # Both tests are read: a row the bootstrap wins everywhere but DM does not is not "all 6".
+    lost = int((allh.significant_95 & ~allh.base_better).sum())
+    dm_lost = int((~allh.base_better & (allh.improvement_pct < 0) & (allh.p_dm < 0.05)).sum())
+    # Both tests are read: a row the bootstrap wins everywhere but DM does not is not "all 6", and
+    # a row the opponent wins is labelled as a loss, not as "mixed".
     verdict = ("<span class='chip ok'>significant, all 6</span>" if won == 6 and dm == 6 else
                f"<span class='chip warn'>bootstrap 6/6 · DM {dm}/6</span>" if won == 6 else
                "<span class='chip neu'>indistinguishable</span>" if nsig == 0 else
+               f"<span class='chip bad'>opponent better — bootstrap {lost}/6 · DM {dm_lost}/6</span>"
+               if won == 0 else
                f"<span class='chip warn'>mixed — {won}/6</span>")
     cells_won = int(wm[(wm.model_a == CHRONOS) & (wm.model_b == m)]["a_wins"].iloc[0])
     sig_rows += (
@@ -333,7 +339,8 @@ for r in cost.dropna(subset=["wall_clock_s"]).itertuples():
 # §7 operational — the 45-day calibrated holdout
 _MODS = [(CHRONOS, "Chronos-2 (zero-shot)"), (INCUMBENT, "NPTS (incumbent)"),
          ("SeasonalNaive-24", "SeasonalNaive-24 (reference)"),
-         ("TimesFM2.5-ZS", "TimesFM 2.5 (zero-shot)")]
+         ("TimesFM2.5-ZS", "TimesFM 2.5 (zero-shot)"),
+         ("Timestral-209M-ZS", "Timestral 209M (zero-shot)")]
 _MODS = [(k, lab) for k, lab in _MODS if k in h45s.index]
 op_rows = ""
 for k, lab in _MODS:
@@ -402,12 +409,48 @@ TF_OP = ("" if TFM not in h45s.index else
          f"only <strong>{h45s.loc[TFM].corr_with_actual:+.2f}</strong>"
          + (f": {TF_MISS}." if TF_MISS else ".") + "</p>")
 
+# The third foundation model: the one opponent with lower MASE than Chronos-2. Read from Chronos-2's
+# side of the significance table, so a negative improvement means Chronos-2 is worse.
+TSL = "Timestral-209M-ZS"
+_lsig = sig[(sig.metric == "MASE") & (sig.opponent == TSL)].set_index("horizon")
+TS_LO, TS_HI = -_lsig.improvement_pct.max(), -_lsig.improvement_pct.min()
+TS_BOOT = [HL[h] for h in HS if _lsig.loc[h, "significant_95"] and not _lsig.loc[h, "base_better"]]
+TS_DM = [HL[h] for h in HS if _lsig.loc[h, "p_dm"] < 0.05 and _lsig.loc[h, "improvement_pct"] < 0]
+TS_CPU = _c.loc[TSL, "wall_clock_s_same_cpu"]
+TS_COV = lb[lb.model == TSL].coverage
+_cells_c2_ts = int(wm[(wm.model_a == CHRONOS) & (wm.model_b == TSL)]["a_wins"].iloc[0])
+# Opponents Chronos-2 takes fewer than half the cells from, and the opponents ranked above it.
+_c2_loses = [m for m in ORDER if m != CHRONOS and
+             int(wm[(wm.model_a == CHRONOS) & (wm.model_b == m)]["a_wins"].iloc[0]) < 72]
+_c2_rank = lb[lb.model == CHRONOS].set_index("horizon")["rank_mase"]
+# Opponents whose 1-day interval against Chronos-2 crosses zero.
+_cross = [m for m in ORDER if m != CHRONOS and not bool(_s24.loc[m, "significant_95"])]
+# Every model that reaches nominal coverage at 1 d without a negative p10.
+_honest = [m for m in ORDER if cell(m, 24, "coverage") >= 0.8
+           and float(_z.loc[m, "p10_below_zero_pct"]) == 0]
+TS_OP = ("" if TSL not in h45s.index else
+         f"<p>Timestral 209M reproduces <strong>{h45s.loc[TSL].sd_ratio * 100:.0f}%</strong> of the "
+         f"variation and correlates <strong>{h45s.loc[TSL].corr_with_actual:+.2f}</strong>, and its "
+         f"calibrated daily campus error, <strong>{h45s.loc[TSL].daily_mae_kl:.1f} KL</strong>, is "
+         + ("the lowest of the five" if h45s.daily_mae_kl.idxmin() == TSL else
+            f"against Chronos-2's {OPS.daily_mae_kl:.1f} KL") + ".</p>")
+
+
+NWORDS_SMALL = {1: "one", 2: "two", 3: "three", 4: "four"}
+
+
+def _and(names):
+    names = list(names)
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
 # ─────────────────────────────────────────────────────────────── figures
 FIGS = [
     ("U1", "U1_leaderboard_mase", "Every model, every horizon",
      f"Macro MASE against forecast horizon for all {NWORD} models on the identical rows.",
-     "The Chronos-2 family on its own, then TimesFM 2.5 just above the incumbent, then the "
-     "trained deep models and the classical methods. The four Chronos-2 variants coincide."),
+     "Timestral 209M and the Chronos-2 family together at the top, then TimesFM 2.5 just above "
+     "the incumbent, then the trained deep models and the classical methods. The four Chronos-2 "
+     "variants coincide, and Timestral runs just beneath them."),
     ("U2", "U2_leaderboard_heatmap", "The leaderboard as a grid",
      "Macro MASE and rank in every cell. The blue outline is the production candidate.",
      "Rank is stable across horizons: the ordering of families never changes, only the margins."),
@@ -416,14 +459,17 @@ FIGS = [
      "1 d on the left, across all six horizons on the right.",
      f"{len(_both)} opponents are beaten at every horizon by both tests. TimesFM 2.5 is beaten "
      f"at every horizon by the bootstrap, but Diebold–Mariano confirms it only at "
-     f"{', '.join(TF_DM) or 'no horizon'}. The three covariate variants are the only ones whose "
-     "intervals cross zero, which is the finding, not a failure."),
+     f"{', '.join(TF_DM) or 'no horizon'}. At 1 d the intervals cross zero only for "
+     f"{_and(LABEL[m] for m in _cross)}; Timestral is the one opponent whose MASE is lower than "
+     f"Chronos-2's, a margin the bootstrap separates only at {_and(TS_BOOT) if TS_BOOT else 'no horizon'} "
+     f"and Diebold–Mariano at {_and(TS_DM) if TS_DM else 'none'}."),
     ("U4", "U4_win_matrix", "Who beats whom, cell by cell",
      "Percentage of the 144 tank x horizon cells each model wins against each other model, on "
      "per-tank MAE.",
      f"Chronos-2 takes every cell from the classical methods and the reference, "
      f"{100 * _cells_c2_tfm / 144:.0f}% against TimesFM 2.5 and {100 * _cells_c2_npts / 144:.0f}% "
-     "against the incumbent, and loses the majority only to its own covariate variants."),
+     f"against the incumbent, and loses the majority only to {_and(LABEL[m] for m in _c2_loses)} "
+     f"— {100 * _cells_c2_ts / 144:.0f}% against Timestral."),
     ("U5", "U5_per_tank_heatmap", "Per tank, per model",
      f"MASE at 1 d for all 24 tanks and all {NM} models, tanks ordered by mean demand and labelled "
      "by sensor tier.",
@@ -432,9 +478,9 @@ FIGS = [
     ("U6", "U6_skill_vs_demand", "Is the average flattered by the dead sensors?",
      "Skill against the seasonal-naive reference for every tank and every model, against that "
      "tank's mean demand.",
-     "Every Chronos-2 variant, TimesFM 2.5 and NPTS clear zero on all 24 tanks. Skill does not "
-     "fall away with demand size, so the headline is not an artefact of the sensors that never "
-     "move." if {"Chronos2-ZS", TFM, INCUMBENT} <= set(_skill24) else
+     "Every Chronos-2 variant, TimesFM 2.5, Timestral and NPTS clear zero on all 24 tanks. Skill "
+     "does not fall away with demand size, so the headline is not an artefact of the sensors that "
+     "never move." if {"Chronos2-ZS", TFM, TSL, INCUMBENT} <= set(_skill24) else
      "Skill does not fall away with demand size."),
     ("U9", "U9_error_by_leadtime", "Does it fall apart at long lead times?",
      "MAE against hours ahead of the origin, out to 168 h, as a 24-hour rolling mean.",
@@ -453,8 +499,9 @@ FIGS = [
      "Lower- versus upper-tail miss rates, how often p10 falls below zero, and what a naive clamp "
      "would do — for every model.",
      f"Chronos-2's deficit is lower-tail and tied to the zero atom. TimesFM 2.5 misses below p10 "
-     f"on {TZ.miss_below_p10:.3f} and above p90 on {TZ.miss_above_p90:.3f} of rows — close to "
-     "the expected 0.10 each — so the deficit is not structural to foundation models."),
+     f"on {TZ.miss_below_p10:.3f} and above p90 on {TZ.miss_above_p90:.3f} of rows, Timestral on "
+     f"{_z.loc[TSL].miss_below_p10:.3f} and {_z.loc[TSL].miss_above_p90:.3f} — close to the "
+     "expected 0.10 each — so the deficit is not structural to foundation models."),
     ("U12", "U12_volume_bias", "Signed volume bias — the number that sizes a refill",
      "Total forecast volume against total actual, per model and horizon.",
      "The operationally expensive direction is negative: a refill sized on an uncorrected mean "
@@ -463,7 +510,8 @@ FIGS = [
      "Macro MASE at 1 d against measured wall clock for the full backtest, log scale.",
      f"The production candidate is the leftmost point on the chart and within {_gap_best:.4f} "
      "MASE of the best — which is what makes zero-shot a compute decision rather than an accuracy "
-     f"sacrifice. On the same CPU it took {C2_CPU:.0f} s to TimesFM 2.5's {TF_CPU:.0f} s."),
+     f"sacrifice. On the same CPU it took {C2_CPU:.0f} s to TimesFM 2.5's {TF_CPU:.0f} s and "
+     f"Timestral's {TS_CPU:.0f} s."),
 ]
 
 figs = "".join(
@@ -491,6 +539,11 @@ OPFIGS = [
     ("O4", "T_tanks45_timesfm", "TimesFM 2.5 — the same four tanks",
      "The second foundation model, zero-shot, under the same calibration windows and code.",
      "Responsive where NPTS is flat, like Chronos-2" + (f" — but {TF_MISS}." if TF_MISS else ".")),
+    ("O5", "TS_tanks45_timestral", "Timestral 209M — the same four tanks",
+     "The third foundation model, zero-shot, under the same calibration windows and code.",
+     "Responsive where NPTS is flat, and the lowest calibrated daily campus error of the five."
+     if TSL in h45s.index and h45s.daily_mae_kl.idxmin() == TSL else
+     "Responsive where NPTS is flat, like Chronos-2."),
 ]
 OPFIGS = [f for f in OPFIGS if (H45 / "plots" / (f[1] + ".png")).exists()]
 opfigs = "".join(
@@ -507,8 +560,8 @@ STATUS = [
      "apparatus. There is no system or integration suite — the real-time system is designed, not built."),
     ("Verification &amp; Validation", "done", "Done",
      f"Row parity across all {NM} models, zero leakage, the MASE identity, an independent re-score, "
-     "paired significance against every opponent, a trained deep control, and a second "
-     "foundation model."),
+     "paired significance against every opponent, a trained deep control, and two further "
+     "foundation models."),
     ("Deployment", "todo", "Not deployed",
      "The Chrome dock runs offline from a bundled forecast; the compose stack targets retired "
      "models. Nothing is serving."),
@@ -519,7 +572,8 @@ STATUS = [
      "One unified figure set: every panel carries every model, with a table behind each."),
     ("Research Paper Draft", "todo", "Not written",
      "review_summary.md holds the material. The zero-inflation calibration finding is the "
-     "publishable contribution — for Chronos-2; TimesFM 2.5 is the calibrated contrast case."),
+     "publishable contribution — for Chronos-2; TimesFM 2.5 and Timestral are the calibrated "
+     "contrast cases."),
 ]
 status_cards = "".join(
     f"""<div class="st {cls}"><div class="st-top"><span class="st-name">{name}</span>
@@ -536,7 +590,8 @@ BODY = f"""
     <h1>Final experimental results and performance analysis</h1>
     <p class="lede">Hourly water-demand forecasting for 24 campus tanks, benchmarked across
       <b>{NWORD} models</b> on one shared evaluation grid — a pretrained foundation model, its
-      covariate variants, a second foundation model (Google's TimesFM 2.5), the deployed
+      covariate variants, two other foundation models (Google's TimesFM 2.5 and Mistral's
+      Timestral 209M), the deployed
       incumbent, a transformer trained on this campus, and the classical baselines — with
       significance testing, calibration diagnosis and the operational view, each stated once.</p>
     <div class="meta">
@@ -606,18 +661,24 @@ BODY = f"""
         <th class="n">MAE @ 1 d</th><th class="n">RMSE @ 1 d</th><th class="n">RMSSE @ 1 d</th></tr></thead>
       <tbody>{lead_rows}</tbody></table></div>
     <div class="call"><h3>What the table says, in three sentences</h3>
-      <p>The <strong>Chronos-2 family occupies the top four places at every horizon</strong>, and
-      its four variants are separated by <strong>{_spread:.4f} MASE</strong> — statistically
-      indistinguishable. The second foundation model, TimesFM 2.5, is
+      <p><strong>Mistral's Timestral 209M is first at every horizon, and the Chronos-2 family
+      fills the next four places</strong>. The four Chronos-2 variants are separated by
+      <strong>{_spread:.4f} MASE</strong> — statistically indistinguishable — and Chronos-2
+      zero-shot's MASE is {TS_LO:.1f}–{TS_HI:.1f}% higher than Timestral's, a margin the tests
+      establish only weakly
+      (<a href="#significance">Section 3</a>). TimesFM 2.5 is
       {ORD.get(int(_rank[TFM]), _rank[TFM])}; the deployed incumbent is
       {ORD.get(int(_rank[INCUMBENT]), _rank[INCUMBENT])}; a transformer trained on this campus is
       {ORD.get(int(_rank['PatchTST-Tuned']), '')} and {ORD.get(int(_rank['PatchTST']), '')};
       the classical methods and the naive reference fill the rest.</p>
-      <p><strong>Zero-shot is the production candidate despite ranking second on raw MASE.</strong>
+      <p><strong>Chronos-2 zero-shot is the production candidate despite ranking
+      {ORD[int(_c2_rank.min())]}{'' if _c2_rank.nunique() == 1 else '–' + ORD[int(_c2_rank.max())]}
+      on raw MASE.</strong>
       It costs {C2S:.0f} seconds against 5.9–15.5 minutes for the covariate variants, needs no
       covariate pipeline and adds no failure mode. That is a compute decision, and it is
       defensible precisely because the accuracy difference is nil — see
-      <a href="#cost">Section 8</a>.</p></div>
+      <a href="#cost">Section 8</a>. Timestral's edge is the one difference that is not nil, and
+      it is small enough that the system built and validated on Chronos-2 stays.</p></div>
   </div>
 </section>
 
@@ -628,8 +689,9 @@ BODY = f"""
       10,000 paired bootstrap resamples over the 24 forecast origins, and Diebold–Mariano with the
       Harvey–Leybourne–Newbold small-sample correction. The bootstrap assumes only that the origins
       are exchangeable; DM assumes a covariance structure the 23-hour stride approximates. They
-      agree everywhere except against TimesFM 2.5, where DM confirms the bootstrap only at
-      {', '.join(TF_DM) or 'no horizon'} — a claim only one test supports is the weaker claim.</p></div>
+      agree everywhere except against the two other foundation models: against TimesFM 2.5 DM
+      confirms the bootstrap only at {', '.join(TF_DM) or 'no horizon'}, and against Timestral at
+      {', '.join(TS_DM) or 'no horizon'} — a claim only one test supports is the weaker claim.</p></div>
   <div class="stack">
     <div class="tw"><table>
       <caption>Chronos-2 zero-shot vs each opponent at the 1-day horizon, with the verdict across all six</caption>
@@ -645,9 +707,15 @@ BODY = f"""
       <p><strong>Against the second foundation model, TimesFM 2.5, it is better at every horizon —
       by {TF_LO:.1f}–{TF_HI:.1f}%</strong> — significantly by the bootstrap everywhere, but by
       Diebold–Mariano only at {', '.join(TF_DM) or 'no horizon'}.</p>
-      <p><strong>The three covariate variants are the only opponents it does not separate from</strong>,
-      and their confidence intervals straddle zero. That is the honest reading: conditioning on the
-      academic calendar changes nothing measurable, so the cheapest variant wins on cost.</p></div>
+      <p><strong>Against the third, Mistral's Timestral 209M, it is worse at every horizon — its
+      MASE {TS_LO:.1f}–{TS_HI:.1f}% higher</strong> — but the bootstrap separates the two only at
+      {_and(TS_BOOT) if TS_BOOT else 'no horizon'} and Diebold–Mariano at
+      {_and(TS_DM) if TS_DM else 'no horizon'}. Timestral is the more accurate model on this grid; it
+      is not established as more accurate.</p>
+      <p><strong>The three covariate variants are the remaining opponents it does not separate
+      from</strong>, and their confidence intervals straddle zero. That is the honest reading:
+      conditioning on the academic calendar changes nothing measurable, so the cheapest variant
+      wins on cost.</p></div>
   </div>
 </section>
 
@@ -667,8 +735,9 @@ BODY = f"""
     <div class="call"><h3>The objection this answers</h3>
       <p>“Your average is flattered by the dead sensors.” It is not: ranked by <em>raw</em> MAE the
       best tanks would be the broken ones, which is exactly why the headline uses MASE. Measured
-      per tank against the naive reference, <strong>every Chronos-2 variant, TimesFM 2.5 and the
-      incumbent clear zero on all 24 tanks</strong>, and skill does not decline with demand size.</p>
+      per tank against the naive reference, <strong>every Chronos-2 variant, TimesFM 2.5,
+      Timestral and the incumbent clear zero on all 24 tanks</strong>, and skill does not decline
+      with demand size.</p>
       <p>The trained deep models do not: PatchTST is <em>worse than naive</em> on three to four
       tanks. The classical methods are worse than naive on five.</p></div>
   </div>
@@ -704,11 +773,14 @@ BODY = f"""
       hours</strong>. It is a zero-inflation problem, not a general uncertainty failure.</p>
       <p>The tell is the fourth column. <strong>Every model that reaches or exceeds the nominal
       0.80 does so by putting its lower bound below zero</strong> — a negative water outflow, which
-      cannot happen — with two exceptions. <strong>NPTS</strong>, a non-parametric sampler, reproduces
-      the zero atom directly. <strong>TimesFM 2.5</strong>, the second foundation model, covers
+      cannot happen — with {NWORDS_SMALL.get(len(_honest), len(_honest))} exceptions.
+      <strong>NPTS</strong>, a non-parametric sampler, reproduces
+      the zero atom directly. <strong>TimesFM 2.5</strong>, a second foundation model, covers
       {TF_COV.min():.3f}–{TF_COV.max():.3f} with a band narrower than Chronos-2's and p10 above
-      zero on only {TZ.p10_above_zero_pct:.0f}% of rows — the best-calibrated model here, and the
-      proof that the deficit is not a property of foundation models as such. The four Chronos-2
+      zero on only {TZ.p10_above_zero_pct:.0f}% of rows — the best-calibrated model here.
+      <strong>Timestral 209M</strong> covers {TS_COV.min():.3f}–{TS_COV.max():.3f} with a band
+      somewhat wider than Chronos-2's, its p10 likewise never negative. Together they are the proof that the deficit is not a property of foundation
+      models as such. The four Chronos-2
       variants never go negative and under-cover. <strong>An interval whose lower bound is a
       negative volume cannot size a refill.</strong></p>
       <p>Nor is clamping the answer: setting the lower bound to zero takes Chronos-2 to
@@ -745,7 +817,8 @@ BODY = f"""
       <strong>{h45s.loc[INCUMBENT].sd_ratio * 100:.0f}%</strong> and correlates
       <strong>{h45s.loc[INCUMBENT].corr_with_actual:+.2f}</strong> — it is close to a flat line at
       the long-run average, on every tank.</p>
-      {TF_OP}</div>
+      {TF_OP}
+      {TS_OP}</div>
   </div>
   <div class="figs" style="margin-top:22px">{opfigs}</div>
 </section>
@@ -772,7 +845,9 @@ BODY = f"""
       the accuracy gap merely means there is nothing to trade against it.</p>
       <p>TimesFM 2.5 is zero-shot too, so it has the same advantage — but its official code has
       no Apple MPS path. On the <em>same CPU</em> it took <strong>{TF_CPU:.0f} s</strong> against
-      Chronos-2's <strong>{C2_CPU:.0f} s</strong>, and it is less accurate at every horizon.</p></div>
+      Chronos-2's <strong>{C2_CPU:.0f} s</strong>, and it is less accurate at every horizon.
+      Timestral 209M, also zero-shot and also run on CPU, took <strong>{TS_CPU:.0f} s</strong> —
+      {TS_CPU / C2_CPU:.1f}× Chronos-2 — for its small accuracy edge.</p></div>
   </div>
 </section>
 
@@ -792,13 +867,13 @@ BODY = f"""
     <div class="inf-item"><div class="inf-top"><h3>Verification &amp; Validation</h3><span class="chip done">done</span></div>
       <p>The strongest part of the project. Six machine-checked guarantees: identical rows for all
       {NM} models, zero leakage, the MASE identity, an independent re-score, paired significance
-      against <em>every</em> opponent, a deep-learning control trained on this campus, and a
-      second foundation model.</p>
+      against <em>every</em> opponent, a deep-learning control trained on this campus, and two
+      further foundation models.</p>
       <p>Adding the two PatchTST models was itself a verification event — the row-parity assertion
       had to hold for models produced by a completely different pipeline, and it did, unchanged at
       {ROWS_H[6]:,} / {ROWS_H[12]:,} / {ROWS_H[24]:,} / {ROWS_H[48]:,} / {ROWS_H[72]:,} /
-      {ROWS_H[168]:,} rows. So was adding TimesFM 2.5: every pre-existing metric and bootstrap
-      interval stayed byte-identical.</p></div>
+      {ROWS_H[168]:,} rows. So was adding TimesFM 2.5 and then Timestral 209M: every pre-existing
+      metric and bootstrap interval stayed byte-identical.</p></div>
     <div class="inf-item"><div class="inf-top"><h3>Chronos-2</h3><span class="chip done">done</span></div>
       <p><code>amazon/chronos-2</code>, 119.5 M parameters, used <strong>zero-shot</strong> — no
       training, no fine-tuning, 2,048 hours of context truncated at each origin. It works because
@@ -807,7 +882,9 @@ BODY = f"""
       <p>Four covariate variants were measured and are statistically indistinguishable from the
       zero-shot model. <strong>Zero-shot is chosen on compute, not accuracy</strong>, and it holds
       no fitted state that can go stale. A second, independently built foundation model —
-      TimesFM 2.5 — trails it on every metric at every horizon.</p></div>
+      TimesFM 2.5 — trails it on every metric at every horizon. A third, Mistral's Timestral 209M,
+      edges it: Chronos-2's MASE is {TS_LO:.1f}–{TS_HI:.1f}% higher, a margin only the bootstrap
+      separates and only at {_and(TS_BOOT) if TS_BOOT else 'no horizon'}.</p></div>
     <div class="inf-item"><div class="inf-top"><h3>Deployment</h3><span class="chip todo">the real gap</span></div>
       <p>A Chrome MV3 dock renders real Chronos-2 forecasts from a bundled JSON, offline. The
       compose stack exists but targets the <strong>retired</strong> AutoGluon models, and its
@@ -818,11 +895,13 @@ BODY = f"""
       generously.</p></div>
     <div class="inf-item"><div class="inf-top"><h3>Final Experimental Results</h3><span class="chip done">done</span></div>
       <p>{NWORD.capitalize()} models, six horizons, 24 tanks, {TOTAL:,} identical rows per model,
-      zero leakage, zero duplicates. <strong>Chronos-2 zero-shot beats every non-Chronos model at
-      every horizon</strong> — significantly by both tests against every non-foundation model,
-      from {NPTS_LO:.1f}% against the deployed incumbent to roughly a third against the classical
-      methods, and against TimesFM 2.5 by {TF_LO:.1f}–{TF_HI:.1f}% (bootstrap everywhere, DM only at
-      {', '.join(TF_DM) or 'no horizon'}) — and it costs {C2S:.0f} seconds.</p>
+      zero leakage, zero duplicates. <strong>Chronos-2 zero-shot beats every non-foundation
+      model at every horizon</strong> — significantly by both tests, from {NPTS_LO:.1f}% against
+      the deployed incumbent to roughly a third against the classical methods — and TimesFM 2.5
+      by {TF_LO:.1f}–{TF_HI:.1f}% (bootstrap everywhere, DM only at
+      {', '.join(TF_DM) or 'no horizon'}), and it costs {C2S:.0f} seconds. <strong>Timestral 209M is
+      the one model with lower MASE</strong> — Chronos-2's is {TS_LO:.1f}–{TS_HI:.1f}% higher — a
+      margin the bootstrap separates only at {_and(TS_BOOT) if TS_BOOT else 'no horizon'}.</p>
       <p>Both caveats are measured and stated with the result, not in an appendix: the intervals
       were overconfident ({CAL.coverage_raw:.3f} against 0.80, diagnosed as zero-inflation and
       corrected to {CAL.coverage_cal:.3f}), and 24-hour volume was under-forecast
@@ -834,7 +913,7 @@ BODY = f"""
       <strong>“Does it fall apart at long horizons?”</strong> → U9.
       <strong>“Your intervals are broken.”</strong> → U7, U11 — yes, and here is the mechanism and
       the correct fix. <strong>“Did you try a real deep model?”</strong> → U1, U3, U8.
-      <strong>“Did you try another foundation model?”</strong> → U1, U3, U7, U8, O4.
+      <strong>“Did you try another foundation model?”</strong> → U1, U3, U7, U8, O4, O5.
       <strong>“What does the error cost?”</strong> → U12, O1–O3.</p></div>
     <div class="inf-item"><div class="inf-top"><h3>Research Paper Draft</h3><span class="chip todo">not started</span></div>
       <p><code>docs/review_summary.md</code> already contains everything a paper needs, and this
@@ -843,8 +922,8 @@ BODY = f"""
       <p>Suggested framing — <strong>“Zero-inflation limits probabilistic calibration of
       time-series foundation models: evidence from 24 campus water tanks.”</strong> The
       point-forecast win is solid but unsurprising; the calibration diagnosis is the contribution.
-      TimesFM 2.5 narrows it: a second foundation model is calibrated on the same data, so the
-      claim is about Chronos-2, with TimesFM as the contrast case.</p></div>
+      TimesFM 2.5 and Timestral narrow it: two other foundation models are calibrated on the same
+      data, so the claim is about Chronos-2, with them as the contrast cases.</p></div>
   </div>
 </section>
 
@@ -852,10 +931,11 @@ BODY = f"""
   <div class="sec-hd"><span class="eyebrow">Section 10</span><h2>If you only get one slide</h2></div>
   <div class="call">
     <p><strong>On one evaluation grid where {NWORD} models score the same {TOTAL:,} rows, Chronos-2
-    zero-shot beats every non-Chronos model at every one of six horizons — significantly by
-    paired bootstrap over 24 origins and by Diebold–Mariano against every non-foundation model,
-    and against Google's TimesFM 2.5 by the bootstrap (Diebold–Mariano only at
-    {', '.join(TF_DM) or 'no horizon'}).</strong> It is {NPTS_LO:.1f}–{NPTS_HI:.1f}% better than the deployed
+    zero-shot beats every non-foundation model at every one of six horizons — significantly by
+    paired bootstrap over 24 origins and by Diebold–Mariano — and Google's TimesFM 2.5 by the
+    bootstrap (Diebold–Mariano only at {', '.join(TF_DM) or 'no horizon'}). Its MASE is
+    {TS_LO:.1f}–{TS_HI:.1f}% higher than Mistral's Timestral 209M's, a gap only the bootstrap
+    separates, at {_and(TS_BOOT) if TS_BOOT else 'no horizon'}.</strong> It is {NPTS_LO:.1f}–{NPTS_HI:.1f}% better than the deployed
     incumbent, {PT_LO:.1f}–{PT_HI:.1f}% better than a PatchTST trained on this campus, and roughly
     a third better than the classical methods. It wins
     {summ['tank_horizon_cells_won_vs'][INCUMBENT]} of 144 tank-horizon cells against the incumbent
@@ -870,7 +950,8 @@ BODY = f"""
     {CAL.coverage_raw:.3f} against a nominal 0.80, traced here to the model's inability to
     represent the {Z.zero_fraction * 100:.0f}% of hours with exactly zero demand — a limit
     measured for Chronos-2, not for foundation models as such: TimesFM 2.5 covers
-    {TF_COV.min():.3f}–{TF_COV.max():.3f} on the same hours. Asymmetric conformal
+    {TF_COV.min():.3f}–{TF_COV.max():.3f} on the same hours and Timestral
+    {TS_COV.min():.3f}–{TS_COV.max():.3f}. Asymmetric conformal
     calibration and a per-tank volume correction, both fitted on an earlier disjoint window and
     measured out of sample, take coverage to <strong>{CAL.coverage_cal:.3f}</strong> and volume
     bias from {OPS.total_bias_raw_pct:+.1f}% to <strong>{OPS.total_bias_pct:+.1f}%</strong>,
@@ -907,6 +988,13 @@ BODY = f"""
       <tr><th scope="row">One TimesFM checkpoint</th>
         <td>TimesFM 2.5, zero-shot, 2,048-hour context. TimesFM 3.0 was not run — its weights are
         licensed for non-commercial, non-production use — nor its covariate regression.</td></tr>
+      <tr><th scope="row">Chronos-2 is not the most accurate model measured</th>
+        <td>Timestral 209M has lower MASE at every horizon; Chronos-2's is {TS_LO:.1f}–{TS_HI:.1f}%
+        higher. It is a
+        preview checkpoint released days before this evaluation, run zero-shot without covariates
+        on a 2,048-hour context, and its edge rests on this one evaluation window. Chronos-2 stays
+        the production model on the strength of the system built and validated around it; Timestral
+        is the first model to re-test on the next window.</td></tr>
       <tr><th scope="row">The result is one campus, 16 months</th>
         <td>It generalises to campuses like this one. It is not evidence about municipal supply,
         industrial demand, or a different climate.</td></tr>
@@ -928,11 +1016,13 @@ BODY = f"""
 <b>python -m src.models.patchtst_benchmark --preset default</b>
 <b>python -m src.models.patchtst_benchmark --preset tuned  …</b>
 <b>python -m src.models.timesfm_forecasting</b>          <span style="opacity:.65"># TimesFM 2.5 zero-shot, ~3 min on CPU</span>
+<b>python -m src.models.timestral_forecasting</b>        <span style="opacity:.65"># Timestral 209M zero-shot, ~3 min on CPU</span>
 <b>python -m src.models.score_benchmark --strict</b>     <span style="opacity:.65"># row parity, fatal on mismatch</span>
 <b>python -m src.models.unified_analysis</b>             <span style="opacity:.65"># ~45 s — every table on this page</span>
 <b>python -m src.models.unified_figures</b>              <span style="opacity:.65"># ~5 s — U1-U12</span>
 <b>python -m src.models.calibrated_holdout</b>           <span style="opacity:.65"># ~3 min — the operational view, O1-O3</span>
 <b>python -m src.models.calibrated_holdout --add timesfm</b>  <span style="opacity:.65"># O4</span>
+<b>python -m src.models.calibrated_holdout --add timestral</b>  <span style="opacity:.65"># O5</span>
 <b>python reports/build_results_page.py</b>              <span style="opacity:.65"># ~10 s — this page</span>
 <b>python reports/build_review_deck.py</b>               <span style="opacity:.65"># ~10 s — the review deck</span></pre>
   <p style="margin-top:12px;color:var(--ink-2);font-size:13.6px;max-width:78ch">

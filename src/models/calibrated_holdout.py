@@ -25,8 +25,8 @@ import pandas as pd
 
 from . import calibration as cal
 from .holdout45_continuous import (
-    CHRONOS, HORIZON, INCUMBENT, REFERENCE, TIMESFM, build_origins, chronos2, npts,
-    seasonal_naive, timesfm,
+    CHRONOS, HORIZON, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL, build_origins, chronos2, npts,
+    seasonal_naive, timesfm, timestral,
 )
 
 logger = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ def daily_summary(daily: pd.DataFrame, preds: pd.DataFrame) -> pd.DataFrame:
 PER_MODEL_TABLES = ["bias_factors.csv", "conformal_offsets.csv", "calibration_effect.csv",
                     "calibration_effect_insample.csv", "daily_band.csv", "daily_campus.csv",
                     "daily_band_per_tank.csv", "daily_per_tank.csv", "summary.csv"]
-ADDABLE = {"timesfm": (TIMESFM, timesfm)}
+ADDABLE = {"timesfm": (TIMESFM, timesfm), "timestral": (TIMESTRAL, timestral)}
 
 
 def calibrate(cal_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
@@ -327,15 +327,19 @@ def plot_all() -> None:
     eff = pd.read_csv(OUT / "calibration_effect.csv").set_index("model")
 
     col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
-           REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM]}
+           REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM],
+           TIMESTRAL: COLOR[TIMESTRAL]}
     label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
-             REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)"}
+             REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)",
+             TIMESTRAL: "Timestral 209M (zero-shot)"}
     fname = {CHRONOS: "X_holdout45_chronos2_calibrated",
              INCUMBENT: "Y_holdout45_npts_calibrated",
              REFERENCE: "Z_holdout45_seasonal_naive_calibrated",
-             TIMESFM: "T_holdout45_timesfm_calibrated"}
+             TIMESFM: "T_holdout45_timesfm_calibrated",
+             TIMESTRAL: "TS_holdout45_timestral_calibrated"}
     # A model gets a panel only if the run actually holds its predictions.
-    models = [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM) if m in set(daily["model"])]
+    models = [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL)
+              if m in set(daily["model"])]
 
     ymax = max(daily["actual_kl"].max(), daily["band_hi"].max()) * 1.16
     rmax = daily["error_kl"].abs().max() * 1.18
@@ -479,13 +483,17 @@ def plot_per_tank() -> None:
     d["band_hi"] = d["pred_kl"] + d["d_hi"]
 
     col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
-           REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM]}
+           REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM],
+           TIMESTRAL: COLOR[TIMESTRAL]}
     label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
-             REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)"}
+             REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)",
+             TIMESTRAL: "Timestral 209M (zero-shot)"}
     fname = {CHRONOS: "X_tanks45_chronos2", INCUMBENT: "Y_tanks45_npts",
-             REFERENCE: "Z_tanks45_seasonal_naive", TIMESFM: "T_tanks45_timesfm"}
+             REFERENCE: "Z_tanks45_seasonal_naive", TIMESFM: "T_tanks45_timesfm",
+             TIMESTRAL: "TS_tanks45_timestral"}
 
-    for model in [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM) if m in set(d["model"])]:
+    for model in [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL)
+                  if m in set(d["model"])]:
         c = col[model]
         fig, axes = plt.subplots(2, 2, figsize=(12.4, 6.8))
         fig.subplots_adjust(hspace=0.44, wspace=0.20, top=0.83, bottom=0.10)

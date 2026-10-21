@@ -72,13 +72,14 @@ HL = {6: "6 h", 12: "12 h", 24: "1 d", 48: "2 d", 72: "3 d", 168: "7 d"}
 CHRONOS, INCUMBENT, REFERENCE = "Chronos2-ZS", "NPTS", "SeasonalNaive"
 ORDER = list(summ["models"])
 NM = len(ORDER)
-NWORD = {9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}.get(NM, str(NM))
+NWORD = {9: "nine", 10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen"}.get(NM, str(NM))
 LABEL = {
     "Chronos2-ZS": "Chronos-2 (zero-shot)", "Chronos2-COV": "Chronos-2 + covariates",
     "Chronos2-COV-LEAN": "Chronos-2 + cov (lean)", "Chronos2-COV-XL": "Chronos-2 + cov (XL)",
     "NPTS": "NPTS", "PatchTST": "PatchTST (defaults)", "PatchTST-Tuned": "PatchTST (tuned)",
     "ETS": "ETS", "Theta": "Theta", "DynamicOptimizedTheta": "DynamicOptimizedTheta",
     "SeasonalNaive": "SeasonalNaive-24", "TimesFM2.5-ZS": "TimesFM 2.5 (zero-shot)",
+    "Timestral-209M-ZS": "Timestral 209M (zero-shot)",
 }
 TAG = {CHRONOS: "production", INCUMBENT: "incumbent", REFERENCE: "reference"}
 FAMILY = dict(zip(lb.model, lb.family))
@@ -119,7 +120,28 @@ TF_CPU, C2_CPU = _c.loc[TFM, "wall_clock_s_same_cpu"], _c.loc[CHRONOS, "wall_clo
 TZ = zi.set_index("model").loc[TFM]
 TF_COV = lb[lb.model == TFM].coverage
 GAP_BEST = float(_c.loc[CHRONOS, "macro_mase_h24"] - cost_df.macro_mase_h24.min())
+# The third foundation model: the one opponent with lower MASE than Chronos-2. Read from Chronos-2's
+# side of the significance table, so a negative improvement means Chronos-2 is worse.
+TSL = "Timestral-209M-ZS"
+_lsig = _sM[_sM.opponent == TSL].set_index("horizon")
+TS_LO, TS_HI = -_lsig.improvement_pct.max(), -_lsig.improvement_pct.min()
+TS_BOOT = [HL[h] for h in HS if _lsig.loc[h, "significant_95"] and not _lsig.loc[h, "base_better"]]
+TS_DM = [HL[h] for h in HS if _lsig.loc[h, "p_dm"] < 0.05 and _lsig.loc[h, "improvement_pct"] < 0]
+TS_CPU = _c.loc[TSL, "wall_clock_s_same_cpu"]
+TS_COV = lb[lb.model == TSL].coverage
+
+
+def _and(names):
+    names = list(names)
+    if not names:
+        return "no horizon"
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
 _wm = lambda a, b: int(wm[(wm.model_a == a) & (wm.model_b == b)]["a_wins"].iloc[0])
+# Opponents whose 1-day interval against Chronos-2 crosses zero, and those it takes < half from.
+_cross = [m for m in ORDER if m != CHRONOS and not bool(_s24.loc[m, "significant_95"])]
+_c2_loses = [m for m in ORDER if m != CHRONOS and _wm(CHRONOS, m) < 72]
 # The two independent metric implementations, compared rather than asserted.
 _mb = pd.read_csv(U.parent / "metrics_by_horizon.csv").set_index(["model", "horizon"])
 _lj = _mb.join(lb.set_index(["model", "horizon"]), lsuffix="_s", rsuffix="_u", how="inner")
@@ -393,9 +415,9 @@ _txt(tf, "Predictive analytics for a sustainable campus", size=22,
 tf = textbox(s, Inches(1.05), Inches(3.62), Inches(10.6), Inches(0.9))
 _txt(tf, [("Hourly water-demand forecasting for 24 campus tanks, benchmarked across ", {}),
           (f"{NWORD} models", {"bold": True, "color": GROUND}),
-          (" on one shared grid — a pretrained foundation model, its covariate variants, a "
-           "second foundation model (TimesFM 2.5), the deployed incumbent, a transformer trained "
-           "on this campus, and the classical baselines.", {})],
+          (" on one shared grid — a pretrained foundation model, its covariate variants, two "
+           "other foundation models (TimesFM 2.5, Timestral 209M), the deployed incumbent, a "
+           "transformer trained on this campus, and the classical baselines.", {})],
      size=14, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=0, line=1.4)
 for i, (k, v) in enumerate([("Dataset", "2025-01-01 → 2026-04-22"),
                             ("Observations", "270,849 hourly"),
@@ -422,7 +444,8 @@ rows = [
      "6/6 metric unit tests and the methodology assertions pass. No system or integration suite."],
     ["2 · Verification and Validation", [("DONE", {"color": OK, "bold": True})],
      f"Row parity across all {NM} models, zero leakage, MASE identity, independent re-score, "
-     "significance against every opponent, a trained deep control, a second foundation model."],
+     "significance against every opponent, a trained deep control, two further foundation "
+     "models."],
     ["3 · Chronos-2", [("DONE", {"color": OK, "bold": True})],
      "amazon/chronos-2, zero-shot. Four covariate variants measured and indistinguishable."],
     ["4 · Deployment", [("NOT DONE", {"color": BAD, "bold": True})],
@@ -572,8 +595,8 @@ rows = [
        + (f" + {len(BEATEN) - len(BOTH)} bootstrap-only" if len(BEATEN) > len(BOTH) else ""),
        {"color": OK})]],
     ["6 · Controls", "validation",
-     "PatchTST trained on this campus at two configurations, and Google's TimesFM 2.5 zero-shot, "
-     "on the identical rows",
+     "PatchTST trained on this campus at two configurations, and Google's TimesFM 2.5 and "
+     "Mistral's Timestral 209M zero-shot, on the identical rows",
      [("on the grid", {"color": OK})]],
 ]
 y2 = table(s, MARGIN, y, BODY_W, ["Guarantee", "Kind", "What it establishes", "Result"], rows,
@@ -589,8 +612,9 @@ s, y = slide("Is the margin real? — against every opponent", eyebrow="V&V · 2
              note="Two independent tests, because they assume different things. The bootstrap "
                   "assumes only that the 24 origins are exchangeable; Diebold–Mariano assumes a "
                   "covariance structure the 23-hour stride approximates. They agree everywhere "
-                  f"except against TimesFM 2.5, where DM confirms the bootstrap only at "
-                  f"{', '.join(TF_DM) or 'no horizon'}.")
+                  f"except against the other foundation models: DM confirms the bootstrap only "
+                  f"at {', '.join(TF_DM) or 'no horizon'} against TimesFM 2.5 and at "
+                  f"{', '.join(TS_DM) or 'no horizon'} against Timestral.")
 rows = []
 for m in ORDER:
     if m == CHRONOS:
@@ -599,8 +623,11 @@ for m in ORDER:
     allh = _sM[_sM.opponent == m]
     won = int(allh.base_better.sum())
     dm = int((allh.base_better & (allh.p_dm < 0.05)).sum())
+    lost = int((allh.significant_95 & ~allh.base_better).sum())
+    dm_lost = int((~allh.base_better & (allh.improvement_pct < 0) & (allh.p_dm < 0.05)).sum())
     verdict = ([("significant, all 6", {"color": OK})] if won == 6 and dm == 6
                else [(f"boot 6/6 · DM {dm}/6", {"color": WARN})] if won == 6
+               else [(f"worse: boot {lost}, DM {dm_lost}", {"color": BAD})] if lost
                else [("indistinguishable", {"color": INK3})])
     rows.append([LABEL[m], FAMILY[m],
                  [(f"{r.improvement_pct:+.2f}%",
@@ -613,8 +640,8 @@ y2 = table(s, MARGIN, y, BODY_W,
            ["Opponent", "Family", "MASE impr.", "95% CI", "Boot p", "DM p", "Origins", "Cells",
             "Across all six"],
            rows, widths=[0.20, 0.10, 0.10, 0.135, 0.085, 0.075, 0.075, 0.075, 0.15],
-           aligns=["l", "l", "r", "r", "r", "r", "r", "r", "l"], row_h=Inches(0.262), size=10,
-           fonts=[SANS, SANS, MONO, MONO, MONO, MONO, MONO, MONO, MONO], pad=Inches(0.08))
+           aligns=["l", "l", "r", "r", "r", "r", "r", "r", "l"], row_h=Inches(0.234), size=9.5,
+           fonts=[SANS, SANS, MONO, MONO, MONO, MONO, MONO, MONO, MONO], pad=Inches(0.06))
 callout(s, MARGIN, y2 + Inches(0.14), BODY_W, None,
         [[(f"Chronos-2 beats all {len(BOTH)} non-foundation models significantly at every one "
            f"of the six horizons, by both tests", {"bold": True, "color": INK}),
@@ -622,8 +649,9 @@ callout(s, MARGIN, y2 + Inches(0.14), BODY_W, None,
            f"{PT_LO:.1f}–{PT_HI:.1f}% against the best PatchTST trained here, and roughly a third "
            f"against the classical methods. Against TimesFM 2.5 it is {TF_LO:.1f}–{TF_HI:.1f}% "
            f"better, significant by the bootstrap everywhere but by DM only at "
-           f"{', '.join(TF_DM) or 'no horizon'}. The covariate variants are the only opponents it "
-           "does not separate from.", {})]], accent=OK, size=11)
+           f"{', '.join(TF_DM) or 'no horizon'}. Timestral 209M is the one opponent with lower "
+           f"MASE — Chronos-2's is {TS_LO:.1f}–{TS_HI:.1f}% higher, separated by the bootstrap only "
+           f"at {_and(TS_BOOT)} and by DM at {_and(TS_DM)}.", {})]], accent=OK, size=11)
 
 # ════════════════════════════════════════ 3 — CHRONOS-2
 divider(3, "Chronos-2",
@@ -788,12 +816,13 @@ for i, m in enumerate([x for x in ORDER if x != REFERENCE]):
 y2 = table(s, MARGIN, y, BODY_W,
            ["Model", "Family", "Tanks where best", "Positive skill", "Median skill", "Worst tank"],
            rows, widths=[0.28, 0.13, 0.15, 0.14, 0.15, 0.15],
-           aligns=["l", "l", "r", "r", "r", "r"], row_h=Inches(0.25), size=10.5,
+           aligns=["l", "l", "r", "r", "r", "r"], row_h=Inches(0.243), size=10,
            head_h=Inches(0.29), highlight=hl, fonts=[SANS, SANS, MONO, MONO, MONO, MONO],
-           pad=Inches(0.08))
+           pad=Inches(0.06))
 callout(s, MARGIN, y2 + Inches(0.14), BODY_W, "The objection this answers",
         [[("“Your average is flattered by the dead sensors.” It is not. ", {}),
-          ("Every Chronos-2 variant, TimesFM 2.5 and the incumbent clear zero on all 24 tanks", 
+          ("Every Chronos-2 variant, TimesFM 2.5, Timestral and the incumbent clear zero on all "
+           "24 tanks", 
            {"bold": True, "color": INK}),
           (", and skill does not decline with demand size. The trained deep models are worse than "
            "naive on three to four tanks; the classical methods on five.", {})]], accent=OK)
@@ -898,39 +927,43 @@ y2 = table(s, MARGIN, y, BODY_W,
            ["Model", "p10–p90 coverage", "Gap to 0.80", "Width (KL/h)", "Rows with p10 < 0",
             "If p10 were 0"],
            rows, widths=[0.27, 0.15, 0.13, 0.14, 0.16, 0.15],
-           aligns=["l", "r", "r", "r", "r", "r"], row_h=Inches(0.232), size=10,
+           aligns=["l", "r", "r", "r", "r", "r"], row_h=Inches(0.234), size=9.5,
            head_h=Inches(0.26), highlight=hl, fonts=[SANS, MONO, MONO, MONO, MONO, MONO],
-           pad=Inches(0.08))
+           pad=Inches(0.06))
 callout(s, MARGIN, y2 + Inches(0.12), BODY_W, None,
         [[("The tell is the fifth column. ", {}),
           ("Every model that reaches nominal coverage gets there by putting its lower bound below "
            "zero", {"bold": True, "color": INK}),
           (" — a negative water outflow — except ", {}), ("NPTS", {"bold": True, "color": INK}),
-          (", a non-parametric sampler, and ", {}), ("TimesFM 2.5", {"bold": True, "color": INK}),
+          (", a non-parametric sampler, ", {}), ("TimesFM 2.5", {"bold": True, "color": INK}),
           (f", which covers {TF_COV.min():.3f}–{TF_COV.max():.3f} with a band narrower than "
-           f"Chronos-2's. Clamping is not the fix: it takes Chronos-2 to "
+           f"Chronos-2's, and ", {}), ("Timestral 209M", {"bold": True, "color": INK}),
+          (f" ({TS_COV.min():.3f}–{TS_COV.max():.3f}). Clamping is not the fix: it takes "
+           f"Chronos-2 to "
            f"{Z.coverage_if_p10_clamped:.3f}, past nominal. Asymmetric conformal calibration "
            f"reaches {CAL.coverage_cal:.3f} on a window it never saw.", {})]], accent=WARN)
 
 FIGSLIDES = [
     (UP / "U1_leaderboard_mase.png", "The whole field, at a glance",
-     f"Macro MASE against horizon for all {NWORD} models on identical rows. The Chronos-2 family "
-     "on its own, TimesFM 2.5 just above the incumbent, then the trained deep models and the "
-     "classical methods."),
+     f"Macro MASE against horizon for all {NWORD} models on identical rows. Timestral 209M and the "
+     "Chronos-2 family together at the top, TimesFM 2.5 just above the incumbent, then the "
+     "trained deep models and the classical methods."),
     (UP / "U3_significance_vs_all.png", "Chronos-2 against every opponent, with confidence",
      "MASE improvement with 95% paired-bootstrap CIs over the 24 origins — at 1 d on the left, "
-     "across all six horizons on the right. Only the covariate variants cross zero."),
+     f"across all six horizons on the right. At 1 d only {_and(LABEL[m] for m in _cross)} "
+     "cross zero; Timestral is the one opponent ahead of Chronos-2."),
     (UP / "U4_win_matrix.png", "Who beats whom, cell by cell",
      "Percentage of the 144 tank × horizon cells each model wins against each other model. "
      f"Chronos-2 takes every cell from the classical methods, {100 * _wm(CHRONOS, TFM) / 144:.0f}% "
      f"against TimesFM 2.5 and {100 * _wm(CHRONOS, INCUMBENT) / 144:.0f}% against the incumbent, "
-     "and loses the majority only to its own covariate variants."),
+     f"and loses the majority only to {_and(LABEL[m] for m in _c2_loses)}."),
     (UP / "U5_per_tank_heatmap.png", "Per tank, per model",
      f"MASE at 1 d for all 24 tanks and all {NM} models, ordered by demand and labelled by sensor "
      "tier. The hard tanks are hard for everyone — a property of those sensors, not of a model."),
     (UP / "U6_skill_vs_demand.png", "Is the average flattered by the dead sensors?",
      "Skill against the naive reference for every tank and every model. Every Chronos-2 variant, "
-     "TimesFM 2.5 and NPTS clear zero on all 24, and skill does not fall away with demand size."),
+     "TimesFM 2.5, Timestral and NPTS clear zero on all 24, and skill does not fall away with "
+     "demand size."),
     (UP / "U9_error_by_leadtime.png", "Does it fall apart at long lead times?",
      f"MAE against hours ahead of origin, out to 168 h. Chronos-2 grows "
      f"{100*(_d7-_d1)/_d1:+.1f}% from day 1 to day 7 — which is what makes weekly refill "
@@ -948,7 +981,7 @@ FIGSLIDES = [
     (UP / "U8_cost_accuracy.png", "Accuracy against what it cost",
      "Macro MASE at 1 d against measured wall clock, log scale. The production candidate is the "
      f"leftmost point on the chart and within {GAP_BEST:.4f} MASE of the best. On the same CPU it "
-     f"took {C2_CPU:.0f} s to TimesFM 2.5's {TF_CPU:.0f} s."),
+     f"took {C2_CPU:.0f} s to TimesFM 2.5's {TF_CPU:.0f} s and Timestral's {TS_CPU:.0f} s."),
     (H45 / "plots/X_tanks45_chronos2.png", "45 continuous days — Chronos-2",
      "Solid actual, dashed calibrated, dotted uncalibrated, shaded conformal band. Tracks the "
      "healthy tanks closely; misses the spiky peaks on GJBC_LAW_BLOCK_3__A1."),
@@ -959,6 +992,12 @@ FIGSLIDES = [
      "The second foundation model, zero-shot, under the same calibration windows. Responsive like "
      "Chronos-2, but it carries the last observed value across a sensor outage that reaches the "
      "origin, and overshoots the day after."),
+    (H45 / "plots/TS_tanks45_timestral.png", "45 continuous days — Timestral 209M",
+     "The third foundation model, zero-shot, under the same calibration windows. Responsive where "
+     "the incumbent is flat"
+     + (f", with the lowest calibrated daily campus error of the five "
+        f"({h45s.loc[TSL].daily_mae_kl:.1f} KL against Chronos-2's {OPS.daily_mae_kl:.1f})."
+        if TSL in h45s.index and h45s.daily_mae_kl.idxmin() == TSL else ".")),
 ]
 for n, (path, title, note) in enumerate(FIGSLIDES, start=2):
     if not path.exists():
@@ -992,6 +1031,10 @@ rows = [
     ["One TimesFM checkpoint",
      "TimesFM 2.5 zero-shot at a 2,048-hour context. TimesFM 3.0 was not run — its weights are "
      "licensed for non-commercial, non-production use"],
+    ["Chronos-2 is not the most accurate model",
+     f"Timestral 209M has lower MASE at every horizon (Chronos-2's is {TS_LO:.1f}–{TS_HI:.1f}% "
+     "higher): a preview checkpoint, run zero-shot on one window. Chronos-2 stays on the strength "
+     "of the system built around it; Timestral is the first to re-test"],
     ["The result is one campus, 16 months",
      "It generalises to campuses like this one. It is not evidence about municipal supply, "
      "industrial demand, or a different climate"],
@@ -1012,11 +1055,12 @@ tf = textbox(s, Inches(1.05), Inches(0.80), Inches(11.4), Inches(0.3))
 _txt(tf, "IF YOU ONLY GET ONE SLIDE", size=12, color=C2, bold=True, font=MONO, space_after=0)
 tf = textbox(s, Inches(1.05), Inches(1.30), Inches(11.1), Inches(5.4))
 _txt(tf, [(f"On one evaluation grid where {NWORD} models score the same {TOTAL:,} rows, Chronos-2 "
-           "zero-shot beats every non-Chronos model at every one of six horizons — by paired "
-           "bootstrap and Diebold–Mariano against every non-foundation model, and against "
-           f"TimesFM 2.5 by the bootstrap (DM only at {', '.join(TF_DM) or 'no horizon'}).",
+           "zero-shot beats every non-foundation model at every one of six horizons by paired "
+           "bootstrap and Diebold–Mariano, and TimesFM 2.5 by the bootstrap (DM only at "
+           f"{', '.join(TF_DM) or 'no horizon'}). Only Mistral's Timestral 209M scores lower — "
+           f"by a margin only the bootstrap separates, at {_and(TS_BOOT)}.",
            {"bold": True, "color": GROUND, "size": 17})],
-     space_after=12, line=1.35)
+     space_after=10, line=1.3)
 _txt(tf, [("It is ", {}),
           (f"{NPTS_LO:.1f}–{NPTS_HI:.1f}% better than the deployed incumbent",
            {"bold": True, "color": GROUND}),
@@ -1027,14 +1071,14 @@ _txt(tf, [("It is ", {}),
            "beats the naive baseline on all 24 tanks, and costs ", {}),
           (f"{C2S:.0f} seconds", {"bold": True, "color": C2}),
           (" with no training.", {})],
-     size=14, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=12, line=1.4)
+     size=13.5, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=10, line=1.36)
 _txt(tf, [("The trained transformer loses to the incumbent as well as to Chronos-2.",
            {"bold": True, "color": GROUND}),
           (" On 24 short, noisy, zero-inflated series, training from scratch buys less than a "
            "well-chosen non-parametric method and far less than a pretrained one. That is the "
            "argument for a foundation model on this problem, stated as a measurement rather than "
            "a preference.", {})],
-     size=14, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=12, line=1.4)
+     size=13.5, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=10, line=1.36)
 _txt(tf, [("Both known weaknesses are diagnosed and corrected.", {"bold": True, "color": GROUND}),
           (f" The intervals covered {CAL.coverage_raw:.3f} against a nominal 0.80, traced to the "
            f"model's inability to represent the {Z.zero_fraction*100:.0f}% of hours with exactly "
@@ -1046,11 +1090,11 @@ _txt(tf, [("Both known weaknesses are diagnosed and corrected.", {"bold": True, 
           (f"{OPS.total_bias_pct:+.1f}%", {"bold": True, "color": OK}),
           (f", cutting daily campus error from {OPS.daily_mae_raw_kl:.1f} to "
            f"{OPS.daily_mae_kl:.1f} KL. Neither requires retraining.", {})],
-     size=14, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=12, line=1.4)
+     size=13.5, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=10, line=1.36)
 _txt(tf, [("What is not done: ", {"bold": True, "color": GROUND}),
           ("nothing is deployed and running, and the research paper is not written. Both are "
            "designed in detail. Say this before you are asked.", {})],
-     size=14, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=0, line=1.4)
+     size=13.5, color=RGBColor(0xA3, 0xAE, 0xBA), space_after=0, line=1.36)
 
 s, y = slide("Reproducing every number in this deck", eyebrow="Appendix",
              note="Run from the repository root with venv/ activated. Runtimes are the measured "
@@ -1066,19 +1110,22 @@ CMDS = [
     ("python -m src.models.patchtst_benchmark --preset tuned  …", f"~{PTS/60:.0f} min",
      "the deep control at the paper's hourly settings"),
     ("python -m src.models.timesfm_forecasting", "~3 min", "TimesFM 2.5 zero-shot, on CPU"),
+    ("python -m src.models.timestral_forecasting", "~3 min", "Timestral 209M zero-shot, on CPU"),
     ("python -m src.models.score_benchmark --strict", "~7 s",
      f"row parity across all {NM} models; fatal on mismatch"),
     ("python -m src.models.unified_analysis", "~45 s", "every table in this deck"),
     ("python -m src.models.unified_figures", "~5 s", "the twelve unified figures"),
     ("python -m src.models.calibrated_holdout", "~3 min", "conformal calibration, the 45-day view"),
     ("python -m src.models.calibrated_holdout --add timesfm", "~2 min", "TimesFM in the 45-day view"),
+    ("python -m src.models.calibrated_holdout --add timestral", "~2 min",
+     "Timestral in the 45-day view"),
     ("python reports/build_results_page.py", "~10 s", "the full HTML results page"),
     ("python reports/build_review_deck.py", "~15 s", "this deck"),
 ]
 y2 = table(s, MARGIN, y, BODY_W, ["Command", "Runtime", "What it produces"],
-           [[[(c, {"font": MONO, "size": 10})], t, w] for c, t, w in CMDS],
-           widths=[0.47, 0.085, 0.445], aligns=["l", "r", "l"], row_h=Inches(0.232), size=10,
-           pad=Inches(0.08),
+           [[[(c, {"font": MONO, "size": 9.5})], t, w] for c, t, w in CMDS],
+           widths=[0.47, 0.085, 0.445], aligns=["l", "r", "l"], row_h=Inches(0.234), size=9.5,
+           pad=Inches(0.06),
            head_h=Inches(0.28), fonts=[MONO, MONO, SANS])
 tf = textbox(s, MARGIN, y2 + Inches(0.16), BODY_W, Inches(0.5))
 _txt(tf, "Every number is read from a CSV under results/chronos2/unified/ at build time, so the "

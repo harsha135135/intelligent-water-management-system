@@ -7,13 +7,14 @@ full continuous holdout — 2026-03-09 .. 2026-04-22, 45 consecutive daily origi
 and any subset of models can be read off directly.
 
 Sources (all raw, uncalibrated point forecasts, so every model is directly comparable):
-    results/chronos2/calibrated/predictions_calibrated.parquet      Chronos2-ZS, NPTS, TimesFM2.5-ZS
+    results/chronos2/calibrated/predictions_calibrated.parquet      Chronos2-ZS, NPTS, TimesFM2.5-ZS,
+                                                                     Timestral-209M-ZS
     results/chronos2/holdout45_patchtst/predictions_holdout45_patchtst.parquet   PatchTST
 
 All were produced on the identical origin grid. The two fitted models share the fit cutoff
-(2026-03-08 23:00); the two foundation models are zero-shot with their context cut at each origin.
-So no model saw a single hour of the window it is scored on. TimesFM joins the calibrated run
-through ``python -m src.models.calibrated_holdout --add timesfm``.
+(2026-03-08 23:00); the three foundation models are zero-shot with their context cut at each
+origin. So no model saw a single hour of the window it is scored on. TimesFM and Timestral join the
+calibrated run through ``python -m src.models.calibrated_holdout --add timesfm`` / ``--add timestral``.
 
     python reports/build_holdout45_page.py     # -> reports/holdout45_explorer.html
 """
@@ -32,8 +33,12 @@ PT = ROOT / "results/chronos2/holdout45_patchtst/predictions_holdout45_patchtst.
 OUT = ROOT / "reports" / "holdout45_explorer.html"
 
 # Order fixes the colour assignment: slot 1 blue, slot 2 orange, slot 3 aqua, then TimesFM's
-# magenta (validated against the other three on both surfaces: light #b0177f, dark #d65bb1).
-# Colour follows the model, never its rank, so toggling one off never repaints the others.
+# magenta (validated against the other three on both surfaces: light #b0177f, dark #d65bb1), then
+# Timestral's violet (light #5000d0, dark #7850b8, one hue on both surfaces; all five pass every
+# gate at all-pairs on each surface). The figures draw Timestral dark green, but no green clears
+# the normal-vision floor against this page's dark-surface aqua, so the page has its own swatch —
+# as it already does for PatchTST. Colour follows the model, never its rank, so toggling one off
+# never repaints the others.
 MODELS = [
     {"key": "c2", "label": "Chronos-2 ZS", "src": "Chronos2-ZS",
      "note": "foundation model, zero-shot"},
@@ -43,9 +48,12 @@ MODELS = [
      "note": "transformer, trained on this campus"},
     {"key": "timesfm", "label": "TimesFM 2.5", "src": "TimesFM2.5-ZS",
      "note": "second foundation model, zero-shot"},
+    {"key": "timestral", "label": "Timestral 209M", "src": "Timestral-209M-ZS",
+     "note": "third foundation model, zero-shot"},
 ]
 # The models read from the calibrated run; PatchTST comes from its own holdout file.
-CAL_MODELS = {"Chronos2-ZS", "NPTS", "TimesFM2.5-ZS"}
+CAL_MODELS = {"Chronos2-ZS", "NPTS", "TimesFM2.5-ZS", "Timestral-209M-ZS"}
+ADD_HINT = {"TimesFM2.5-ZS": "timesfm", "Timestral-209M-ZS": "timestral"}
 NWORD = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}.get(len(MODELS), str(len(MODELS)))
 
 PRETTY = {"I&H_BLOCK": "I&H Block", "NBX": "NBX"}
@@ -79,8 +87,8 @@ def load() -> pd.DataFrame:
     src = {m["src"] for m in MODELS}
     missing = src - set(df["model"].unique())
     if missing:
-        hint = ("\n  run: python -m src.models.calibrated_holdout --add timesfm"
-                if "TimesFM2.5-ZS" in missing else "")
+        hint = "".join(f"\n  run: python -m src.models.calibrated_holdout --add {ADD_HINT[m]}"
+                       for m in sorted(missing) if m in ADD_HINT)
         raise SystemExit(f"models absent from the sources: {sorted(missing)}{hint}")
     return df[df["model"].isin(src)]
 
@@ -163,6 +171,7 @@ CSS = """
   --grid:#e1e0d9; --axis:#c3c2b7; --hairline:rgba(11,11,11,.10); --wash:rgba(11,11,11,.04);
   --actual:#0b0b0b;
   --s-c2:#2a78d6; --s-npts:#eb6834; --s-patchtst:#1baf7a; --s-timesfm:#b0177f;
+  --s-timestral:#5000d0;
   --good:#0ca30c; --warn:#fab219;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
@@ -171,6 +180,7 @@ CSS = """
   --grid:#2c2c2a; --axis:#383835; --hairline:rgba(255,255,255,.10); --wash:rgba(255,255,255,.05);
   --actual:#f2f1ec;
   --s-c2:#3987e5; --s-npts:#d95926; --s-patchtst:#199e70; --s-timesfm:#d65bb1;
+  --s-timestral:#7850b8;
 }}
 :root[data-theme="dark"]{
   color-scheme: dark;
@@ -178,6 +188,7 @@ CSS = """
   --grid:#2c2c2a; --axis:#383835; --hairline:rgba(255,255,255,.10); --wash:rgba(255,255,255,.05);
   --actual:#f2f1ec;
   --s-c2:#3987e5; --s-npts:#d95926; --s-patchtst:#199e70; --s-timesfm:#d65bb1;
+  --s-timestral:#7850b8;
 }
 
 *{box-sizing:border-box}
@@ -225,6 +236,7 @@ input[type=range]{accent-color:var(--s-c2);width:190px}
 .chip[aria-pressed="false"]{opacity:.62;text-decoration:line-through;text-decoration-thickness:1px}
 .chip.c2 .key{background:var(--s-c2)} .chip.npts .key{background:var(--s-npts)}
 .chip.patchtst .key{background:var(--s-patchtst)} .chip.timesfm .key{background:var(--s-timesfm)}
+.chip.timestral .key{background:var(--s-timestral)}
 .chip.actual .key{background:var(--actual);height:3px}
 .chip.band .key{background:linear-gradient(var(--muted),var(--muted));height:9px;opacity:.35;border-radius:2px}
 
@@ -843,14 +855,14 @@ HTML = """<!doctype html>
      called out in the tooltip and in the table; the headline MAE, MAPE and bias skip points under
      95% coverage, which is why the campus outage on 25 March and the gap on 16 March do not count
      against anyone.</p>
-  <p><strong>Provenance.</strong> Chronos-2&nbsp;ZS, NPTS and TimesFM&nbsp;2.5 come from
+  <p><strong>Provenance.</strong> Chronos-2&nbsp;ZS, NPTS, TimesFM&nbsp;2.5 and Timestral&nbsp;209M come from
      <code>results/chronos2/calibrated/predictions_calibrated.parquet</code>; PatchTST from
      <code>results/chronos2/holdout45_patchtst/predictions_holdout45_patchtst.parquet</code>.
      All __NWORD__ share the origin grid. The two fitted models (NPTS, PatchTST) share the fit
-     cutoff (__CUTOFF__); the two foundation models (Chronos-2, TimesFM) are zero-shot, with their
-     context cut at each origin — so nothing leaks. TimesFM carries the last observed value across
-     a sensor gap that reaches the origin, where Chronos-2 masks it; that is why it overshoots the
-     day after the 16 March outage.
+     cutoff (__CUTOFF__); the three foundation models (Chronos-2, TimesFM, Timestral) are
+     zero-shot, with their context cut at each origin — so nothing leaks. TimesFM carries the last
+     observed value across a sensor gap that reaches the origin, where Chronos-2 and Timestral mask
+     it; that is why it overshoots the day after the 16 March outage.
      Rebuild with <code>python reports/build_holdout45_page.py</code>.</p>
 </footer>
 

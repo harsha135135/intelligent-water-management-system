@@ -17,6 +17,13 @@ it. The hue was checked with the palette validator against every colour in the s
 normal-vision deltaE 17.5 and worst CVD deltaE 11.6 (both against PatchTST-tuned's purple), and
 all gates pass alongside the blue / orange / aqua identity colours.
 
+The same holds for Timestral, the third foundation model, drawn in **dark green** (``#206000``).
+The validator ruled out the obvious hues first: a teal fell below the normal-vision floor against
+both Chronos-2 blue and the SeasonalNaive green, and every passing red sat too close to the red
+that marks dead sensors and negative p10s. Against every model colour the green's worst
+normal-vision deltaE is 16.8 and its worst CVD deltaE 8.3 (both against ETS's ochre); against
+Chronos-2 zero-shot they are 29.2 and 27.7.
+
 Reads only the CSVs written by ``unified_analysis``; recomputes nothing.
 
     python -m src.models.unified_figures     # ~25 s -> results/chronos2/unified/plots/
@@ -38,7 +45,7 @@ from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 from .unified_analysis import (
     CHRONOS, FAMILY, HLABEL, HORIZONS, INCUMBENT, LABEL, ORDER, OUT, PLOTS, REFERENCE, SHORT,
-    TIMESFM,
+    TIMESFM, TIMESTRAL,
 )
 
 # The covariate variants of the production candidate: near-identical to it by construction.
@@ -54,7 +61,7 @@ GRID = "#e6e5e1"
 COLOR = {
     "Chronos2-ZS": "#2a78d6", "Chronos2-COV-XL": "#5598e7",
     "Chronos2-COV": "#82b6f0", "Chronos2-COV-LEAN": "#a8ccf4",
-    TIMESFM: "#b0177f",
+    TIMESFM: "#b0177f", TIMESTRAL: "#206000",
     "PatchTST-Tuned": "#6d3fc4", "PatchTST": "#a78bfa",
     "NPTS": "#eb6834",
     "ETS": "#8a6d3b", "Theta": "#b08a4f", "DynamicOptimizedTheta": "#cbab77",
@@ -105,12 +112,13 @@ def _title(ax, text, sub=None, wrap=None):
                     linespacing=1.3)
 
 
-def _end_labels(ax, entries, *, fontsize=8.5, dx=9):
+def _end_labels(ax, entries, *, fontsize=8.5, dx=9, zorder=None):
     """Direct-label series at their right-hand end, pushed apart so none overlaps another.
 
     Series that genuinely coincide — the four Chronos-2 variants differ by 0.003 MASE — would
     otherwise print on top of each other and read as one illegible smudge. The labels are nudged
-    apart in display space; the lines themselves are never moved.
+    apart in display space; the lines themselves are never moved. ``zorder`` below the marks'
+    keeps a label's halo from hiding a neighbouring point it runs across.
     """
     if not entries:
         return
@@ -142,7 +150,7 @@ def _end_labels(ax, entries, *, fontsize=8.5, dx=9):
         ax.annotate(text, xy=(xdata, ydata), xycoords="data",
                     xytext=(dx, 0), textcoords="offset points",
                     color=colour, fontsize=fontsize, va="center", ha="left",
-                    fontweight=weight, annotation_clip=False,
+                    fontweight=weight, annotation_clip=False, zorder=zorder,
                     path_effects=[pe.withStroke(linewidth=3, foreground=SURFACE)])
 
 
@@ -224,9 +232,15 @@ def u2_heatmap(lb: pd.DataFrame) -> None:
     rest = p.drop(index=c2)
     nxt, gap = rest.idxmin(), rest.min() - p.loc[c2].min()
     who = LABEL[nxt.iloc[0]] if nxt.nunique() == 1 else "the best of the rest"
+    if (gap > 0).all():
+        rel = f"trails the best of them by {gap.min():.3f}–{gap.max():.3f}"
+    elif (gap < 0).all():
+        rel = f"is below the best of them by {-gap.max():.4f}–{-gap.min():.4f} at every horizon"
+    else:
+        rel = f"is within {gap.abs().max():.4f} of the best of them"
     _title(ax, "Leaderboard — macro MASE and rank in every cell",
-           f"The four Chronos-2 variants are separated by at most {spread:.4f} MASE; the next "
-           f"model, {who}, trails the best of them by {gap.min():.3f}–{gap.max():.3f}.",
+           f"The four Chronos-2 variants are separated by at most {spread:.4f} MASE; the best "
+           f"other model, {who}, {rel}.",
            wrap=110)
     _save(fig, "U2_leaderboard_heatmap")
 
@@ -356,7 +370,8 @@ def u6_skill(sk: pd.DataFrame) -> None:
         lead = m == CHRONOS
         ax.scatter(g.mean_actual, g.skill, s=52 if lead else 26, color=COLOR[m],
                    ec=SURFACE, lw=1.1, alpha=1 if lead else 0.66, zorder=4 if lead else 3,
-                   label=SHORT[m] if lead or m in (TIMESFM, INCUMBENT, "PatchTST-Tuned")
+                   label=SHORT[m] if lead or m in (TIMESFM, TIMESTRAL, INCUMBENT,
+                                                   "PatchTST-Tuned")
                    else None)
     ax.axhline(0, color=INK2, lw=1.2, zorder=2)
     ax.annotate("below this line the model is worse than seasonal naive",
@@ -410,20 +425,32 @@ def u7_calibration(lb: pd.DataFrame, zi: pd.DataFrame) -> None:
 def u8_cost(ca: pd.DataFrame) -> None:
     d = ca.dropna(subset=["wall_clock_s"])
     fig, ax = plt.subplots(figsize=(10.4, 6.2))
-    ends = []
+    ends, lead_label = [], None
     for r in d.itertuples():
         lead = r.model == CHRONOS
         ax.scatter(r.wall_clock_s, r.macro_mase_h24, s=200 if lead else 118,
                    color=COLOR[r.model], ec=SURFACE, lw=2, zorder=4 if lead else 3)
         dev = f"  ·  {r.device.upper()}" if isinstance(r.device, str) and r.device else ""
-        ends.append((r.wall_clock_s, r.macro_mase_h24,
-                     f"{SHORT[r.model]}  ·  {r.wall_clock_s/60:.1f} min{dev}",
-                     COLOR[r.model], "700" if lead else "600"))
+        text = f"{SHORT[r.model]}  ·  {r.wall_clock_s/60:.1f} min{dev}"
+        if lead:
+            lead_label = (r.wall_clock_s, r.macro_mase_h24, text)
+        else:
+            ends.append((r.wall_clock_s, r.macro_mase_h24, text, COLOR[r.model], "600"))
     ax.set_xscale("log")
     ax.set_xlabel("wall clock for the full 24-origin × 6-horizon backtest (s, log)")
     ax.set_ylabel("macro MASE at 1 d  (lower is better)")
     ax.set_xlim(right=ax.get_xlim()[1] * 6.0)
-    _end_labels(ax, ends, dx=12)
+    # The zero-shot foundation models sit within seconds and thousandths of MASE of each other, so
+    # a right-hand label from the leftmost point would run across its neighbours' markers. The
+    # production candidate's label goes to its left instead, in room opened for it; the rest go
+    # under the points.
+    if lead_label:
+        x, y, text = lead_label
+        ax.set_xlim(left=x / 8)
+        ax.annotate(text, xy=(x, y), xytext=(-14, 0), textcoords="offset points", ha="right",
+                    va="center", color=COLOR[CHRONOS], fontsize=8.5, fontweight="700",
+                    path_effects=[pe.withStroke(linewidth=3, foreground=SURFACE)])
+    _end_labels(ax, ends, dx=12, zorder=2.5)
     # Read off cost.csv rather than typed, so the claim cannot outlive the numbers.
     di = d.set_index("model")
     where = ("the leftmost point on the chart" if di["wall_clock_s"].idxmin() == CHRONOS
@@ -433,8 +460,10 @@ def u8_cost(ca: pd.DataFrame) -> None:
            f"{gap:.4f} MASE of the best. Devices are shown where the run recorded one.")
     cpu = di["wall_clock_s_same_cpu"].dropna() if "wall_clock_s_same_cpu" in di else pd.Series()
     if CHRONOS in cpu.index and TIMESFM in cpu.index:
-        sub += (f" Same CPU: Chronos-2 zero-shot {cpu[CHRONOS]:.0f} s, "
-                f"TimesFM 2.5 {cpu[TIMESFM]:.0f} s.")
+        others = [f"TimesFM 2.5 {cpu[TIMESFM]:.0f} s"]
+        if TIMESTRAL in cpu.index:
+            others.append(f"Timestral 209M {cpu[TIMESTRAL]:.0f} s")
+        sub += f" Same CPU: Chronos-2 zero-shot {cpu[CHRONOS]:.0f} s, {', '.join(others)}."
     # Labels of the near-coincident Chronos-2 points are pushed apart vertically; leave them
     # room inside the axes rather than letting the lowest one land on the x-axis.
     lo, hi = ax.get_ylim()
@@ -499,7 +528,7 @@ def u10_diurnal(dn: pd.DataFrame) -> None:
     ax2.grid(False)
     _title(axes[0], "Error tracks demand, hour by hour")
     _title(axes[1], "The under-forecast is present in every hour")
-    # Twelve lines cannot be told apart by colour alone: one shared legend under both panels.
+    # This many lines cannot be told apart by colour alone: one shared legend under both panels.
     from matplotlib.lines import Line2D
     handles = [Line2D([], [], color=COLOR[m], lw=2.4 if m == CHRONOS else 1.6, label=SHORT[m])
                for m in models]
@@ -581,6 +610,7 @@ def u12_volume_bias(lb: pd.DataFrame) -> None:
     d24 = lb[lb.horizon == 24].set_index("model")["volume_bias_pct"]
     over = sorted(m for m in d24.index if d24[m] > 0)
     tfm = f", TimesFM 2.5 {d24[TIMESFM]:+.1f}%" if TIMESFM in d24.index else ""
+    tfm += f", Timestral {d24[TIMESTRAL]:+.1f}%" if TIMESTRAL in d24.index else ""
     _title(ax, "Signed volume bias — the number that sizes a refill",
            f"At 1 d every model under-forecasts except {' and '.join(SHORT[m] for m in over)}, "
            f"which sit near zero. Chronos-2 is {d24[CHRONOS]:+.1f}%{tfm}, the trained deep "

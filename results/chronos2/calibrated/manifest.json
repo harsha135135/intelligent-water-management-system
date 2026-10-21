@@ -18,11 +18,16 @@
     "Chronos2-ZS",
     "NPTS",
     "SeasonalNaive-24",
-    "TimesFM2.5-ZS"
+    "TimesFM2.5-ZS",
+    "Timestral-209M-ZS"
   ],
   "added_later": {
     "TimesFM2.5-ZS": {
       "command": "python -m src.models.calibrated_holdout --add timesfm",
+      "note": "fitted and reported on the same two windows as the original models; their rows are unchanged"
+    },
+    "Timestral-209M-ZS": {
+      "command": "python -m src.models.calibrated_holdout --add timestral",
       "note": "fitted and reported on the same two windows as the original models; their rows are unchanged"
     }
   }

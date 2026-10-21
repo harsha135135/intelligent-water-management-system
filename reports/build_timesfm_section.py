@@ -39,6 +39,8 @@ BEGIN = "<!-- BEGIN GENERATED: timesfm_section - python reports/build_timesfm_se
 END = "<!-- END GENERATED: timesfm_section -->"
 
 T, C2, NPTS, SN = "TimesFM2.5-ZS", "Chronos2-ZS", "NPTS", "SeasonalNaive"
+# Display names for a model named in prose; the Chronos-2 variants are counted, not listed.
+NAMES = {"Timestral-209M-ZS": "Timestral 209M"}
 HS = [6, 12, 24, 48, 72, 168]
 HL = {6: "6 h", 12: "12 h", 24: "1 d", 48: "2 d", 72: "3 d", 168: "7 d"}
 
@@ -134,12 +136,20 @@ def build() -> str:
                    f"{macro(NPTS, h):.4f} | {macro(SN, h):.4f} | {int(rank[h])} | "
                    + " | ".join(rel) + " |")
     above = sorted({m for h in HS for m in lb[(lb.horizon == h) & (lb.rank_mase < rank[h])].model})
+    above_every = [m for m in above
+                   if all(m in set(lb[(lb.horizon == h) & (lb.rank_mase < rank[h])].model)
+                          for h in HS)]
+    c2_above = [m for m in above_every if m.startswith("Chronos2")]
+    other_above = [NAMES.get(m, m) for m in above_every if not m.startswith("Chronos2")]
     c2m = {m: cmp(C2, m)["improvement_pct"] for m in ("MAE", "RMSE", "MASE", "RMSSE")}
     npm = {m: cmp(NPTS, m)["improvement_pct"] for m in ("MAE", "RMSE", "MASE", "RMSSE")}
     out += ["",
             f"The models ranked above TimesFM, at every horizon, are exactly the "
             f"{len(above)} Chronos-2 variants." if all(a.startswith("Chronos2") for a in above)
-            else f"Models ranked above TimesFM at some horizon: {', '.join(above)}.", "",
+            else (f"The models ranked above TimesFM, at every horizon, are exactly the "
+                  f"{len(c2_above)} Chronos-2 variants and {', '.join(other_above)} (§18)."
+                  if above == above_every
+                  else f"Models ranked above TimesFM at some horizon: {', '.join(above)}."), "",
             "The same ordering holds on every metric at every horizon. Against Chronos-2 "
             f"zero-shot, TimesFM's error is higher by {rng(-c2m['MAE'])} on MAE, "
             f"{rng(-c2m['RMSE'])} on RMSE, {rng(-c2m['MASE'])} on MASE and "
@@ -232,8 +242,12 @@ def build() -> str:
     zc = zi.loc[C2]
     out += ["### 17.5 Uncertainty and volume", "",
             f"* **Intervals.** TimesFM's p10–p90 covers {rng(cov, 3, '')} of outcomes against "
-            f"the nominal 0.80 — the closest of all {n_models} models (worst horizon "
-            f"{dev[T]:.3f} from nominal; NPTS {dev[NPTS]:.3f}, Chronos-2 {dev[C2]:.3f}) — with a "
+            f"the nominal 0.80 — "
+            + (f"the closest of all {n_models} models" if dev.index[0] == T else
+               f"the {_ordinal(list(dev.index).index(T) + 1)} closest of {n_models} models")
+            + f" (worst horizon {dev[T]:.3f} from nominal; "
+            + "".join(f"{NAMES[m]} {dev[m]:.3f}, " for m in NAMES if m in dev.index)
+            + f"NPTS {dev[NPTS]:.3f}, Chronos-2 {dev[C2]:.3f}) — with a "
             f"band {'narrower than' if narrower else 'not uniformly narrower than'} Chronos-2's "
             f"at every horizon ({rng(wid, 3, ' KL/h')} vs {rng(c2w, 3, ' KL/h')}), and its p10 "
             f"is never negative. At 1 d it misses below p10 on {z.miss_below_p10:.3f} of rows "
@@ -326,6 +340,17 @@ def build() -> str:
         trained_note = "and against " + "; ".join(f"{o} {w}" for o, w in spans.items())
 
     # ── limitations and verdict
+    # Where TimesFM stands among the models outside the Chronos-2 family, read off the ranks.
+    outside = lb[~lb.model.str.startswith("Chronos2")]
+    best_outside = {h: outside[outside.horizon == h].nsmallest(1, "rank_mase").model.iloc[0]
+                    for h in HS}
+    if all(b == T for b in best_outside.values()):
+        standing = "the strongest model outside the Chronos-2 family"
+    else:
+        ahead = [NAMES.get(m, m) for m in sorted(set(best_outside.values()) - {T})]
+        standing = (f"the strongest model outside the Chronos-2 family after {', '.join(ahead)} "
+                    "(§18)")
+
     out += ["### 17.8 Limitations specific to this comparison", "",
             "1. **One checkpoint.** TimesFM 2.5 only; TimesFM 3.0 was not evaluated because of its "
             "weight licence, and nothing here speaks for it.",
@@ -341,8 +366,8 @@ def build() -> str:
             "above is the fair speed comparison.",
             "6. **The same single 23-day evaluation window** as every other model (§13).", "",
             "### 17.9 Verdict", "",
-            f"**Chronos-2 zero-shot remains the recommended production model.** TimesFM 2.5 is the "
-            f"strongest model outside the Chronos-2 family — "
+            f"**Chronos-2 zero-shot remains the recommended production model.** TimesFM 2.5 is "
+            f"{standing} — "
             + (f"rank {int(rank.max())} of {n_models} at every horizon"
                if rank.nunique() == 1 else
                f"rank {int(rank.min())}-{int(rank.max())} of {n_models} across horizons")
@@ -355,9 +380,15 @@ def build() -> str:
             f"({words(c2m['MASE'][6])} MASE at 6 h to {words(c2m['MASE'][168])} at 7 d), it "
             f"under-forecasts volume more, and it took {ratio:.1f}× Chronos-2's time on the same "
             "CPU. Its genuine advantage is its intervals: raw p10–p90 coverage within "
-            f"{dev[T]:.3f} of nominal, better calibrated than any other model before any "
-            "correction.", "", END]
+            f"{dev[T]:.3f} of nominal, "
+            + ("better calibrated than any other model before any correction." if dev.index[0] == T
+               else f"{_ordinal(list(dev.index).index(T) + 1)} best calibrated of the "
+                    f"{n_models} models before any correction."), "", END]
     return "\n".join(out)
+
+
+def _ordinal(n: int) -> str:
+    return {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth"}.get(n, f"#{n}")
 
 
 def _tanks_ending_in_gap(origin: pd.Timestamp) -> int:

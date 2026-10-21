@@ -182,6 +182,34 @@ def timesfm(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int) -
     return b[["item_id", "timestamp", "step", "actual", "pred", "q10", "q90", "model", "origin"]]
 
 
+TIMESTRAL = "Timestral-209M-ZS"
+
+
+def timestral(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int) -> pd.DataFrame:
+    """Timestral 209M zero-shot through the benchmark's own adapter and prediction cache
+    (``timestral_forecasting``), so the holdout forecasts come from exactly the configuration
+    the benchmark scored. Zero-shot, like Chronos-2, so no window can leak into it."""
+    from .timesfm_forecasting import BlockCache, RunStats, forecast_one
+    from .timestral_forecasting import CACHE_DIR, MODEL_NAME, TimestralForecaster
+
+    assert MODEL_NAME == TIMESTRAL
+    fc = TimestralForecaster.load()
+    cache, stats = BlockCache(CACHE_DIR), RunStats()
+    blocks, t0 = [], time.time()
+    for k, origin in enumerate(origins, 1):
+        blocks.append(forecast_one(fc, panel, origin, HORIZON, target_col=TARGET,
+                                   context=context, cache=cache, stats=stats))
+        if k % 15 == 0 or k == len(origins):
+            logger.info("Timestral: %d/%d origins  %.2fs/origin", k, len(origins),
+                        (time.time() - t0) / k)
+    if stats.failures:
+        raise RuntimeError(f"Timestral failed on {len(stats.failures)} series-forecasts; "
+                           f"first: {stats.failures[0]}")
+    b = pd.concat(blocks, ignore_index=True).rename(columns={"0.1": "q10", "0.9": "q90"})
+    b["model"] = TIMESTRAL
+    return b[["item_id", "timestamp", "step", "actual", "pred", "q10", "q90", "model", "origin"]]
+
+
 def daily_campus(preds: pd.DataFrame) -> pd.DataFrame:
     """Campus-total demand per calendar day, actual and predicted.
 
