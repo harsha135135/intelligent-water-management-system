@@ -30,6 +30,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import KNOWN_COVARIATES, BacktestSpec, actuals_after, history_before
 
 logger = logging.getLogger(__name__)
@@ -127,11 +128,16 @@ def main() -> None:
                     help="Number of backtest origins (default: the grid default, 24).")
     ap.add_argument("--context", type=int, default=2048)
     ap.add_argument("--time-limit", type=int, default=3600)
-    ap.add_argument("--preset", choices=sorted(PRESETS), default="default")
+    ap.add_argument("--max-epochs-final", type=int, default=100,
+                    help="With --preset searched: epochs for the final full-budget refit.")
+    ap.add_argument("--batches-final", type=int, default=200)
+    ap.add_argument("--preset", choices=sorted(PRESETS) + ["searched"], default="default")
+    ap.add_argument("--config", default=str(RESULTS_DIR / "patchtst_search" / "best_config.json"),
+                    help="With --preset searched: the config the hyperparameter search selected.")
     ap.add_argument("--label", default=None,
                     help="Name written into the model column (default: the preset's name).")
-    ap.add_argument("--out-dir", default="results/chronos2")
-    ap.add_argument("--model-dir", default="results/chronos2/_patchtst_models")
+    ap.add_argument("--out-dir", default=str(RESULTS_DIR))
+    ap.add_argument("--model-dir", default=str(RESULTS_DIR / "_patchtst_models"))
     ap.add_argument("--out-name", default="predictions_PatchTST.parquet")
     ap.add_argument("--manifest-name", default="patchtst_manifest.json")
     ap.add_argument("--max-tanks", type=int, default=None)
@@ -154,8 +160,23 @@ def main() -> None:
     logger.info("Panel: %d rows, %d tanks, %s .. %s", len(panel),
                 panel["item_id"].nunique(), panel["timestamp"].min(), panel["timestamp"].max())
 
-    hparams = {"PatchTST": dict(PRESETS[args.preset])}
-    label = args.label or ("PatchTST" if args.preset == "default" else "PatchTST-Tuned")
+    if args.preset == "searched":
+        import json as _json
+        found = _json.loads(Path(args.config).read_text())
+        cfg = dict(found["best_config"])
+        head = cfg.pop("head")
+        from .patchtst_search import build_head
+        cfg["distr_output"] = build_head(head)
+        cfg.update({"max_epochs": args.max_epochs_final,
+                    "num_batches_per_epoch": args.batches_final, "batch_size": 64})
+        hparams = {"PatchTST": cfg}
+        logger.info("Searched config (val MASE %.4f at h=%d, %d trials): head=%s %s",
+                    found["best_val_MASE"], found["tuned_at_horizon"], found["trials_ok"],
+                    head, {k: v for k, v in found["best_config"].items() if k != "head"})
+    else:
+        hparams = {"PatchTST": dict(PRESETS[args.preset])}
+    label = args.label or {"default": "PatchTST", "tuned": "PatchTST-Tuned",
+                           "searched": "PatchTST-Searched"}[args.preset]
     logger.info("Preset %r -> %s  hyperparameters=%s", args.preset, label, hparams["PatchTST"])
 
     out_dir = Path(args.out_dir)

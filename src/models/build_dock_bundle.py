@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import EDA_DIR, RESULTS_DIR
 from ..data.curate import TARGET_COL, load_curated_hourly, tank_metadata
 from .backtest import KNOWN_COVARIATES, PAST_COVARIATES, HORIZONS
 
@@ -48,8 +49,13 @@ def capacity_kl(dim: str | float) -> float | None:
     return vol / 1_000_000
 
 
-def forward_forecast(pipe, panel: pd.DataFrame, horizons: list[int], context: int) -> dict:
-    """Forecast forward from the true end of the dataset, using known-future covariates."""
+def forward_forecast(pipe, panel: pd.DataFrame, horizons: list[int], context: int, *,
+                     covariates: bool = True) -> dict:
+    """Forecast forward from the true end of the dataset.
+
+    With ``covariates`` the model also sees the past-only and known-future covariates, as the
+    Chronos2-COV variants do; without, it sees the target alone, which is the Chronos2-ZS model
+    the benchmark scores."""
     from ..data.calendar_pesu import add_academic_features
     from ..data.curate import add_time_features
 
@@ -65,11 +71,15 @@ def forward_forecast(pipe, panel: pd.DataFrame, horizons: list[int], context: in
         ], ignore_index=True)
         fut = add_academic_features(add_time_features(fut))
 
-        cols = (["item_id", "timestamp", TARGET_COL]
-                + [c for c in PAST_COVARIATES if c in hist.columns]
-                + [c for c in KNOWN_COVARIATES if c in hist.columns])
+        if covariates:
+            cols = (["item_id", "timestamp", TARGET_COL]
+                    + [c for c in PAST_COVARIATES if c in hist.columns]
+                    + [c for c in KNOWN_COVARIATES if c in hist.columns])
+            future = fut[["item_id", "timestamp"] + KNOWN_COVARIATES]
+        else:
+            cols, future = ["item_id", "timestamp", TARGET_COL], None
         preds = pipe.predict_df(
-            hist[cols], future_df=fut[["item_id", "timestamp"] + KNOWN_COVARIATES],
+            hist[cols], future_df=future,
             id_column="item_id", timestamp_column="timestamp", target=TARGET_COL,
             prediction_length=h, quantile_levels=[0.1, 0.5, 0.9], batch_size=32,
         )
@@ -80,17 +90,87 @@ def forward_forecast(pipe, panel: pd.DataFrame, horizons: list[int], context: in
     return out
 
 
+def forward_forecast_timestral(panel: pd.DataFrame, horizons: list[int], context: int) -> dict:
+    """The same forward forecast from Timestral 209M, through the benchmark's own adapter, so the
+    median and the 0.1 / 0.9 quantiles are exactly the scored configuration's. Target only."""
+    from .timestral_forecasting import TimestralForecaster
+
+    fc = TimestralForecaster.load()
+    end = panel["timestamp"].max()
+    items = sorted(panel["item_id"].unique())
+    hist = {i: g.sort_values("timestamp")[TARGET_COL].tail(context).to_numpy(dtype=float)
+            for i, g in panel.groupby("item_id", sort=False)}
+    out: dict[int, pd.DataFrame] = {}
+    for h in horizons:
+        point, q = fc.forecast(h, [hist[i] for i in items])
+        ts = pd.date_range(end + pd.Timedelta(hours=1), periods=h, freq="h")
+        out[h] = pd.concat([pd.DataFrame({
+            "item_id": item, "timestamp": ts,
+            "predictions": np.clip(point[k], 0.0, None), "0.1": np.clip(q[k, :, 1], 0.0, None),
+            "0.5": np.clip(q[k, :, 5], 0.0, None), "0.9": np.clip(q[k, :, 9], 0.0, None)})
+            for k, item in enumerate(items)], ignore_index=True)
+        logger.info("forward forecast h=%d done", h)
+    return out
+
+
+def calibrate(fc: dict, cal_dir: Path, model: str) -> dict:
+    """Apply the per-tank volume factor and conformal tail offsets fitted for ``model`` in the
+    calibrated 45-day view (``calibration.apply``). They were fitted on 1-day-ahead forecasts and
+    are applied unchanged at every horizon."""
+    from . import calibration as cal
+
+    params = {"bias": pd.read_csv(cal_dir / "bias_factors.csv"),
+              "conformal": pd.read_csv(cal_dir / "conformal_offsets.csv")}
+    if model not in set(params["bias"]["model"]):
+        raise SystemExit(f"{cal_dir} has no calibration for {model}")
+    out, widened, total = {}, 0, 0
+    for h, df in fc.items():
+        d = df.rename(columns={"predictions": "pred", "0.1": "q10", "0.9": "q90"}).assign(model=model)
+        c = cal.apply(d, params)
+        pred = c["pred_cal"].to_numpy()
+        # The tails are corrected independently of the point, so a tank whose fitted offset
+        # tightens a tail can end with its band on one side of its own forecast. The dock draws
+        # the band around the line, so the band is widened to contain the point there.
+        lo = np.minimum(c["lower_cal"].to_numpy(), pred)
+        hi = np.maximum(c["upper_cal"].to_numpy(), pred)
+        widened += int(((lo != c["lower_cal"].to_numpy()) | (hi != c["upper_cal"].to_numpy())).sum())
+        total += len(pred)
+        out[h] = df.assign(predictions=pred, **{"0.1": lo, "0.9": hi})
+    logger.info("calibrated with %s; band widened to contain the point on %d of %d points",
+                model, widened, total)
+    return out
+
+
+def check_deployable(model: str) -> None:
+    """The extension shows forecasts to end users. A model whose weights' licence forbids that
+    (TimesFM 3.0: non-commercial, non-production) must never be packaged into it."""
+    from .timesfm3_forecasting import DEPLOYABLE, LICENSE, MODEL_NAME as TIMESFM3
+    if model == TIMESFM3 and not DEPLOYABLE:
+        raise SystemExit(f"{model} cannot be bundled into the extension: its weights' licence "
+                         f"({LICENSE['weights']}) rules out use with end users or in production.")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--results-dir", default="results/chronos2")
-    ap.add_argument("--trust-json", default="eda/tank_trust.json")
+    ap.add_argument("--results-dir", default=str(RESULTS_DIR))
+    ap.add_argument("--trust-json", default=str(EDA_DIR / "tank_trust.json"))
     ap.add_argument("--out", default="extension/waltr-dock/forecast_bundle.json")
     ap.add_argument("--model-label", default="Chronos-2 · zero-shot + covariates")
     ap.add_argument("--metric-model", default="Chronos2-COV")
     ap.add_argument("--context", type=int, default=2048)
     ap.add_argument("--device", default="mps")
+    ap.add_argument("--model", choices=["chronos2", "timestral"], default="chronos2",
+                    help="Chronos-2 (with or without covariates) or Timestral 209M (target only)")
+    ap.add_argument("--calibration-dir", default=None,
+                    help="apply the per-tank volume factor and conformal offsets fitted for "
+                         "--metric-model in this calibrated run (e.g. <results>/calibrated)")
+    ap.add_argument("--covariates", action=argparse.BooleanOptionalAction, default=True,
+                    help="Condition on the covariates (default) or forecast from the target "
+                         "alone, as Chronos2-ZS does. Keep --model-label and --metric-model "
+                         "consistent with this choice.")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    check_deployable(args.metric_model)
 
     panel = load_curated_hourly()
     end = panel["timestamp"].max()
@@ -116,9 +196,14 @@ def main() -> None:
     else:
         logger.warning("No metrics_per_tank.csv yet - bundle will omit accuracy")
 
-    from .chronos2_forecasting import load_pipeline
-    pipe = load_pipeline(args.device)
-    fc = forward_forecast(pipe, panel, HORIZONS, args.context)
+    if args.model == "timestral":
+        fc = forward_forecast_timestral(panel, HORIZONS, args.context)
+    else:
+        from .chronos2_forecasting import load_pipeline
+        pipe = load_pipeline(args.device)
+        fc = forward_forecast(pipe, panel, HORIZONS, args.context, covariates=args.covariates)
+    if args.calibration_dir:
+        fc = calibrate(fc, Path(args.calibration_dir), args.metric_model)
 
     tanks = {}
     for item_id, g in panel.groupby("item_id", sort=True):
@@ -161,6 +246,8 @@ def main() -> None:
 
     bundle = {
         "model": args.model_label,
+        "metric_model": args.metric_model,
+        "calibrated": bool(args.calibration_dir),
         "generated_at": end.strftime("%Y-%m-%d %H:%M"),
         "location": "PES University RR",
         "horizons": HORIZONS,

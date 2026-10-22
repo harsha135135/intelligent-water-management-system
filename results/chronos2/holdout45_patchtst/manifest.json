@@ -1,0 +1,24 @@
+{
+  "label": "PatchTST",
+  "preset": "tuned",
+  "hyperparameters": {
+    "PatchTST": {
+      "max_epochs": "100",
+      "context_length": "512",
+      "num_batches_per_epoch": "200",
+      "lr": "0.001",
+      "batch_size": "64"
+    }
+  },
+  "window": [
+    "2026-03-09 00:00:00",
+    "2026-04-22 23:00:00"
+  ],
+  "fit_cutoff": "2026-03-08 23:00:00",
+  "n_origins": 45,
+  "horizon_h": 24,
+  "context": 2048,
+  "n_tanks": 24,
+  "rows": 25920,
+  "wall_clock_s": 746.5
+}

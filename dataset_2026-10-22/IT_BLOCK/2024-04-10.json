@@ -1,0 +1,70 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "IT BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "123.000 cm(Height) X 280.000 cm(Length) X 130.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2024-04-10 16",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.09,
+      "Closing Value in KL": 3.1
+    },
+    {
+      "Date Time": "2024-04-10 17",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.1,
+      "Closing Value in KL": 3.12
+    },
+    {
+      "Date Time": "2024-04-10 18",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.12,
+      "Closing Value in KL": 3.11
+    },
+    {
+      "Date Time": "2024-04-10 19",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.11,
+      "Closing Value in KL": 3.12
+    },
+    {
+      "Date Time": "2024-04-10 20",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.11,
+      "Closing Value in KL": 3.12
+    },
+    {
+      "Date Time": "2024-04-10 21",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.12,
+      "Closing Value in KL": 3.12
+    },
+    {
+      "Date Time": "2024-04-10 22",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.12,
+      "Closing Value in KL": 3.12
+    },
+    {
+      "Date Time": "2024-04-10 23",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.12,
+      "Closing Value in KL": 3.13
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0,
+    "Outflow in KL": 0
+  },
+  "units": "KL"
+}

@@ -13,20 +13,20 @@ Lower is better for every metric in this document. `macro_*` averages tanks equa
 | Origin stride | 23 hours (co-prime with 24) |
 | Hours-of-day covered by origins | 24 of 24 |
 | Horizons | 6h, 12h, 1d, 2d, 3d, 7d |
-| Models scored | 11 |
+| Models scored | 13 |
 | Origin range | 2026-03-24 22:00:00 .. 2026-04-15 23:00:00 |
 | Rows scored per model | 188,664 |
 
 ### Rows evaluated per (horizon, model) - identical by construction
 
-| Horizon | Chronos2-COV | Chronos2-COV-LEAN | Chronos2-COV-XL | Chronos2-ZS | DynamicOptimizedTheta | ETS | NPTS | PatchTST | PatchTST-Tuned | SeasonalNaive | Theta |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 6h | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 |
-| 12h | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 |
-| 1d | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 |
-| 2d | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 |
-| 3d | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 |
-| 7d | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 |
+| Horizon | Chronos2-COV | Chronos2-COV-LEAN | Chronos2-COV-XL | Chronos2-ZS | DynamicOptimizedTheta | ETS | NPTS | PatchTST | PatchTST-Tuned | SeasonalNaive | Theta | TimesFM2.5-ZS | Timestral-209M-ZS |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 6h | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 | 3,405 |
+| 12h | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 | 6,861 |
+| 1d | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 | 13,530 |
+| 2d | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 | 27,323 |
+| 3d | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 | 41,140 |
+| 7d | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 | 96,405 |
 
 Distinct row counts within each horizon: [1] (1 means every model scored exactly the same rows).
 
@@ -88,10 +88,12 @@ Sorted by MASE within each horizon. `vw_*` weights each tank by its mean demand 
 
 | Model | MAE | RMSE | MASE | RMSSE | vw MAE | vw RMSE | rows | tanks (scaled) |
 |---|---|---|---|---|---|---|---|---|
+| Timestral-209M-ZS | 0.1950 | 0.3932 | 0.5975 | 0.4892 | 0.3838 | 0.7120 | 3,405 | 24 (24) |
 | Chronos2-COV-XL | 0.1973 | 0.3972 | 0.6002 | 0.4909 | 0.3913 | 0.7213 | 3,405 | 24 (24) |
 | **Chronos2-ZS** | 0.1974 | 0.3976 | 0.6017 | 0.4910 | 0.3911 | 0.7225 | 3,405 | 24 (24) |
 | Chronos2-COV | 0.1973 | 0.3966 | 0.6018 | 0.4909 | 0.3915 | 0.7194 | 3,405 | 24 (24) |
 | Chronos2-COV-LEAN | 0.1971 | 0.3975 | 0.6027 | 0.4917 | 0.3908 | 0.7213 | 3,405 | 24 (24) |
+| TimesFM2.5-ZS | 0.2089 | 0.4079 | 0.6562 | 0.5052 | 0.4117 | 0.7459 | 3,405 | 24 (24) |
 | **NPTS** | 0.2306 | 0.4420 | 0.6871 | 0.5494 | 0.4489 | 0.7865 | 3,405 | 24 (24) |
 | PatchTST-Tuned | 0.2365 | 0.4449 | 0.7185 | 0.5715 | 0.4645 | 0.8111 | 3,405 | 24 (24) |
 | PatchTST | 0.2558 | 0.4639 | 0.7736 | 0.5980 | 0.4996 | 0.8399 | 3,405 | 24 (24) |
@@ -104,10 +106,12 @@ Sorted by MASE within each horizon. `vw_*` weights each tank by its mean demand 
 
 | Model | MAE | RMSE | MASE | RMSSE | vw MAE | vw RMSE | rows | tanks (scaled) |
 |---|---|---|---|---|---|---|---|---|
+| Timestral-209M-ZS | 0.2007 | 0.4172 | 0.6246 | 0.5247 | 0.3973 | 0.7514 | 6,861 | 24 (24) |
 | Chronos2-COV-XL | 0.2017 | 0.4175 | 0.6281 | 0.5250 | 0.4020 | 0.7543 | 6,861 | 24 (24) |
 | Chronos2-COV | 0.2018 | 0.4166 | 0.6292 | 0.5246 | 0.4028 | 0.7522 | 6,861 | 24 (24) |
 | **Chronos2-ZS** | 0.2029 | 0.4207 | 0.6294 | 0.5271 | 0.4050 | 0.7606 | 6,861 | 24 (24) |
 | Chronos2-COV-LEAN | 0.2016 | 0.4176 | 0.6304 | 0.5257 | 0.4014 | 0.7532 | 6,861 | 24 (24) |
+| TimesFM2.5-ZS | 0.2133 | 0.4272 | 0.6748 | 0.5352 | 0.4238 | 0.7760 | 6,861 | 24 (24) |
 | **NPTS** | 0.2255 | 0.4519 | 0.6923 | 0.5688 | 0.4412 | 0.8047 | 6,861 | 24 (24) |
 | PatchTST-Tuned | 0.2452 | 0.4639 | 0.7609 | 0.5981 | 0.4785 | 0.8327 | 6,861 | 24 (24) |
 | PatchTST | 0.2686 | 0.4868 | 0.8245 | 0.6274 | 0.5238 | 0.8782 | 6,861 | 24 (24) |
@@ -120,10 +124,12 @@ Sorted by MASE within each horizon. `vw_*` weights each tank by its mean demand 
 
 | Model | MAE | RMSE | MASE | RMSSE | vw MAE | vw RMSE | rows | tanks (scaled) |
 |---|---|---|---|---|---|---|---|---|
+| Timestral-209M-ZS | 0.2096 | 0.4627 | 0.6533 | 0.5687 | 0.4204 | 0.8390 | 13,530 | 24 (24) |
 | Chronos2-COV-XL | 0.2104 | 0.4620 | 0.6550 | 0.5668 | 0.4244 | 0.8398 | 13,530 | 24 (24) |
 | **Chronos2-ZS** | 0.2116 | 0.4640 | 0.6552 | 0.5670 | 0.4273 | 0.8424 | 13,530 | 24 (24) |
 | Chronos2-COV | 0.2105 | 0.4624 | 0.6558 | 0.5671 | 0.4249 | 0.8402 | 13,530 | 24 (24) |
 | Chronos2-COV-LEAN | 0.2102 | 0.4631 | 0.6562 | 0.5677 | 0.4235 | 0.8409 | 13,530 | 24 (24) |
+| TimesFM2.5-ZS | 0.2206 | 0.4709 | 0.6898 | 0.5752 | 0.4448 | 0.8605 | 13,530 | 24 (24) |
 | **NPTS** | 0.2303 | 0.4921 | 0.7098 | 0.6064 | 0.4591 | 0.8869 | 13,530 | 24 (24) |
 | PatchTST-Tuned | 0.2602 | 0.5134 | 0.8019 | 0.6493 | 0.5162 | 0.9284 | 13,530 | 24 (24) |
 | PatchTST | 0.2812 | 0.5319 | 0.8533 | 0.6673 | 0.5596 | 0.9685 | 13,530 | 24 (24) |
@@ -136,10 +142,12 @@ Sorted by MASE within each horizon. `vw_*` weights each tank by its mean demand 
 
 | Model | MAE | RMSE | MASE | RMSSE | vw MAE | vw RMSE | rows | tanks (scaled) |
 |---|---|---|---|---|---|---|---|---|
+| Timestral-209M-ZS | 0.2145 | 0.4679 | 0.6627 | 0.5734 | 0.4338 | 0.8512 | 27,323 | 24 (24) |
 | Chronos2-COV-XL | 0.2147 | 0.4671 | 0.6633 | 0.5710 | 0.4360 | 0.8514 | 27,323 | 24 (24) |
 | Chronos2-COV | 0.2151 | 0.4677 | 0.6643 | 0.5713 | 0.4373 | 0.8529 | 27,323 | 24 (24) |
 | Chronos2-COV-LEAN | 0.2151 | 0.4684 | 0.6654 | 0.5721 | 0.4367 | 0.8537 | 27,323 | 24 (24) |
 | **Chronos2-ZS** | 0.2161 | 0.4688 | 0.6656 | 0.5722 | 0.4392 | 0.8529 | 27,323 | 24 (24) |
+| TimesFM2.5-ZS | 0.2229 | 0.4742 | 0.6900 | 0.5778 | 0.4525 | 0.8685 | 27,323 | 24 (24) |
 | **NPTS** | 0.2312 | 0.4934 | 0.7113 | 0.6075 | 0.4627 | 0.8899 | 27,323 | 24 (24) |
 | PatchTST-Tuned | 0.2615 | 0.5192 | 0.8033 | 0.6557 | 0.5198 | 0.9367 | 27,323 | 24 (24) |
 | PatchTST | 0.2830 | 0.5353 | 0.8550 | 0.6693 | 0.5664 | 0.9800 | 27,323 | 24 (24) |
@@ -152,10 +160,12 @@ Sorted by MASE within each horizon. `vw_*` weights each tank by its mean demand 
 
 | Model | MAE | RMSE | MASE | RMSSE | vw MAE | vw RMSE | rows | tanks (scaled) |
 |---|---|---|---|---|---|---|---|---|
+| Timestral-209M-ZS | 0.2154 | 0.4660 | 0.6625 | 0.5726 | 0.4373 | 0.8468 | 41,140 | 24 (24) |
 | Chronos2-COV-XL | 0.2159 | 0.4657 | 0.6641 | 0.5707 | 0.4395 | 0.8477 | 41,140 | 24 (24) |
 | Chronos2-COV | 0.2162 | 0.4663 | 0.6648 | 0.5711 | 0.4407 | 0.8492 | 41,140 | 24 (24) |
 | Chronos2-COV-LEAN | 0.2161 | 0.4669 | 0.6657 | 0.5717 | 0.4399 | 0.8498 | 41,140 | 24 (24) |
 | **Chronos2-ZS** | 0.2174 | 0.4677 | 0.6664 | 0.5718 | 0.4431 | 0.8497 | 41,140 | 24 (24) |
+| TimesFM2.5-ZS | 0.2233 | 0.4719 | 0.6877 | 0.5765 | 0.4545 | 0.8633 | 41,140 | 24 (24) |
 | **NPTS** | 0.2307 | 0.4904 | 0.7090 | 0.6053 | 0.4622 | 0.8828 | 41,140 | 24 (24) |
 | PatchTST-Tuned | 0.2635 | 0.5149 | 0.8090 | 0.6546 | 0.5258 | 0.9290 | 41,140 | 24 (24) |
 | PatchTST | 0.2869 | 0.5439 | 0.8638 | 0.6846 | 0.5772 | 0.9955 | 41,140 | 24 (24) |
@@ -168,10 +178,12 @@ Sorted by MASE within each horizon. `vw_*` weights each tank by its mean demand 
 
 | Model | MAE | RMSE | MASE | RMSSE | vw MAE | vw RMSE | rows | tanks (scaled) |
 |---|---|---|---|---|---|---|---|---|
+| Timestral-209M-ZS | 0.2167 | 0.4605 | 0.6592 | 0.5641 | 0.4401 | 0.8405 | 96,405 | 24 (24) |
 | Chronos2-COV-XL | 0.2181 | 0.4610 | 0.6628 | 0.5636 | 0.4444 | 0.8434 | 96,405 | 24 (24) |
 | Chronos2-COV | 0.2183 | 0.4617 | 0.6632 | 0.5641 | 0.4453 | 0.8448 | 96,405 | 24 (24) |
 | Chronos2-COV-LEAN | 0.2184 | 0.4623 | 0.6640 | 0.5648 | 0.4449 | 0.8455 | 96,405 | 24 (24) |
 | **Chronos2-ZS** | 0.2199 | 0.4635 | 0.6653 | 0.5647 | 0.4484 | 0.8466 | 96,405 | 24 (24) |
+| TimesFM2.5-ZS | 0.2247 | 0.4662 | 0.6833 | 0.5685 | 0.4571 | 0.8561 | 96,405 | 24 (24) |
 | **NPTS** | 0.2326 | 0.4843 | 0.7057 | 0.5957 | 0.4669 | 0.8760 | 96,405 | 24 (24) |
 | PatchTST-Tuned | 0.2687 | 0.5041 | 0.8150 | 0.6368 | 0.5343 | 0.9161 | 96,405 | 24 (24) |
 | PatchTST | 0.2934 | 0.5317 | 0.8679 | 0.6646 | 0.5955 | 0.9802 | 96,405 | 24 (24) |
@@ -230,6 +242,8 @@ Nominal coverage for a p10-p90 band is **0.80**. Below 0.80 the band is too narr
 | PatchTST | 0.765 | 0.824 | 0.808 | 0.829 | 0.788 | 0.825 |
 | PatchTST-Tuned | 0.784 | 0.805 | 0.835 | 0.835 | 0.825 | 0.830 |
 | Theta | 0.921 | 0.930 | 0.940 | 0.950 | 0.954 | 0.965 |
+| TimesFM2.5-ZS | 0.809 | 0.803 | 0.801 | 0.810 | 0.814 | 0.823 |
+| Timestral-209M-ZS | 0.811 | 0.811 | 0.820 | 0.823 | 0.823 | 0.824 |
 
 ### Mean p10-p90 width (KL/h)
 
@@ -246,6 +260,8 @@ Nominal coverage for a p10-p90 band is **0.80**. Below 0.80 the band is too narr
 | PatchTST | 0.715 | 0.859 | 0.806 | 0.902 | 0.813 | 0.928 |
 | PatchTST-Tuned | 0.601 | 0.689 | 0.806 | 0.873 | 0.915 | 0.876 |
 | Theta | 1.447 | 1.529 | 1.684 | 1.978 | 2.184 | 2.738 |
+| TimesFM2.5-ZS | 0.551 | 0.573 | 0.593 | 0.604 | 0.609 | 0.627 |
+| Timestral-209M-ZS | 0.582 | 0.616 | 0.644 | 0.662 | 0.669 | 0.681 |
 
 ## 6. Per-tank comparison
 
@@ -471,9 +487,263 @@ Values above 1.00 are worse than the seasonal-naive reference.
 
 | Horizon | Best model | MASE | RMSSE | MAE | RMSE |
 |---|---|---|---|---|---|
-| 6h | Chronos2-COV-XL | 0.6002 | 0.4909 | 0.1973 | 0.3972 |
-| 12h | Chronos2-COV-XL | 0.6281 | 0.5250 | 0.2017 | 0.4175 |
-| 1d | Chronos2-COV-XL | 0.6550 | 0.5668 | 0.2104 | 0.4620 |
-| 2d | Chronos2-COV-XL | 0.6633 | 0.5710 | 0.2147 | 0.4671 |
-| 3d | Chronos2-COV-XL | 0.6641 | 0.5707 | 0.2159 | 0.4657 |
-| 7d | Chronos2-COV-XL | 0.6628 | 0.5636 | 0.2181 | 0.4610 |
+| 6h | Timestral-209M-ZS | 0.5975 | 0.4892 | 0.1950 | 0.3932 |
+| 12h | Timestral-209M-ZS | 0.6246 | 0.5247 | 0.2007 | 0.4172 |
+| 1d | Timestral-209M-ZS | 0.6533 | 0.5687 | 0.2096 | 0.4627 |
+| 2d | Timestral-209M-ZS | 0.6627 | 0.5734 | 0.2145 | 0.4679 |
+| 3d | Timestral-209M-ZS | 0.6625 | 0.5726 | 0.2154 | 0.4660 |
+| 7d | Timestral-209M-ZS | 0.6592 | 0.5641 | 0.2167 | 0.4605 |
+
+## 8. TimesFM 2.5 zero-shot against Chronos-2, NPTS and SeasonalNaive-24
+
+`TimesFM2.5-ZS` = `google/timesfm-2.5-200m-pytorch`, zero-shot, target series only, 2,048-hour context truncated at each origin, point forecast = the median - the protocol `Chronos2-ZS` uses, scored on the identical rows. Checkpoint revision, config, device and measured runtime: `timesfm_manifest.json`. Machine-readable versions of every table below: [`timesfm_comparison.csv`](timesfm_comparison.csv) and [`timesfm_per_tank.csv`](timesfm_per_tank.csv).
+
+Every metric is an error, so lower is better. Relative differences use the formula of section 2, `100 x (opponent - TimesFM) / opponent`, and are written as a direction: **"x % lower"** means TimesFM's error is lower than the opponent's (TimesFM better), **"x % higher"** means TimesFM's error is higher (TimesFM worse).
+
+### 8.1 The four models at every horizon
+
+| Horizon | Model | MAE | RMSE | MASE | RMSSE |
+|---|---|---|---|---|---|
+| 6h | SeasonalNaive-24 | 0.3095 | 0.5649 | 0.9806 | 0.7174 |
+| 6h | NPTS (incumbent, AutoGluon) | 0.2306 | 0.4420 | 0.6871 | 0.5494 |
+| 6h | Chronos-2 zero-shot | 0.1974 | 0.3976 | 0.6017 | 0.4910 |
+| 6h | **TimesFM 2.5 zero-shot** | 0.2089 | 0.4079 | 0.6562 | 0.5052 |
+| 12h | SeasonalNaive-24 | 0.3041 | 0.5779 | 0.9666 | 0.7399 |
+| 12h | NPTS (incumbent, AutoGluon) | 0.2255 | 0.4519 | 0.6923 | 0.5688 |
+| 12h | Chronos-2 zero-shot | 0.2029 | 0.4207 | 0.6294 | 0.5271 |
+| 12h | **TimesFM 2.5 zero-shot** | 0.2133 | 0.4272 | 0.6748 | 0.5352 |
+| 1d | SeasonalNaive-24 | 0.3178 | 0.6456 | 1.0320 | 0.8020 |
+| 1d | NPTS (incumbent, AutoGluon) | 0.2303 | 0.4921 | 0.7098 | 0.6064 |
+| 1d | Chronos-2 zero-shot | 0.2116 | 0.4640 | 0.6552 | 0.5670 |
+| 1d | **TimesFM 2.5 zero-shot** | 0.2206 | 0.4709 | 0.6898 | 0.5752 |
+| 2d | SeasonalNaive-24 | 0.3200 | 0.6428 | 1.0502 | 0.8058 |
+| 2d | NPTS (incumbent, AutoGluon) | 0.2312 | 0.4934 | 0.7113 | 0.6075 |
+| 2d | Chronos-2 zero-shot | 0.2161 | 0.4688 | 0.6656 | 0.5722 |
+| 2d | **TimesFM 2.5 zero-shot** | 0.2229 | 0.4742 | 0.6900 | 0.5778 |
+| 3d | SeasonalNaive-24 | 0.3248 | 0.6465 | 1.0628 | 0.8117 |
+| 3d | NPTS (incumbent, AutoGluon) | 0.2307 | 0.4904 | 0.7090 | 0.6053 |
+| 3d | Chronos-2 zero-shot | 0.2174 | 0.4677 | 0.6664 | 0.5718 |
+| 3d | **TimesFM 2.5 zero-shot** | 0.2233 | 0.4719 | 0.6877 | 0.5765 |
+| 7d | SeasonalNaive-24 | 0.3277 | 0.6441 | 1.0688 | 0.8085 |
+| 7d | NPTS (incumbent, AutoGluon) | 0.2326 | 0.4843 | 0.7057 | 0.5957 |
+| 7d | Chronos-2 zero-shot | 0.2199 | 0.4635 | 0.6653 | 0.5647 |
+| 7d | **TimesFM 2.5 zero-shot** | 0.2247 | 0.4662 | 0.6833 | 0.5685 |
+
+### 8.2 TimesFM's error relative to each opponent
+
+| Horizon | Metric | vs Chronos-2 zero-shot | vs NPTS | vs SeasonalNaive-24 |
+|---|---|---|---|---|
+| 6h | MAE | 5.81 % higher | 9.40 % lower | 32.51 % lower |
+| 6h | RMSE | 2.59 % higher | 7.72 % lower | 27.80 % lower |
+| 6h | MASE | 9.04 % higher | 4.51 % lower | 33.09 % lower |
+| 6h | RMSSE | 2.90 % higher | 8.04 % lower | 29.58 % lower |
+| 12h | MAE | 5.11 % higher | 5.43 % lower | 29.87 % lower |
+| 12h | RMSE | 1.54 % higher | 5.47 % lower | 26.08 % lower |
+| 12h | MASE | 7.21 % higher | 2.53 % lower | 30.19 % lower |
+| 12h | RMSSE | 1.53 % higher | 5.89 % lower | 27.66 % lower |
+| 1d | MAE | 4.25 % higher | 4.21 % lower | 30.60 % lower |
+| 1d | RMSE | 1.49 % higher | 4.31 % lower | 27.06 % lower |
+| 1d | MASE | 5.28 % higher | 2.81 % lower | 33.15 % lower |
+| 1d | RMSSE | 1.44 % higher | 5.15 % lower | 28.28 % lower |
+| 2d | MAE | 3.13 % higher | 3.59 % lower | 30.34 % lower |
+| 2d | RMSE | 1.15 % higher | 3.89 % lower | 26.23 % lower |
+| 2d | MASE | 3.68 % higher | 2.99 % lower | 34.30 % lower |
+| 2d | RMSSE | 0.99 % higher | 4.89 % lower | 28.29 % lower |
+| 3d | MAE | 2.69 % higher | 3.22 % lower | 31.25 % lower |
+| 3d | RMSE | 0.90 % higher | 3.77 % lower | 27.02 % lower |
+| 3d | MASE | 3.20 % higher | 3.00 % lower | 35.29 % lower |
+| 3d | RMSSE | 0.82 % higher | 4.76 % lower | 28.97 % lower |
+| 7d | MAE | 2.20 % higher | 3.39 % lower | 31.43 % lower |
+| 7d | RMSE | 0.58 % higher | 3.73 % lower | 27.62 % lower |
+| 7d | MASE | 2.71 % higher | 3.18 % lower | 36.06 % lower |
+| 7d | RMSSE | 0.67 % higher | 4.56 % lower | 29.69 % lower |
+
+### 8.3 Per tank - TimesFM against Chronos-2 zero-shot
+
+Tanks where each model has the lower per-tank error, out of the tanks where the metric is defined for both. Differences are TimesFM minus Chronos-2, in the metric's own units (KL/h for MAE and RMSE, ratio for MASE and RMSSE); negative means TimesFM is better on the typical tank.
+
+| Horizon | Metric | TimesFM wins | Chronos-2 wins | ties | median per-tank diff | mean per-tank diff |
+|---|---|---|---|---|---|---|
+| 6h | MAE | 6/24 | 18/24 | 0 | +0.0032 | +0.0115 |
+| 6h | RMSE | 11/24 | 13/24 | 0 | +0.0006 | +0.0103 |
+| 6h | MASE | 6/24 | 18/24 | 0 | +0.0153 | +0.0544 |
+| 6h | RMSSE | 11/24 | 13/24 | 0 | +0.0009 | +0.0142 |
+| 12h | MAE | 6/24 | 18/24 | 0 | +0.0041 | +0.0104 |
+| 12h | RMSE | 7/24 | 17/24 | 0 | +0.0003 | +0.0065 |
+| 12h | MASE | 6/24 | 18/24 | 0 | +0.0206 | +0.0454 |
+| 12h | RMSSE | 7/24 | 17/24 | 0 | +0.0005 | +0.0081 |
+| 1d | MAE | 2/24 | 22/24 | 0 | +0.0023 | +0.0090 |
+| 1d | RMSE | 9/24 | 15/24 | 0 | +0.0011 | +0.0069 |
+| 1d | MASE | 2/24 | 22/24 | 0 | +0.0207 | +0.0346 |
+| 1d | RMSSE | 8/24 | 16/24 | 0 | +0.0019 | +0.0082 |
+| 2d | MAE | 2/24 | 22/24 | 0 | +0.0021 | +0.0068 |
+| 2d | RMSE | 9/24 | 15/24 | 0 | +0.0001 | +0.0054 |
+| 2d | MASE | 2/24 | 22/24 | 0 | +0.0171 | +0.0245 |
+| 2d | RMSSE | 9/24 | 15/24 | 0 | +0.0004 | +0.0057 |
+| 3d | MAE | 3/24 | 21/24 | 0 | +0.0018 | +0.0059 |
+| 3d | RMSE | 8/24 | 16/24 | 0 | +0.0003 | +0.0042 |
+| 3d | MASE | 3/24 | 21/24 | 0 | +0.0165 | +0.0213 |
+| 3d | RMSSE | 8/24 | 16/24 | 0 | +0.0010 | +0.0047 |
+| 7d | MAE | 4/24 | 20/24 | 0 | +0.0023 | +0.0048 |
+| 7d | RMSE | 7/24 | 17/24 | 0 | +0.0010 | +0.0027 |
+| 7d | MASE | 4/24 | 20/24 | 0 | +0.0181 | +0.0180 |
+| 7d | RMSSE | 7/24 | 17/24 | 0 | +0.0025 | +0.0038 |
+
+### 8.4 Per tank at 1 d - MASE, best TimesFM tank first
+
+| Tank | tier | TimesFM MASE | Chronos-2 MASE | TimesFM's MASE vs Chronos-2 | NPTS MASE | SN MASE | winner |
+|---|---|---|---|---|---|---|---|
+| `NEW_BLOCK_RO` | dead | 0.2068 | 0.2335 | 11.45 % lower | 0.1943 | 0.3096 | TimesFM |
+| `CRICKET_GROUND_OHT` | degraded | 0.1549 | 0.1553 | 0.26 % lower | 0.1530 | 0.2868 | TimesFM |
+| `G_BLOCK` | healthy | 0.6934 | 0.6926 | 0.12 % higher | 0.6851 | 1.0545 | Chronos-2 |
+| `GJBC_LAW_BLOCK_3__A3_GIRLS` | healthy | 0.5701 | 0.5669 | 0.56 % higher | 0.6891 | 0.7209 | Chronos-2 |
+| `GJBC_LAW_BLOCK_3__A1` | healthy | 1.5316 | 1.5211 | 0.69 % higher | 1.6020 | 2.1192 | Chronos-2 |
+| `GJBC_BLOCK_1_A4_RO` | degraded | 0.0687 | 0.0677 | 1.38 % higher | 0.0672 | 0.0940 | Chronos-2 |
+| `GJBC_BLOCK_1_A3` | healthy | 0.5950 | 0.5856 | 1.61 % higher | 0.6229 | 0.7793 | Chronos-2 |
+| `GJBC_BLOCK_1_A1_BOYS` | degraded | 0.5974 | 0.5857 | 2.00 % higher | 0.6129 | 0.7828 | Chronos-2 |
+| `BE_BLOCK_OHT` | healthy | 0.7760 | 0.7550 | 2.77 % higher | 0.7819 | 1.0780 | Chronos-2 |
+| `MM_BLOCK` | healthy | 0.5524 | 0.5352 | 3.21 % higher | 0.5376 | 0.7285 | Chronos-2 |
+| `GJBC_BLOCK_2_A1` | healthy | 0.5847 | 0.5654 | 3.41 % higher | 0.7483 | 1.0061 | Chronos-2 |
+| `IT_BLOCK` | degraded | 1.1036 | 1.0668 | 3.45 % higher | 1.1764 | 1.6351 | Chronos-2 |
+| `NBX` | healthy | 0.8681 | 0.8385 | 3.52 % higher | 0.8191 | 1.1736 | Chronos-2 |
+| `I&H_BLOCK` | degraded | 0.8695 | 0.8388 | 3.67 % higher | 0.8324 | 1.5089 | Chronos-2 |
+| `NEW_BLOCK` | healthy | 0.5389 | 0.5185 | 3.94 % higher | 0.5490 | 0.7347 | Chronos-2 |
+| `GJBC_LAW_BLOCK_3_A4_BOYS` | healthy | 0.7538 | 0.7172 | 5.09 % higher | 0.7635 | 1.0900 | Chronos-2 |
+| `GJBC_LAW_BLOCK_3__A2` | healthy | 0.4235 | 0.3994 | 6.04 % higher | 0.5551 | 0.5680 | Chronos-2 |
+| `MRD_BLOCK` | healthy | 0.6540 | 0.6150 | 6.33 % higher | 0.7037 | 0.9020 | Chronos-2 |
+| `ME_WORKSHOP_BLOCK` | degraded | 0.1698 | 0.1594 | 6.57 % higher | 0.1666 | 0.2271 | Chronos-2 |
+| `GJBC_BLOCK_1_A2_GIRLS` | healthy | 0.5751 | 0.5380 | 6.88 % higher | 0.5733 | 0.7521 | Chronos-2 |
+| `F_BLOCK` | healthy | 0.6819 | 0.6321 | 7.87 % higher | 0.7453 | 1.0451 | Chronos-2 |
+| `TECH_PARK` | healthy | 0.5935 | 0.5260 | 12.83 % higher | 0.6527 | 0.9766 | Chronos-2 |
+| `INFORMATION_CENTRE` | dead | 2.3215 | 2.0556 | 12.94 % higher | 2.0182 | 4.3144 | Chronos-2 |
+| `BE_BLOCK_RO` | dead | 0.6721 | 0.5559 | 20.90 % higher | 0.7854 | 0.8799 | Chronos-2 |
+
+## 9. Timestral 209M zero-shot against Chronos-2, TimesFM 2.5, NPTS and SeasonalNaive-24
+
+`Timestral-209M-ZS` = `mistralai/Timestral-209M`, zero-shot, target series only, 2,048-hour context truncated at each origin, point forecast = the median - the protocol `Chronos2-ZS` uses, scored on the identical rows. Checkpoint revision, config, device and measured runtime: `timestral_209m_manifest.json`. Machine-readable versions of every table below: [`timestral_comparison.csv`](timestral_comparison.csv) and [`timestral_per_tank.csv`](timestral_per_tank.csv).
+
+Every metric is an error, so lower is better. Relative differences use the formula of section 2, `100 x (opponent - Timestral) / opponent`, and are written as a direction: **"x % lower"** means Timestral's error is lower than the opponent's (Timestral better), **"x % higher"** means Timestral's error is higher (Timestral worse).
+
+### 9.1 The five models at every horizon
+
+| Horizon | Model | MAE | RMSE | MASE | RMSSE |
+|---|---|---|---|---|---|
+| 6h | SeasonalNaive-24 | 0.3095 | 0.5649 | 0.9806 | 0.7174 |
+| 6h | NPTS (incumbent, AutoGluon) | 0.2306 | 0.4420 | 0.6871 | 0.5494 |
+| 6h | Chronos-2 zero-shot | 0.1974 | 0.3976 | 0.6017 | 0.4910 |
+| 6h | TimesFM 2.5 zero-shot | 0.2089 | 0.4079 | 0.6562 | 0.5052 |
+| 6h | **Timestral 209M zero-shot** | 0.1950 | 0.3932 | 0.5975 | 0.4892 |
+| 12h | SeasonalNaive-24 | 0.3041 | 0.5779 | 0.9666 | 0.7399 |
+| 12h | NPTS (incumbent, AutoGluon) | 0.2255 | 0.4519 | 0.6923 | 0.5688 |
+| 12h | Chronos-2 zero-shot | 0.2029 | 0.4207 | 0.6294 | 0.5271 |
+| 12h | TimesFM 2.5 zero-shot | 0.2133 | 0.4272 | 0.6748 | 0.5352 |
+| 12h | **Timestral 209M zero-shot** | 0.2007 | 0.4172 | 0.6246 | 0.5247 |
+| 1d | SeasonalNaive-24 | 0.3178 | 0.6456 | 1.0320 | 0.8020 |
+| 1d | NPTS (incumbent, AutoGluon) | 0.2303 | 0.4921 | 0.7098 | 0.6064 |
+| 1d | Chronos-2 zero-shot | 0.2116 | 0.4640 | 0.6552 | 0.5670 |
+| 1d | TimesFM 2.5 zero-shot | 0.2206 | 0.4709 | 0.6898 | 0.5752 |
+| 1d | **Timestral 209M zero-shot** | 0.2096 | 0.4627 | 0.6533 | 0.5687 |
+| 2d | SeasonalNaive-24 | 0.3200 | 0.6428 | 1.0502 | 0.8058 |
+| 2d | NPTS (incumbent, AutoGluon) | 0.2312 | 0.4934 | 0.7113 | 0.6075 |
+| 2d | Chronos-2 zero-shot | 0.2161 | 0.4688 | 0.6656 | 0.5722 |
+| 2d | TimesFM 2.5 zero-shot | 0.2229 | 0.4742 | 0.6900 | 0.5778 |
+| 2d | **Timestral 209M zero-shot** | 0.2145 | 0.4679 | 0.6627 | 0.5734 |
+| 3d | SeasonalNaive-24 | 0.3248 | 0.6465 | 1.0628 | 0.8117 |
+| 3d | NPTS (incumbent, AutoGluon) | 0.2307 | 0.4904 | 0.7090 | 0.6053 |
+| 3d | Chronos-2 zero-shot | 0.2174 | 0.4677 | 0.6664 | 0.5718 |
+| 3d | TimesFM 2.5 zero-shot | 0.2233 | 0.4719 | 0.6877 | 0.5765 |
+| 3d | **Timestral 209M zero-shot** | 0.2154 | 0.4660 | 0.6625 | 0.5726 |
+| 7d | SeasonalNaive-24 | 0.3277 | 0.6441 | 1.0688 | 0.8085 |
+| 7d | NPTS (incumbent, AutoGluon) | 0.2326 | 0.4843 | 0.7057 | 0.5957 |
+| 7d | Chronos-2 zero-shot | 0.2199 | 0.4635 | 0.6653 | 0.5647 |
+| 7d | TimesFM 2.5 zero-shot | 0.2247 | 0.4662 | 0.6833 | 0.5685 |
+| 7d | **Timestral 209M zero-shot** | 0.2167 | 0.4605 | 0.6592 | 0.5641 |
+
+### 9.2 Timestral's error relative to each opponent
+
+| Horizon | Metric | vs Chronos-2 zero-shot | vs TimesFM 2.5 | vs NPTS | vs SeasonalNaive-24 |
+|---|---|---|---|---|---|
+| 6h | MAE | 1.24 % lower | 6.66 % lower | 15.43 % lower | 37.01 % lower |
+| 6h | RMSE | 1.11 % lower | 3.60 % lower | 11.04 % lower | 30.40 % lower |
+| 6h | MASE | 0.70 % lower | 8.93 % lower | 13.04 % lower | 39.07 % lower |
+| 6h | RMSSE | 0.36 % lower | 3.17 % lower | 10.96 % lower | 31.82 % lower |
+| 12h | MAE | 1.09 % lower | 5.91 % lower | 11.02 % lower | 34.02 % lower |
+| 12h | RMSE | 0.83 % lower | 2.33 % lower | 7.67 % lower | 27.80 % lower |
+| 12h | MASE | 0.76 % lower | 7.43 % lower | 9.78 % lower | 35.37 % lower |
+| 12h | RMSSE | 0.46 % lower | 1.97 % lower | 7.75 % lower | 29.09 % lower |
+| 1d | MAE | 0.93 % lower | 4.97 % lower | 8.98 % lower | 34.05 % lower |
+| 1d | RMSE | 0.27 % lower | 1.73 % lower | 5.97 % lower | 28.32 % lower |
+| 1d | MASE | 0.29 % lower | 5.30 % lower | 7.96 % lower | 36.69 % lower |
+| 1d | RMSSE | 0.29 % higher | 1.13 % lower | 6.22 % lower | 29.10 % lower |
+| 2d | MAE | 0.74 % lower | 3.76 % lower | 7.21 % lower | 32.96 % lower |
+| 2d | RMSE | 0.19 % lower | 1.33 % lower | 5.16 % lower | 27.21 % lower |
+| 2d | MASE | 0.43 % lower | 3.96 % lower | 6.84 % lower | 36.90 % lower |
+| 2d | RMSSE | 0.20 % higher | 0.78 % lower | 5.63 % lower | 28.85 % lower |
+| 3d | MAE | 0.94 % lower | 3.53 % lower | 6.64 % lower | 33.68 % lower |
+| 3d | RMSE | 0.35 % lower | 1.23 % lower | 4.96 % lower | 27.92 % lower |
+| 3d | MASE | 0.58 % lower | 3.66 % lower | 6.55 % lower | 37.66 % lower |
+| 3d | RMSSE | 0.13 % higher | 0.68 % lower | 5.41 % lower | 29.46 % lower |
+| 7d | MAE | 1.44 % lower | 3.55 % lower | 6.82 % lower | 33.86 % lower |
+| 7d | RMSE | 0.65 % lower | 1.23 % lower | 4.92 % lower | 28.51 % lower |
+| 7d | MASE | 0.92 % lower | 3.54 % lower | 6.60 % lower | 38.33 % lower |
+| 7d | RMSSE | 0.11 % lower | 0.77 % lower | 5.30 % lower | 30.23 % lower |
+
+### 9.3 Per tank - Timestral against Chronos-2 zero-shot
+
+Tanks where each model has the lower per-tank error, out of the tanks where the metric is defined for both. Differences are Timestral minus Chronos-2, in the metric's own units (KL/h for MAE and RMSE, ratio for MASE and RMSSE); negative means Timestral is better on the typical tank.
+
+| Horizon | Metric | Timestral wins | Chronos-2 wins | ties | median per-tank diff | mean per-tank diff |
+|---|---|---|---|---|---|---|
+| 6h | MAE | 16/24 | 8/24 | 0 | -0.0003 | -0.0024 |
+| 6h | RMSE | 10/24 | 14/24 | 0 | +0.0000 | -0.0044 |
+| 6h | MASE | 16/24 | 8/24 | 0 | -0.0052 | -0.0042 |
+| 6h | RMSSE | 10/24 | 14/24 | 0 | +0.0007 | -0.0018 |
+| 12h | MAE | 19/24 | 5/24 | 0 | -0.0005 | -0.0022 |
+| 12h | RMSE | 12/24 | 12/24 | 0 | -0.0000 | -0.0035 |
+| 12h | MASE | 19/24 | 5/24 | 0 | -0.0060 | -0.0048 |
+| 12h | RMSSE | 11/24 | 13/24 | 0 | +0.0000 | -0.0024 |
+| 1d | MAE | 17/24 | 7/24 | 0 | -0.0007 | -0.0020 |
+| 1d | RMSE | 10/24 | 14/24 | 0 | +0.0001 | -0.0012 |
+| 1d | MASE | 17/24 | 7/24 | 0 | -0.0066 | -0.0019 |
+| 1d | RMSSE | 10/24 | 14/24 | 0 | +0.0004 | +0.0017 |
+| 2d | MAE | 17/24 | 7/24 | 0 | -0.0004 | -0.0016 |
+| 2d | RMSE | 10/24 | 14/24 | 0 | +0.0001 | -0.0009 |
+| 2d | MASE | 17/24 | 7/24 | 0 | -0.0064 | -0.0029 |
+| 2d | RMSSE | 10/24 | 14/24 | 0 | +0.0005 | +0.0012 |
+| 3d | MAE | 17/24 | 7/24 | 0 | -0.0003 | -0.0020 |
+| 3d | RMSE | 11/24 | 13/24 | 0 | +0.0000 | -0.0016 |
+| 3d | MASE | 17/24 | 7/24 | 0 | -0.0060 | -0.0039 |
+| 3d | RMSSE | 11/24 | 13/24 | 0 | +0.0001 | +0.0007 |
+| 7d | MAE | 19/24 | 5/24 | 0 | -0.0009 | -0.0032 |
+| 7d | RMSE | 13/24 | 11/24 | 0 | -0.0010 | -0.0030 |
+| 7d | MASE | 19/24 | 5/24 | 0 | -0.0057 | -0.0061 |
+| 7d | RMSSE | 13/24 | 11/24 | 0 | -0.0015 | -0.0006 |
+
+### 9.4 Per tank at 1 d - MASE, best Timestral tank first
+
+| Tank | tier | Timestral MASE | Chronos-2 MASE | Timestral's MASE vs Chronos-2 | NPTS MASE | SN MASE | winner |
+|---|---|---|---|---|---|---|---|
+| `NEW_BLOCK_RO` | dead | 0.1984 | 0.2335 | 15.06 % lower | 0.1943 | 0.3096 | Timestral |
+| `BE_BLOCK_OHT` | healthy | 0.7266 | 0.7550 | 3.76 % lower | 0.7819 | 1.0780 | Timestral |
+| `CRICKET_GROUND_OHT` | degraded | 0.1500 | 0.1553 | 3.42 % lower | 0.1530 | 0.2868 | Timestral |
+| `G_BLOCK` | healthy | 0.6726 | 0.6926 | 2.89 % lower | 0.6851 | 1.0545 | Timestral |
+| `TECH_PARK` | healthy | 0.5159 | 0.5260 | 1.92 % lower | 0.6527 | 0.9766 | Timestral |
+| `NBX` | healthy | 0.8263 | 0.8385 | 1.45 % lower | 0.8191 | 1.1736 | Timestral |
+| `MM_BLOCK` | healthy | 0.5280 | 0.5352 | 1.35 % lower | 0.5376 | 0.7285 | Timestral |
+| `GJBC_BLOCK_2_A1` | healthy | 0.5579 | 0.5654 | 1.33 % lower | 0.7483 | 1.0061 | Timestral |
+| `GJBC_BLOCK_1_A1_BOYS` | degraded | 0.5787 | 0.5857 | 1.19 % lower | 0.6129 | 0.7828 | Timestral |
+| `NEW_BLOCK` | healthy | 0.5127 | 0.5185 | 1.12 % lower | 0.5490 | 0.7347 | Timestral |
+| `GJBC_LAW_BLOCK_3_A4_BOYS` | healthy | 0.7096 | 0.7172 | 1.07 % lower | 0.7635 | 1.0900 | Timestral |
+| `GJBC_BLOCK_1_A3` | healthy | 0.5794 | 0.5856 | 1.06 % lower | 0.6229 | 0.7793 | Timestral |
+| `I&H_BLOCK` | degraded | 0.8317 | 0.8388 | 0.84 % lower | 0.8324 | 1.5089 | Timestral |
+| `GJBC_LAW_BLOCK_3__A1` | healthy | 1.5096 | 1.5211 | 0.76 % lower | 1.6020 | 2.1192 | Timestral |
+| `INFORMATION_CENTRE` | dead | 2.0432 | 2.0556 | 0.60 % lower | 2.0182 | 4.3144 | Timestral |
+| `MRD_BLOCK` | healthy | 0.6121 | 0.6150 | 0.49 % lower | 0.7037 | 0.9020 | Timestral |
+| `GJBC_BLOCK_1_A4_RO` | degraded | 0.0675 | 0.0677 | 0.30 % lower | 0.0672 | 0.0940 | Timestral |
+| `GJBC_BLOCK_1_A2_GIRLS` | healthy | 0.5402 | 0.5380 | 0.41 % higher | 0.5733 | 0.7521 | Chronos-2 |
+| `F_BLOCK` | healthy | 0.6369 | 0.6321 | 0.77 % higher | 0.7453 | 1.0451 | Chronos-2 |
+| `ME_WORKSHOP_BLOCK` | degraded | 0.1619 | 0.1594 | 1.59 % higher | 0.1666 | 0.2271 | Chronos-2 |
+| `GJBC_LAW_BLOCK_3__A3_GIRLS` | healthy | 0.5814 | 0.5669 | 2.55 % higher | 0.6891 | 0.7209 | Chronos-2 |
+| `IT_BLOCK` | degraded | 1.1229 | 1.0668 | 5.25 % higher | 1.1764 | 1.6351 | Chronos-2 |
+| `GJBC_LAW_BLOCK_3__A2` | healthy | 0.4240 | 0.3994 | 6.17 % higher | 0.5551 | 0.5680 | Chronos-2 |
+| `BE_BLOCK_RO` | dead | 0.5918 | 0.5559 | 6.46 % higher | 0.7854 | 0.8799 | Chronos-2 |

@@ -24,9 +24,11 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.config import EDA_DIR, PROJECT_ROOT  # noqa: E402
 from src.data.curate import TARGET_COL, load_curated_hourly  # noqa: E402
 
-BASE = Path(__file__).resolve().parent
+# PESU_EDA_DIR moves every output (trust tiers, mass balance, plots) for a second data snapshot.
+BASE = EDA_DIR if EDA_DIR.is_absolute() else PROJECT_ROOT / EDA_DIR
 PLOT_DIR = BASE / "plots_hourly"
 REPORT = BASE / "eda_hourly_report.txt"
 TRUST_JSON = BASE / "tank_trust.json"

@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import KNOWN_COVARIATES, BacktestSpec, actuals_after, history_before
 
 logger = logging.getLogger(__name__)
@@ -102,8 +103,8 @@ def main() -> None:
     ap.add_argument("--context", type=int, default=2048)
     ap.add_argument("--time-limit", type=int, default=900)
     ap.add_argument("--include-neural", action="store_true")
-    ap.add_argument("--out-dir", default="results/chronos2")
-    ap.add_argument("--model-dir", default="results/chronos2/_ag_models")
+    ap.add_argument("--out-dir", default=str(RESULTS_DIR))
+    ap.add_argument("--model-dir", default=str(RESULTS_DIR / "_ag_models"))
     ap.add_argument("--max-tanks", type=int, default=None)
     args = ap.parse_args()
 

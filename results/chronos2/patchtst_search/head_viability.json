@@ -1,0 +1,16 @@
+{
+  "question": "Can PatchTST be given a distribution head that represents the zero atom this dataset needs?",
+  "why_it_matters": "~24% of hourly readings are exactly zero. The calibration diagnosis showed a continuous density cannot place mass there. If a head existed that could, it would be PatchTST's best route to beating a foundation model on this data.",
+  "method": "Fit PatchTST for 2 epochs on 4 tanks with each candidate head from gluonts.torch.distributions, on data at or before the first test origin.",
+  "result": {
+    "StudentT": {"trains": true, "val_MASE": 0.9969, "note": "the AutoGluon default; continuous, no zero atom"},
+    "Normal": {"trains": true, "val_MASE": 1.2889, "note": "continuous, no zero atom"},
+    "Laplace": {"trains": true, "val_MASE": 1.2544, "note": "continuous; its NLL is equivalent to MAE, so the training loss aligns with the evaluation metric"},
+    "PiecewiseLinear": {"trains": false, "reason": "NotImplementedError in log_prob — a quantile-function output with no density, and gluonts PatchTST computes its loss as NLL"},
+    "ImplicitQuantileNetwork": {"trains": false, "reason": "same: PatchTST's loss path calls distr_output.loss() which reduces to -log_prob"},
+    "ImplicitQuantileNetwork(positive)": {"trains": false, "reason": "same"},
+    "NegativeBinomial": {"trains": false, "reason": "discrete support; log_prob rejects the continuous KL values"},
+    "Beta": {"trains": false, "reason": "support is (0,1); log_prob rejects zeros and values above 1"}
+  },
+  "conclusion": "Every head that can represent a point mass at zero is a quantile-function output, and gluonts' PatchTST module computes its loss as a negative log-likelihood, which those outputs do not implement. Within this implementation PatchTST is confined to continuous densities — the exact limitation the calibration diagnosis identified — and it cannot be configured out. The search therefore ranges over the three viable heads plus architecture and optimisation."
+}

@@ -1,0 +1,351 @@
+{
+  "models": [
+    "Chronos2-ZS",
+    "Chronos2-COV-XL",
+    "Chronos2-COV",
+    "Chronos2-COV-LEAN",
+    "TimesFM2.5-ZS",
+    "Timestral-209M-ZS",
+    "TimesFM3-ZS",
+    "NPTS",
+    "PatchTST-Tuned",
+    "PatchTST",
+    "ETS",
+    "Theta",
+    "DynamicOptimizedTheta",
+    "SeasonalNaive"
+  ],
+  "n_models": 14,
+  "rows_per_model": 188664,
+  "n_origins": 24,
+  "n_tanks": 24,
+  "horizons": [
+    6,
+    12,
+    24,
+    48,
+    72,
+    168
+  ],
+  "best_mase_h24": {
+    "model": "Timestral-209M-ZS",
+    "macro_mase": 0.6533022723635311
+  },
+  "chronos2_rank_by_horizon": {
+    "6 h": 3,
+    "12 h": 4,
+    "1 d": 3,
+    "2 d": 5,
+    "3 d": 5,
+    "7 d": 5
+  },
+  "chronos2_improvement_pct_h24": {
+    "Chronos2-COV-XL": 0.03,
+    "Chronos2-COV": 0.14,
+    "Chronos2-COV-LEAN": 0.2,
+    "NPTS": 7.68,
+    "PatchTST-Tuned": 18.58,
+    "PatchTST": 23.47,
+    "ETS": 32.04,
+    "Theta": 31.81,
+    "DynamicOptimizedTheta": 31.91,
+    "SeasonalNaive": 36.67,
+    "TimesFM2.5-ZS": 5.23,
+    "Timestral-209M-ZS": -0.27,
+    "TimesFM3-ZS": 11.41
+  },
+  "opponents_beaten_significantly_all_horizons": [
+    "NPTS",
+    "PatchTST-Tuned",
+    "PatchTST",
+    "ETS",
+    "Theta",
+    "DynamicOptimizedTheta",
+    "SeasonalNaive",
+    "TimesFM2.5-ZS"
+  ],
+  "opponents_beaten_by_both_tests_all_horizons": [
+    "NPTS",
+    "PatchTST-Tuned",
+    "PatchTST",
+    "ETS",
+    "Theta",
+    "DynamicOptimizedTheta",
+    "SeasonalNaive"
+  ],
+  "tank_horizon_cells_won_vs": {
+    "Chronos2-COV-XL": 55,
+    "Chronos2-COV": 62,
+    "Chronos2-COV-LEAN": 66,
+    "TimesFM2.5-ZS": 121,
+    "Timestral-209M-ZS": 39,
+    "TimesFM3-ZS": 105,
+    "NPTS": 101,
+    "PatchTST-Tuned": 120,
+    "PatchTST": 128,
+    "ETS": 144,
+    "Theta": 144,
+    "DynamicOptimizedTheta": 144,
+    "SeasonalNaive": 144
+  },
+  "tank_horizon_cells_total": 144,
+  "skill_positive_by_model": {
+    "Chronos2-COV-LEAN": 24,
+    "Chronos2-COV-XL": 24,
+    "Chronos2-COV": 24,
+    "Chronos2-ZS": 24,
+    "PatchTST-Tuned": 21,
+    "PatchTST": 20,
+    "TimesFM2.5-ZS": 24,
+    "TimesFM3-ZS": 24,
+    "Timestral-209M-ZS": 24,
+    "NPTS": 24,
+    "ETS": 19,
+    "Theta": 19,
+    "DynamicOptimizedTheta": 19
+  },
+  "timesfm": {
+    "model": "TimesFM2.5-ZS",
+    "rank_by_horizon": {
+      "6 h": 6,
+      "12 h": 6,
+      "1 d": 6,
+      "2 d": 6,
+      "3 d": 6,
+      "7 d": 7
+    },
+    "chronos2_improvement_over_timesfm_pct": {
+      "6 h": 10.86,
+      "12 h": 7.51,
+      "1 d": 5.23,
+      "2 d": 3.61,
+      "3 d": 3.14,
+      "7 d": 2.65
+    },
+    "chronos2_better_significantly_at": [
+      "6 h",
+      "12 h",
+      "1 d",
+      "2 d",
+      "3 d",
+      "7 d"
+    ],
+    "timesfm_better_significantly_at": [],
+    "improvement_pct_h24": {
+      "NPTS": 2.59,
+      "PatchTST-Tuned": 14.09,
+      "PatchTST": 19.24,
+      "ETS": 28.29,
+      "Theta": 28.05,
+      "DynamicOptimizedTheta": 28.15,
+      "SeasonalNaive": 33.17
+    },
+    "opponents_beaten_significantly_all_horizons": [
+      "ETS",
+      "Theta",
+      "DynamicOptimizedTheta",
+      "SeasonalNaive"
+    ],
+    "opponents_beaten_by_both_tests_all_horizons": [
+      "ETS",
+      "Theta",
+      "DynamicOptimizedTheta",
+      "SeasonalNaive"
+    ],
+    "chronos2_vs_timesfm_dm_p_by_horizon": {
+      "6 h": 0.2153,
+      "12 h": 0.1604,
+      "1 d": 0.1021,
+      "2 d": 0.1068,
+      "3 d": 0.091,
+      "7 d": 0.0406
+    },
+    "tank_horizon_cells_won_vs": {
+      "Chronos2-ZS": 23,
+      "Chronos2-COV-XL": 20,
+      "Chronos2-COV": 19,
+      "Chronos2-COV-LEAN": 20,
+      "Timestral-209M-ZS": 14,
+      "TimesFM3-ZS": 35,
+      "NPTS": 81,
+      "PatchTST-Tuned": 114,
+      "PatchTST": 123,
+      "ETS": 142,
+      "Theta": 143,
+      "DynamicOptimizedTheta": 143,
+      "SeasonalNaive": 144
+    },
+    "coverage_by_horizon": {
+      "6 h": 0.809,
+      "12 h": 0.803,
+      "1 d": 0.801,
+      "2 d": 0.81,
+      "3 d": 0.814,
+      "7 d": 0.823
+    }
+  },
+  "timestral": {
+    "model": "Timestral-209M-ZS",
+    "rank_by_horizon": {
+      "6 h": 1,
+      "12 h": 1,
+      "1 d": 1,
+      "2 d": 1,
+      "3 d": 1,
+      "7 d": 1
+    },
+    "chronos2_improvement_over_timestral_pct": {
+      "6 h": -0.74,
+      "12 h": -0.76,
+      "1 d": -0.27,
+      "2 d": -0.42,
+      "3 d": -0.57,
+      "7 d": -0.93
+    },
+    "chronos2_better_significantly_at": [],
+    "timestral_better_significantly_at": [
+      "3 d",
+      "7 d"
+    ],
+    "improvement_pct_h24": {
+      "Chronos2-COV-XL": 0.29,
+      "Chronos2-COV": 0.4,
+      "Chronos2-COV-LEAN": 0.46,
+      "NPTS": 7.93,
+      "PatchTST-Tuned": 18.8,
+      "PatchTST": 23.67,
+      "ETS": 32.22,
+      "Theta": 31.99,
+      "DynamicOptimizedTheta": 32.09,
+      "SeasonalNaive": 36.84,
+      "TimesFM2.5-ZS": 5.48,
+      "TimesFM3-ZS": 11.64
+    },
+    "opponents_beaten_significantly_all_horizons": [
+      "NPTS",
+      "PatchTST-Tuned",
+      "PatchTST",
+      "ETS",
+      "Theta",
+      "DynamicOptimizedTheta",
+      "SeasonalNaive",
+      "TimesFM2.5-ZS"
+    ],
+    "opponents_beaten_by_both_tests_all_horizons": [
+      "NPTS",
+      "PatchTST-Tuned",
+      "PatchTST",
+      "ETS",
+      "Theta",
+      "DynamicOptimizedTheta",
+      "SeasonalNaive"
+    ],
+    "chronos2_vs_timestral_dm_p_by_horizon": {
+      "6 h": 0.3587,
+      "12 h": 0.1974,
+      "1 d": 0.5031,
+      "2 d": 0.3118,
+      "3 d": 0.2827,
+      "7 d": 0.1292
+    },
+    "tank_horizon_cells_won_vs": {
+      "Chronos2-ZS": 105,
+      "Chronos2-COV-XL": 89,
+      "Chronos2-COV": 87,
+      "Chronos2-COV-LEAN": 90,
+      "TimesFM2.5-ZS": 130,
+      "TimesFM3-ZS": 121,
+      "NPTS": 116,
+      "PatchTST-Tuned": 127,
+      "PatchTST": 133,
+      "ETS": 144,
+      "Theta": 144,
+      "DynamicOptimizedTheta": 144,
+      "SeasonalNaive": 144
+    },
+    "coverage_by_horizon": {
+      "6 h": 0.811,
+      "12 h": 0.811,
+      "1 d": 0.82,
+      "2 d": 0.823,
+      "3 d": 0.823,
+      "7 d": 0.824
+    }
+  },
+  "timesfm3": {
+    "model": "TimesFM3-ZS",
+    "rank_by_horizon": {
+      "6 h": 7,
+      "12 h": 8,
+      "1 d": 8,
+      "2 d": 8,
+      "3 d": 7,
+      "7 d": 6
+    },
+    "chronos2_improvement_over_timesfm3_pct": {
+      "6 h": 17.67,
+      "12 h": 15.81,
+      "1 d": 11.41,
+      "2 d": 6.75,
+      "3 d": 4.62,
+      "7 d": 2.03
+    },
+    "chronos2_better_significantly_at": [],
+    "timesfm3_better_significantly_at": [],
+    "improvement_pct_h24": {
+      "Chronos2-COV-XL": -12.85,
+      "Chronos2-COV": -12.72,
+      "Chronos2-COV-LEAN": -12.65,
+      "NPTS": -4.2,
+      "PatchTST-Tuned": 8.1,
+      "PatchTST": 13.61,
+      "ETS": 23.29,
+      "Theta": 23.03,
+      "DynamicOptimizedTheta": 23.14,
+      "SeasonalNaive": 28.51,
+      "TimesFM2.5-ZS": -6.97
+    },
+    "opponents_beaten_significantly_all_horizons": [
+      "ETS",
+      "Theta",
+      "DynamicOptimizedTheta"
+    ],
+    "opponents_beaten_by_both_tests_all_horizons": [
+      "ETS",
+      "Theta",
+      "DynamicOptimizedTheta"
+    ],
+    "chronos2_vs_timesfm3_dm_p_by_horizon": {
+      "6 h": 0.3415,
+      "12 h": 0.3405,
+      "1 d": 0.3204,
+      "2 d": 0.3616,
+      "3 d": 0.3983,
+      "7 d": 0.52
+    },
+    "tank_horizon_cells_won_vs": {
+      "Chronos2-ZS": 39,
+      "Chronos2-COV-XL": 39,
+      "Chronos2-COV": 44,
+      "Chronos2-COV-LEAN": 44,
+      "TimesFM2.5-ZS": 109,
+      "Timestral-209M-ZS": 23,
+      "NPTS": 99,
+      "PatchTST-Tuned": 116,
+      "PatchTST": 124,
+      "ETS": 144,
+      "Theta": 144,
+      "DynamicOptimizedTheta": 144,
+      "SeasonalNaive": 143
+    },
+    "coverage_by_horizon": {
+      "6 h": 0.807,
+      "12 h": 0.806,
+      "1 d": 0.81,
+      "2 d": 0.814,
+      "3 d": 0.82,
+      "7 d": 0.824
+    },
+    "deployable": false
+  }
+}

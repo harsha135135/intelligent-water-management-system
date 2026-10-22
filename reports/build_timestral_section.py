@@ -1,0 +1,451 @@
+"""Write §18 of ``docs/review_summary.md`` - the Timestral comparison - from the result files.
+
+Built the way §17 is (``build_timesfm_section.py``): every number in the section is read here, at
+build time, from the files the benchmark writes, and the section is replaced in place between its
+two marker comments. Every comparative sentence is conditioned on the numbers it describes, so a
+result that changes direction changes the sentence rather than leaving a false one.
+
+    python reports/build_timestral_section.py      # ~2 s → docs/review_summary.md §18
+
+Reads:
+    results/chronos2/timestral_209m_manifest.json      checkpoint, config, device, timing, audits
+    results/chronos2/metrics_by_horizon.csv            macro metrics, every model (metrics.py)
+    results/chronos2/timestral_comparison.csv          Timestral vs Chronos-2 / TimesFM / NPTS / SN
+    results/chronos2/timestral_per_tank.csv            Timestral vs Chronos-2, per tank
+    results/chronos2/timestral_sizes.csv               all four sizes on the same rows
+    results/chronos2/unified/significance_vs_all.csv   Chronos-2 vs Timestral, bootstrap + DM
+    results/chronos2/unified/significance_timestral.csv  Timestral vs every model but Chronos-2
+    results/chronos2/unified/leaderboard.csv           rank, coverage, width, volume bias
+    results/chronos2/unified/zero_inflation_h24.csv    tail miss rates at 1 d
+    results/chronos2/unified/cost.csv                  wall clocks, incl. the same-CPU runs
+    results/chronos2/calibrated/{summary,calibration_effect}.csv  45-day view
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+import re
+import sys
+
+import numpy as np
+import pandas as pd
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from src.config import IS_PUBLISHED, RESULTS_DIR  # noqa: E402
+
+R = ROOT / RESULTS_DIR
+U = R / "unified"
+C = R / "calibrated"
+# The published study fills its section of docs/review_summary.md; a second study writes a
+# standalone file beside its own results and never touches the published document.
+DOC = (ROOT / "docs/review_summary.md" if IS_PUBLISHED
+       else ROOT / RESULTS_DIR / "reports" / "timestral_section.md")
+BEGIN = "<!-- BEGIN GENERATED: timestral_section - python reports/build_timestral_section.py -->"
+END = "<!-- END GENERATED: timestral_section -->"
+
+TS, C2, XL, T = "Timestral-209M-ZS", "Chronos2-ZS", "Chronos2-COV-XL", "TimesFM2.5-ZS"
+NPTS, SN, SN45 = "NPTS", "SeasonalNaive", "SeasonalNaive-24"
+NAME = {T: "TimesFM 2.5", C2: "Chronos-2 zero-shot", XL: "Chronos-2 +cov XL",
+        "Chronos2-COV": "Chronos-2 +cov", "Chronos2-COV-LEAN": "Chronos-2 +cov lean",
+        NPTS: "NPTS", SN: "SeasonalNaive-24"}
+HS = [6, 12, 24, 48, 72, 168]
+HL = {6: "6 h", 12: "12 h", 24: "1 d", 48: "2 d", 72: "3 d", 168: "7 d"}
+METRICS = ("MAE", "RMSE", "MASE", "RMSSE")
+
+
+def rng(vals, nd=2, unit=" %"):
+    """'a–b' over a set of values, low to high."""
+    vals = [float(v) for v in vals]
+    return f"{min(vals):.{nd}f}–{max(vals):.{nd}f}{unit}"
+
+
+def words(p, nd=2):
+    """improvement_pct in words: positive = Timestral's error is lower."""
+    return f"{abs(p):.{nd}f} % {'lower' if p > 0 else 'higher'}"
+
+
+def span(vals, nd=2):
+    """A set of improvement_pct values as one phrase, by direction."""
+    vals = pd.Series(vals, dtype=float)
+    if (vals > 0).all():
+        return f"lower by {rng(vals, nd)}"
+    if (vals < 0).all():
+        return f"higher by {rng(-vals, nd)}"
+    return f"between {words(vals.min(), nd)} and {words(vals.max(), nd)}"
+
+
+def hlist(hs):
+    hs = [HL[h] for h in hs]
+    return "no horizon" if not hs else hs[0] if len(hs) == 1 else ", ".join(hs[:-1]) + " and " + hs[-1]
+
+
+def build() -> str:
+    man = json.loads((R / "timestral_209m_manifest.json").read_text())
+    agg = pd.read_csv(R / "metrics_by_horizon.csv")
+    h2h = pd.read_csv(R / "timestral_comparison.csv")
+    tpt = pd.read_csv(R / "timestral_per_tank.csv")
+    sizes = pd.read_csv(R / "timestral_sizes.csv")
+    sig = pd.read_csv(U / "significance_vs_all.csv")
+    sgs = pd.read_csv(U / "significance_timestral.csv")
+    lb = pd.read_csv(U / "leaderboard.csv")
+    zi = pd.read_csv(U / "zero_inflation_h24.csv").set_index("model")
+    cost = pd.read_csv(U / "cost.csv").set_index("model")
+    csum = pd.read_csv(C / "summary.csv").set_index("model")
+    ceff = pd.read_csv(C / "calibration_effect.csv").set_index("model")
+
+    fc, tm, hw = man["forecast_config"], man["timing"], man["hardware"]
+    n_models = int(agg["model"].nunique())
+    rows = agg.groupby("model")["rows_evaluated"].sum()
+    assert rows.nunique() == 1, "row parity broken"
+
+    def macro(model, h, m="mase"):
+        return float(agg[(agg.model == model) & (agg.horizon == h)][f"macro_{m}"].iloc[0])
+
+    def cmp(opp, metric):
+        return h2h[(h2h.opponent == opp) & (h2h.metric == metric)].set_index("horizon")
+
+    def lbv(model, col):
+        return lb[lb.model == model].set_index("horizon")[col]
+
+    rank = lbv(TS, "rank_mase")
+    out = [BEGIN, "", "## 18. Timestral comparison", "",
+           "> Generated by `python reports/build_timestral_section.py` from the result files it "
+           "names; edit the generator, not this text. Every table here is also in "
+           f"[`{RESULTS_DIR}/benchmark_table.md`](../{RESULTS_DIR}/benchmark_table.md) §9, "
+           "machine-readable in `timestral_comparison.csv` and `timestral_per_tank.csv`.", ""]
+
+    # ── setup
+    md = man["missing_data"]
+    out += ["### 18.1 What was run", "",
+            f"* **Checkpoint.** `{man['model_id']}` (Mistral AI's Timestral, the largest of four "
+            f"sizes, released in October 2026 as a public preview) at pinned revision "
+            f"`{man['revision'][:10]}`, loaded by Mistral's `timestral` package "
+            f"{man['packages']['timestral']} (GitHub commit "
+            f"`{man['packages']['timestral_commit'][:7]}`) on torch {man['packages']['torch']}. "
+            f"Licences: code {man['license']['code']}; weights {man['license']['weights']}. Unlike "
+            "TimesFM 3.0's weights, these permit production use; the revenue condition is the "
+            "one to check before deploying.",
+            f"* **Configuration.** Zero-shot — no training, no fine-tuning; target series only, no "
+            f"covariates; context {man['context']:,} hours truncated at each origin, as for "
+            f"Chronos-2 and TimesFM; point forecast = the median of its "
+            f"{len(fc['quantile_levels'])} quantile levels. The package's defaults: symmetric "
+            "averaging (each call also forecasts the negated context and averages the reflected "
+            "result) and its own non-negative clip.",
+            f"* **Grid.** The benchmark's own: {man['n_origins']} origins at a 23-hour stride, "
+            f"horizons {', '.join(HL[h] for h in man['horizons'])}, {len(man['tanks'])} tanks, "
+            f"{int(rows.iloc[0]):,} scored rows — row-for-row the same as all {n_models} models "
+            "(`score_benchmark --strict` passes). Scored by the same `metrics.py`.",
+            f"* **Integrity.** {man['leakage_audit']['windows_checked']:,} (origin, horizon, tank) "
+            f"windows checked for `context_end <= origin < forecast_start`: "
+            f"{man['leakage_audit']['violations']} violations. Failed series-forecasts: "
+            f"{man['failures']}. {md['contexts_with_missing_hours']} of {md['unique_contexts']} "
+            f"contexts contain missing hours and {md['contexts_ending_in_a_gap']} end in a gap; "
+            "Timestral masks a missing hour as unobserved, as Chronos-2 does, rather than "
+            "interpolating it as TimesFM does.",
+            f"* **Hardware.** {hw['device'].upper()} — {hw['cpu']}, {hw['logical_cpus']} logical "
+            f"CPUs, {hw['ram_gb']:.0f} GB, {hw['torch_threads']} torch threads: the machine and "
+            "thread count TimesFM was timed on.",
+            f"* **Sizes.** The {', '.join(s for s in sizes['size'].unique() if s != '209M')} "
+            "checkpoints ran the identical protocol but are kept off the benchmark roster; they "
+            "appear only in §18.7.", ""]
+
+    # ── accuracy
+    out += ["### 18.2 Accuracy — macro MASE, every horizon", "",
+            "Lower is better. The last three columns are Timestral's MASE relative to each "
+            "opponent, `100 × (opponent − Timestral) / opponent` as elsewhere in this document, "
+            "written as a direction: **lower** = Timestral better, **higher** = Timestral worse.", "",
+            f"| Horizon | Timestral 209M | Chronos-2 ZS | Chronos-2 +cov XL | TimesFM 2.5 | NPTS "
+            f"| rank of {n_models} | vs Chronos-2 ZS | vs TimesFM 2.5 | vs NPTS |",
+            "|---|---|---|---|---|---|---|---|---|---|"]
+    for h in HS:
+        rel = [words(cmp(o, "MASE").loc[h, "improvement_pct"]) for o in (C2, T, NPTS)]
+        out.append(f"| {HL[h]} | **{macro(TS, h):.4f}** | {macro(C2, h):.4f} | "
+                   f"{macro(XL, h):.4f} | {macro(T, h):.4f} | {macro(NPTS, h):.4f} | "
+                   f"{int(rank[h])} | " + " | ".join(rel) + " |")
+    c2m = {m: cmp(C2, m)["improvement_pct"] for m in METRICS}
+    tfm = {m: cmp(T, m)["improvement_pct"] for m in METRICS}
+    c2_best = pd.Series({h: min(macro(m, h) for m in agg.model.unique() if m.startswith("Chronos2"))
+                         for h in HS})
+    gap = pd.Series({h: macro(TS, h) for h in HS}) - c2_best
+    first = (rank == 1).all()
+    out += ["",
+            (f"Timestral has the lowest macro MASE of all {n_models} models at every horizon"
+             if first else f"Timestral ranks {rng(rank, 0, '')} of {n_models} across horizons")
+            + (f", below the best of the four Chronos-2 variants by {rng(-gap, 4, '')} MASE"
+               if (gap < 0).all() else "") + ". These are small margins: the four Chronos-2 "
+            "variants, which differ only in their covariates, are themselves separated by up to "
+            f"{max(max(macro(m, h) for m in agg.model.unique() if m.startswith('Chronos2')) - c2_best[h] for h in HS):.4f}.",
+            "",
+            f"Against Chronos-2 zero-shot, Timestral's error is {span(c2m['MAE'])} on MAE, "
+            f"{span(c2m['RMSE'])} on RMSE, {span(c2m['MASE'])} on MASE and {span(c2m['RMSSE'])} on "
+            f"RMSSE. Against TimesFM 2.5 it is {span(tfm['MAE'])}, {span(tfm['RMSE'])}, "
+            f"{span(tfm['MASE'])} and {span(tfm['RMSSE'])} on the same four metrics; against NPTS "
+            f"{span(cmp(NPTS, 'MASE')['improvement_pct'])} on MASE.", ""]
+    mixed = [m for m in METRICS if not (c2m[m] > 0).all()]
+    if mixed:
+        worse = {m: [h for h in HS if c2m[m][h] < 0] for m in mixed}
+        out += ["It is not ahead of Chronos-2 zero-shot everywhere: "
+                + "; ".join(f"its {m} is higher at {hlist(hs)}" for m, hs in worse.items() if hs)
+                + ".", ""]
+
+    # ── significance
+    s = sig[(sig.opponent == TS)].set_index(["metric", "horizon"])
+    g = sgs.set_index(["opponent", "metric", "horizon"])
+
+    def tests_vs_c2(metric):
+        """Horizons at which the bootstrap / Diebold-Mariano favour Timestral over Chronos-2.
+        ``sig`` is from Chronos-2's side, so Timestral is better where the interval excludes
+        zero on the other side."""
+        boot = [h for h in HS if s.loc[(metric, h), "significant_95"]
+                and not s.loc[(metric, h), "base_better"]]
+        dm = [h for h in HS if s.loc[(metric, h), "p_dm"] < 0.05
+              and s.loc[(metric, h), "improvement_pct"] < 0]
+        c2_any = [h for h in HS if s.loc[(metric, h), "base_better"]
+                  or (s.loc[(metric, h), "p_dm"] < 0.05 and s.loc[(metric, h), "improvement_pct"] > 0)]
+        return boot, dm, c2_any
+
+    def tests_own(opp, metric="MASE"):
+        boot = [h for h in HS if g.loc[(opp, metric, h), "base_better"]]
+        dm = [h for h in HS if g.loc[(opp, metric, h), "p_dm"] < 0.05
+              and g.loc[(opp, metric, h), "improvement_pct"] > 0]
+        return boot, dm
+
+    def reading(boot, dm):
+        both = [h for h in boot if h in dm]
+        one = sorted(set(boot) ^ set(dm))
+        rest = [h for h in HS if h not in boot and h not in dm]
+        txt = f"both tests agree at {hlist(both)}"
+        if one:
+            txt += f"; only one test at {hlist(one)} — the weaker claim there"
+        if rest and (both or one):
+            txt += f"; neither at {hlist(rest)}"
+        return txt
+
+    mb, md_, mc2 = tests_vs_c2("MASE")
+    ab, ad, _ = tests_vs_c2("MAE")
+    t24 = s.loc[("MASE", 24)]
+    xb, xd = tests_own(XL)
+    tb, td = tests_own(T)
+    nb, nd = tests_own(NPTS)
+    non_foundation = [o for o in sgs.opponent.unique()
+                      if not o.startswith("Chronos2") and o != T]
+    beaten_both = [o for o in non_foundation
+                   if all(g.loc[(o, "MASE", h), "base_better"] and g.loc[(o, "MASE", h), "p_dm"] < 0.05
+                          for h in HS)]
+    nan_dm = [f"{NAME.get(o, o)} {m} {HL[h]}" for (o, m, h), r in g.iterrows()
+              if not np.isfinite(r.p_dm)]
+    out += ["### 18.3 Is the difference real?", "",
+            "The study's two paired tests over the 24 origins (`src/models/significance.py`), "
+            "read together as everywhere else in this document. Chronos-2 vs Timestral is a row "
+            "of `unified/significance_vs_all.csv`; Timestral against every other model is "
+            "`unified/significance_timestral.csv`, drawn after every published table so that "
+            "none of their intervals moved.", "",
+            f"* **Chronos-2 zero-shot vs Timestral.** Timestral's MASE is lower at "
+            f"{'every horizon' if (s.loc['MASE']['improvement_pct'] < 0).all() else 'some horizons'}"
+            f". On MASE the bootstrap favours Timestral at {hlist(mb)} and Diebold–Mariano at "
+            f"{hlist(md_)}: {reading(mb, md_)}. At 1 d Chronos-2's MASE is "
+            f"{-t24.improvement_pct:.2f} % higher, with a 95 % interval for Chronos-2's relative "
+            f"improvement of {t24.ci_lo_pct:.2f} to {t24.ci_hi_pct:.2f} % — "
+            f"{'which includes zero' if t24.ci_lo_pct < 0 < t24.ci_hi_pct else 'excluding zero'}. "
+            f"On MAE: {reading(ab, ad)}. Neither test favours Chronos-2 on MASE at any horizon"
+            + ("" if not mc2 else f" except {hlist(mc2)}") + ". "
+            "(The percentages there are per-origin macro scores, so they differ slightly from the "
+            "table above.)",
+            f"* **Timestral vs Chronos-2 + covariates (XL)**, the best Chronos-2 variant: on MASE "
+            f"{reading(xb, xd)}.",
+            f"* **Timestral vs TimesFM 2.5.** On MASE {reading(tb, td)}.",
+            f"* **Timestral vs NPTS.** On MASE {reading(nb, nd)}.",
+            f"* **Against every non-foundation model**, both tests agree at every horizon for: "
+            f"{', '.join(beaten_both)}.", ""]
+    if nan_dm:
+        out[-2] += (" (Diebold–Mariano is undefined where its autocovariance-corrected "
+                    "long-run variance estimate comes out non-positive, which `dm_test` reports "
+                    f"as missing rather than forcing a value: {', '.join(nan_dm)}.)")
+
+    # ── per tank
+    m = cmp(C2, "MASE")
+    tw = tpt.groupby(["tank", "sensor_trust_tier"])["winner"].apply(
+        lambda x: int((x == "Timestral").sum())).reset_index(name="w")
+    healthy = tpt[tpt.sensor_trust_tier == "healthy"]
+    cells_t = int((tpt.winner == "Timestral").sum())
+    out += ["### 18.4 Per tank — where Timestral wins and loses", "",
+            "Winner per tank on MASE (`timestral_per_tank.csv`); "
+            + ("no ties occur." if int(m["ties"].sum()) == 0
+               else f"{int(m['ties'].sum())} ties across horizons."), "",
+            "| | " + " | ".join(HL[h] for h in HS) + " |", "|---" * 7 + "|",
+            "| Timestral better than Chronos-2 ZS | " + " | ".join(
+                f"{int(m.loc[h, 'model_wins'])}/24" for h in HS) + " |",
+            "| Chronos-2 ZS better | " + " | ".join(
+                f"{int(m.loc[h, 'opponent_wins'])}/24" for h in HS) + " |",
+            "| median per-tank MASE diff (Timestral − Chronos-2) | " + " | ".join(
+                f"{m.loc[h, 'median_tank_diff']:+.4f}" for h in HS) + " |",
+            "| Timestral better than TimesFM 2.5 | " + " | ".join(
+                f"{int(cmp(T, 'MASE').loc[h, 'model_wins'])}/24" for h in HS) + " |",
+            "| Timestral better than NPTS | " + " | ".join(
+                f"{int(cmp(NPTS, 'MASE').loc[h, 'model_wins'])}/24" for h in HS) + " |", "",
+            f"Over all {len(tpt)} tank-horizon cells Timestral wins {cells_t} against Chronos-2 "
+            f"zero-shot, {int((healthy.winner == 'Timestral').sum())} of them among the "
+            f"{len(healthy)} cells on healthy sensors; it wins at every horizon on "
+            f"{int((tw.w == len(HS)).sum())} tanks and at none on {int((tw.w == 0).sum())}.", ""]
+
+    # ── uncertainty and volume
+    cov, wid, vb = lbv(TS, "coverage"), lbv(TS, "width"), lbv(TS, "volume_bias_pct")
+    dev = lb.assign(d=(lb.coverage - 0.8).abs()).groupby("model").d.max().sort_values()
+    place = list(dev.index).index(TS) + 1
+    closer = [m for m in dev.index[:place - 1]]
+    c2w, c2vb, tvb = lbv(C2, "width"), lbv(C2, "volume_bias_pct"), lbv(T, "volume_bias_pct")
+    z, zc = zi.loc[TS], zi.loc[C2]
+    out += ["### 18.5 Uncertainty and volume", "",
+            f"* **Intervals.** Timestral's p10–p90 covers {rng(cov, 3, '')} of outcomes against the "
+            f"nominal 0.80 (worst horizon {dev[TS]:.3f} from nominal), "
+            + ("the closest of all models" if place == 1 else
+               f"second only to {NAME.get(closer[0], closer[0])} ({dev[closer[0]]:.3f})"
+               if place == 2 else
+               f"#{place} of {n_models} by distance from nominal")
+            + f"; Chronos-2 zero-shot is {dev[C2]:.3f} from nominal. Its band is "
+            f"{'wider than' if (wid > c2w).all() else 'not uniformly wider than'} Chronos-2's "
+            f"({rng(wid, 3, ' KL/h')} vs {rng(c2w, 3, ' KL/h')}) and its p10 is "
+            f"{'never' if (lbv(TS, 'neg_p10_pct') == 0).all() else 'sometimes'} negative. At 1 d "
+            f"it misses below p10 on {z.miss_below_p10:.3f} of rows and above p90 on "
+            f"{z.miss_above_p90:.3f} (Chronos-2: {zc.miss_below_p10:.3f} / "
+            f"{zc.miss_above_p90:.3f}).",
+            f"* **Volume.** It under-forecasts total volume by about as much as Chronos-2: "
+            f"{vb[6]:+.1f} % at 6 h to {vb[168]:+.1f} % at 7 d; at 1 d {vb[24]:+.1f} % against "
+            f"Chronos-2's {c2vb[24]:+.1f} % and TimesFM's {tvb[24]:+.1f} % (signed, pooled over "
+            "all tanks). The volume correction of §10 is needed for it too.", ""]
+
+    # ── operational 45-day view
+    if TS in csum.index:
+        keys = [TS, C2, T, NPTS, SN45]
+        cman = json.loads((C / "manifest.json").read_text())
+        cw = [pd.Timestamp(x) for x in cman["calibration_window"]]
+        rw = [pd.Timestamp(x) for x in cman["reported_window"]]
+        e = ceff.loc[TS]
+        over = e.coverage_cal > 0.8 and e.coverage_raw > 0.8
+        out += ["### 18.6 The 45-day operational view", "",
+                "Added with `python -m src.models.calibrated_holdout --add timestral`: the same "
+                f"calibration window ({cw[0]:%d %b} – {cw[1]:%d %b %Y}), reported window "
+                f"({rw[0]:%d %b} – {rw[1]:%d %b}) and code as every other model there, whose rows "
+                "are unchanged. Figures `TS_holdout45_timestral_calibrated` and "
+                "`TS_tanks45_timestral`.", "",
+                "| | Timestral 209M | Chronos-2 ZS | TimesFM 2.5 | NPTS | SeasonalNaive-24 |",
+                "|---|---|---|---|---|---|",
+                "| daily campus MAE, raw → calibrated (KL) | " + " | ".join(
+                    f"{csum.loc[k, 'daily_mae_raw_kl']:.1f} → {csum.loc[k, 'daily_mae_kl']:.1f}"
+                    for k in keys) + " |",
+                "| volume bias, raw → calibrated | " + " | ".join(
+                    f"{csum.loc[k, 'total_bias_raw_pct']:+.1f} % → "
+                    f"{csum.loc[k, 'total_bias_pct']:+.1f} %" for k in keys) + " |",
+                "| hourly p10–p90 coverage, raw → calibrated | " + " | ".join(
+                    f"{ceff.loc[k, 'coverage_raw']:.3f} → {ceff.loc[k, 'coverage_cal']:.3f}"
+                    for k in keys) + " |",
+                "| daily campus band coverage (nominal 0.80) | " + " | ".join(
+                    f"{csum.loc[k, 'daily_band_coverage']:.3f}" for k in keys) + " |", "",
+                f"Timestral has the lowest calibrated daily campus MAE of the five "
+                f"({csum.loc[TS, 'daily_mae_kl']:.1f} KL against Chronos-2's "
+                f"{csum.loc[C2, 'daily_mae_kl']:.1f})"
+                if csum.loc[keys, "daily_mae_kl"].idxmin() == TS else
+                f"Timestral's calibrated daily campus MAE is {csum.loc[TS, 'daily_mae_kl']:.1f} KL "
+                f"against Chronos-2's {csum.loc[C2, 'daily_mae_kl']:.1f}",
+                ]
+        out[-1] += (". Its hourly intervals already covered more than nominal before calibration, "
+                    "so the conformal step widened them further "
+                    f"({e.width_raw:.3f} → {e.width_cal:.3f} KL/h) rather than correcting a "
+                    "shortfall." if over else ".")
+        out += [""]
+
+    # ── sizes
+    sz = sizes.set_index(["size", "horizon"])
+    order = [s for s in ("5M", "28M", "123M", "209M") if s in sizes["size"].unique()]
+    beats_tfm = [s for s in order if all(sz.loc[(s, h), "macro_mase"] < macro(T, h) for h in HS)]
+    beats_c2 = [s for s in order if all(sz.loc[(s, h), "macro_mase"] < macro(C2, h) for h in HS)]
+    out += ["### 18.7 Model size", "",
+            "All four sizes on the identical rows, scored by the same functions "
+            "(`timestral_sizes.csv`). Only 209M is on the roster; the smaller sizes have no "
+            "significance tests, so the comparisons in this subsection are untested.", "",
+            "| Size | MASE 6 h | MASE 1 d | MASE 7 d | coverage 1 d | wall clock, same CPU |",
+            "|---|---|---|---|---|---|"]
+    for size in order:
+        out.append(f"| {size} | {sz.loc[(size, 6), 'macro_mase']:.4f} | "
+                   f"{sz.loc[(size, 24), 'macro_mase']:.4f} | "
+                   f"{sz.loc[(size, 168), 'macro_mase']:.4f} | "
+                   f"{sz.loc[(size, 24), 'p10_p90_coverage']:.3f} | "
+                   f"{sz.loc[(size, 24), 'wall_clock_s']:.0f} s |")
+    out += ["",
+            f"Accuracy improves with size at every horizon"
+            if all(sz.loc[(a, h), "macro_mase"] > sz.loc[(b, h), "macro_mase"]
+                   for a, b in zip(order, order[1:]) for h in HS)
+            else "Accuracy does not improve monotonically with size",
+            ]
+    out[-1] += (f". MASE below TimesFM 2.5's at every horizon: {', '.join(beats_tfm) or 'none'}; "
+                f"below Chronos-2 zero-shot's at every horizon: {', '.join(beats_c2) or 'none'}.")
+    out += [""]
+
+    # ── compute
+    same = cost["wall_clock_s_same_cpu"]
+    out += ["### 18.8 Compute — measured, and kept apart from accuracy", "",
+            f"* **Timestral 209M:** {tm['wall_clock_s']:.1f} s for the full {tm['calls']}-call "
+            f"backtest on {hw['device'].upper()} ({tm['mean_call_s']:.2f} s per call of "
+            f"{tm['series_per_call']} tanks, {tm['per_series_forecast_ms']:.0f} ms per "
+            f"series-forecast); model load {tm['load_s']:.1f} s from the local Hugging Face cache "
+            "(a first run also downloads the checkpoint); "
+            f"peak process memory {tm['peak_rss_mb']:,.0f} MB. Each call runs two forward passes "
+            "(symmetric averaging).",
+            f"* **Same CPU:** Chronos-2 zero-shot {same[C2]:.1f} s and TimesFM 2.5 {same[T]:.1f} s "
+            f"for the same {tm['calls']} calls, so Timestral took {same[TS] / same[C2]:.1f}× "
+            f"Chronos-2's time and {same[TS] / same[T]:.2f}× TimesFM's.",
+            "* All are single measurements, not benchmarked means.", ""]
+
+    # ── limitations and verdict
+    both_c2 = [h for h in mb if h in md_]
+    out += ["### 18.9 Limitations specific to this comparison", "",
+            "1. **A new release.** The checkpoint is a public preview published days before this "
+            "evaluation; one revision is pinned and nothing here speaks for later ones. Mistral's "
+            "own benchmark claims were not tested — only the measurements above.",
+            "2. **Zero-shot, univariate only.** Timestral accepts past and known-future covariates, "
+            "so a counterpart to the Chronos-2 covariate variants is possible but was not run. "
+            "No fine-tuning.",
+            f"3. **Context held at {man['context']:,} hours** for parity with the other foundation "
+            f"models. Timestral accepts up to {fc['max_context']:,}; a longer context was not "
+            "tested.",
+            "4. **The package's default inference settings**, untuned.",
+            "5. **The same single 23-day evaluation window** as every other model (§13).", "",
+            "### 18.10 Verdict", "",
+            "**Chronos-2 zero-shot remains the recommended production model; Timestral 209M is "
+            "the strongest challenger this study has measured.** "
+            + (f"It has the lowest macro MASE of all {n_models} models at every horizon, "
+               if first else "")
+            + (f"its MASE is {rng(c2m['MASE'])} lower than Chronos-2 zero-shot's"
+               if (c2m["MASE"] > 0).all() else
+               f"its MASE against Chronos-2 zero-shot's is {span(c2m['MASE'])}")
+            + ", and its raw intervals "
+            f"cover within {dev[TS]:.3f} of nominal"
+            + (f" where Chronos-2's, {dev[C2]:.3f} from nominal, needed the calibration layer. "
+               if dev[C2] > dev[TS] else ". ")
+            + "The recommendation stands because the margin over Chronos-2 is small and "
+            + (f"established by both tests at no horizon on MASE (the bootstrap alone at "
+               f"{hlist(mb)})" if not both_c2 else f"established by both tests only at "
+               f"{hlist(both_c2)} on MASE")
+            + ", because the calibration layer, the 45-day operational view and the system design "
+            "were built and validated on Chronos-2, and because Timestral is a days-old preview "
+            "release. It is the first model to re-test on the next evaluation window.", "", END]
+    return "\n".join(out)
+
+
+def main() -> None:
+    section = build()
+    DOC.parent.mkdir(parents=True, exist_ok=True)
+    doc = DOC.read_text() if DOC.exists() else ""
+    if BEGIN in doc and END in doc:
+        doc = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END), lambda _: section, doc,
+                     flags=re.S)
+    else:
+        doc = doc.rstrip("\n") + "\n\n---\n\n" + section + "\n"
+    DOC.write_text(doc)
+    print(f"wrote §18 ({section.count(chr(10)) + 1} lines) → {DOC.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+    main()

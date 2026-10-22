@@ -2,7 +2,7 @@
 
 The Phase III material grew opponent by opponent: Chronos-2 vs NPTS, then the covariate variants,
 then PatchTST. Each comparison got its own tables and its own figures, which meant the same fact
-was stated three times in three shapes and no single artefact answered "how do all eleven models
+was stated three times in three shapes and no single artefact answered "how do all the models
 compare". This module replaces that with one pass:
 
 * every model, every horizon, every metric, on the identical 188,664 rows;
@@ -23,10 +23,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import EDA_DIR, RESULTS_DIR
 from .metrics import attach_scales
 from .significance import boot_ci as _boot_ci, dm_test as _dm_test
+from .timesfm3_forecasting import MANIFEST_NAME as TIMESFM3_MANIFEST
+from .timesfm3_forecasting import MODEL_NAME as TIMESFM3
+from .timesfm_forecasting import MODEL_NAME as TIMESFM
+from .timestral_forecasting import MANIFEST_NAME as TIMESTRAL_MANIFEST
+from .timestral_forecasting import MODEL_NAME as TIMESTRAL
 
-RESULTS = Path("results/chronos2")
+RESULTS = RESULTS_DIR
 OUT = RESULTS / "unified"
 PLOTS = OUT / "plots"
 
@@ -38,19 +44,40 @@ CHRONOS = "Chronos2-ZS"
 INCUMBENT = "NPTS"
 REFERENCE = "SeasonalNaive"
 
-# Display order: the production candidate first, then its variants, then every opponent in
-# decreasing order of interest. Fixed here so no table or figure re-orders the models.
+# Display order: the production candidate first, then its variants, then the other foundation
+# models, then every opponent in decreasing order of interest. Fixed here so no table or figure
+# re-orders the models.
+#
+# This is also the benchmark roster. Scoring and analysis read only these models; a
+# predictions_*.parquet holding any other model is work in progress and is skipped, with a
+# message, rather than silently joining the published tables.
 ORDER = [
     "Chronos2-ZS", "Chronos2-COV-XL", "Chronos2-COV", "Chronos2-COV-LEAN",
+    TIMESFM, TIMESTRAL, TIMESFM3,
     "NPTS", "PatchTST-Tuned", "PatchTST", "ETS", "Theta", "DynamicOptimizedTheta",
     "SeasonalNaive",
 ]
+
+# Models that joined after the first published run, in the order they joined. The significance
+# bootstrap draws every comparison from one seeded stream, so the order in which opponents are
+# visited decides which resamples each one gets. The original opponents are visited first, in
+# their original order, and later arrivals are appended - so adding a model can never re-draw the
+# intervals already published for the others. See draw_significance() for the same rule across
+# tables.
+ADDED_LATER = [TIMESFM, TIMESTRAL, TIMESFM3]
+
+# On the roster for comparison, but their weights' licence rules out a production system, so no
+# report may offer them as a deployment candidate. See timesfm3_forecasting.
+NOT_DEPLOYABLE = {TIMESFM3}
 
 LABEL = {
     "Chronos2-ZS": "Chronos-2 (zero-shot)",
     "Chronos2-COV": "Chronos-2 + covariates",
     "Chronos2-COV-LEAN": "Chronos-2 + covariates (lean)",
     "Chronos2-COV-XL": "Chronos-2 + covariates (XL)",
+    TIMESFM: "TimesFM 2.5 (zero-shot)",
+    TIMESTRAL: "Timestral 209M (zero-shot)",
+    TIMESFM3: "TimesFM 3.0 (zero-shot)",
     "NPTS": "NPTS",
     "PatchTST": "PatchTST (defaults)",
     "PatchTST-Tuned": "PatchTST (tuned)",
@@ -63,6 +90,7 @@ LABEL = {
 SHORT = {
     "Chronos2-ZS": "Chronos-2 ZS", "Chronos2-COV": "C2 +cov",
     "Chronos2-COV-LEAN": "C2 +cov lean", "Chronos2-COV-XL": "C2 +cov XL",
+    TIMESFM: "TimesFM 2.5 ZS", TIMESTRAL: "Timestral ZS", TIMESFM3: "TimesFM 3.0 ZS",
     "NPTS": "NPTS", "PatchTST": "PatchTST", "PatchTST-Tuned": "PatchTST tuned",
     "ETS": "ETS", "Theta": "Theta", "DynamicOptimizedTheta": "DOTheta",
     "SeasonalNaive": "SeasNaive-24",
@@ -73,6 +101,7 @@ SHORT = {
 FAMILY = {
     "Chronos2-ZS": "foundation", "Chronos2-COV": "foundation",
     "Chronos2-COV-LEAN": "foundation", "Chronos2-COV-XL": "foundation",
+    TIMESFM: "foundation", TIMESTRAL: "foundation", TIMESFM3: "foundation",
     "PatchTST": "trained deep", "PatchTST-Tuned": "trained deep",
     "NPTS": "statistical", "ETS": "statistical", "Theta": "statistical",
     "DynamicOptimizedTheta": "statistical", "SeasonalNaive": "reference",
@@ -96,11 +125,15 @@ def _write(df: pd.DataFrame, name: str) -> None:
 def load_long() -> pd.DataFrame:
     """Every model's scored rows in one long frame, with seasonal-naive scales attached.
 
-    Long rather than wide: eleven models x six quantile columns would be 70+ columns, and every
+    Long rather than wide: twelve models x six quantile columns would be 70+ columns, and every
     aggregate below is a groupby anyway. The paired tests re-pivot the two columns they need.
     """
     frames = [pd.read_parquet(p) for p in sorted(RESULTS.glob("predictions_*.parquet"))]
     preds = pd.concat(frames, ignore_index=True)
+    extra = sorted(set(preds["model"]) - set(ORDER))
+    if extra:
+        print(f"  skipping {extra}: not in the benchmark roster (unified_analysis.ORDER)")
+        preds = preds[preds["model"].isin(ORDER)]
 
     from ..data.curate import load_curated_hourly
     panel = load_curated_hourly(with_features=False)
@@ -181,15 +214,22 @@ def _macro_per_origin(scored: pd.DataFrame, model: str, horizon: int, metric: st
     return per_tank.groupby("origin").mean().sort_index().to_numpy()
 
 
-def significance_vs_all(scored: pd.DataFrame, base: str = CHRONOS) -> pd.DataFrame:
+def significance_vs_all(scored: pd.DataFrame, base: str = CHRONOS,
+                        opponents: list[str] | None = None) -> pd.DataFrame:
     """``base`` against every other model, per horizon, on both metrics.
 
     Same machinery as the pairwise study it replaces: 10,000 paired bootstrap resamples over the
     24 origins, plus Diebold-Mariano with the Harvey-Leybourne-Newbold small-sample correction.
-    Negative ``diff`` means ``base`` is better.
+    Negative ``diff`` means ``base`` is better. ``opponents`` defaults to every other model.
     """
+    present = [m for m in _present(scored) if m != base]
+    if opponents is not None:
+        present = [m for m in present if m in opponents]
+    # Original opponents first, later arrivals appended: see ADDED_LATER.
+    visit = ([m for m in present if m not in ADDED_LATER]
+             + [m for m in ADDED_LATER if m in present])
     rows = []
-    for opponent in [m for m in _present(scored) if m != base]:
+    for opponent in visit:
         for horizon in HORIZONS:
             for metric in ("mase", "mae"):
                 b = _macro_per_origin(scored, base, horizon, metric)
@@ -212,6 +252,54 @@ def significance_vs_all(scored: pd.DataFrame, base: str = CHRONOS) -> pd.DataFra
                     "origins_won": int((d < 0).sum()),
                 })
     return pd.DataFrame(rows)
+
+
+def draw_significance(scored: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame,
+                                                     pd.DataFrame, pd.DataFrame]:
+    """Chronos-2 against every model, TimesFM 2.5 against every non-foundation model, Timestral
+    against every model but Chronos-2, and TimesFM 3.0 against every model but those two.
+
+    All four tables draw from one seeded stream, and each model's draws come after every table
+    that existed before it joined. TimesFM 2.5's table was first drawn straight after the
+    Chronos-2 table; Timestral's Chronos-2 rows and then its own table were drawn after both; a
+    model that joined after Timestral (TimesFM 3.0) has its Chronos-2 rows drawn after Timestral's
+    table, and its own table last. Inside a table a later model is always visited after the
+    original opponents (``significance_vs_all``), so its rows are appended. So no published
+    interval is re-drawn. A pair already in an earlier table is not repeated in a later one: a
+    second bootstrap of the same pair would only add a second, slightly different interval.
+    """
+    models = _present(scored)
+    newer = [m for m in ADDED_LATER[ADDED_LATER.index(TIMESTRAL) + 1:] if m in models]
+    late = [m for m in ADDED_LATER[ADDED_LATER.index(TIMESFM) + 1:]
+            if m in models and m not in newer]
+    sig = significance_vs_all(scored, opponents=[m for m in models if m not in late + newer])
+    sig_tfm = pd.DataFrame()
+    if TIMESFM in models:
+        sig_tfm = significance_vs_all(
+            scored, base=TIMESFM,
+            opponents=[m for m in models if FAMILY.get(m) != "foundation"])
+    if late:
+        sig = pd.concat([sig, significance_vs_all(scored, opponents=late)], ignore_index=True)
+    sig_tsl = pd.DataFrame()
+    if TIMESTRAL in models:
+        sig_tsl = significance_vs_all(scored, base=TIMESTRAL,
+                                      opponents=[m for m in models if m != CHRONOS])
+    if newer:
+        sig = pd.concat([sig, significance_vs_all(scored, opponents=newer)], ignore_index=True)
+    sig_tfm3 = pd.DataFrame()
+    if TIMESFM3 in models:
+        sig_tfm3 = significance_vs_all(scored, base=TIMESFM3,
+                                       opponents=[m for m in models if m not in (CHRONOS, TIMESTRAL)])
+    return sig, sig_tfm, sig_tsl, sig_tfm3
+
+
+def _beaten_by_both(sig: pd.DataFrame, alpha: float = 0.05) -> list[str]:
+    """Opponents the base beats on MASE at every horizon by both tests: the bootstrap interval
+    excludes zero on the base's side and Diebold-Mariano rejects at ``alpha``."""
+    m = sig[sig.metric == "MASE"]
+    return [o for o in m.opponent.unique()
+            if bool((m[m.opponent == o]["base_better"]
+                     & (m[m.opponent == o]["p_dm"] < alpha)).all())]
 
 
 # ────────────────────────────────────────────────────────────── 3. head to head
@@ -249,7 +337,7 @@ def per_tank(scored: pd.DataFrame) -> pd.DataFrame:
         n=("actual", "size"), mae=("abs_err", "mean"), mase=("scaled_abs", "mean"),
         mean_actual=("actual", "mean"),
     ).reset_index().rename(columns={"item_id": "tank"})
-    tp = Path("eda/tank_trust.json")
+    tp = EDA_DIR / "tank_trust.json"
     if tp.exists():
         g["trust"] = g["tank"].map(json.loads(tp.read_text()))
     g["horizon_label"] = g["horizon"].map(HLABEL)
@@ -314,14 +402,44 @@ def zero_inflation(scored: pd.DataFrame, horizon: int = 24) -> pd.DataFrame:
 
 
 def cost(lb: pd.DataFrame) -> pd.DataFrame:
-    """Measured wall clock per model, read from the run manifests — never typed."""
+    """Measured wall clock per model, read from the run manifests — never typed.
+
+    ``device`` is whatever the manifest recorded, blank where it recorded nothing. It matters:
+    Chronos-2 ran on Apple MPS and TimesFM on CPU (its official 2.5 code has no MPS path), so
+    ``wall_clock_s`` is not a same-hardware speed comparison. ``wall_clock_s_same_cpu`` is: the
+    same 144-call backtest on the same machine's CPU, from ``cpu_timing/run_manifest.json`` for
+    Chronos-2 zero-shot and from the TimesFM and Timestral manifests; blank for every model not
+    timed that way.
+    """
     secs: dict[str, float] = {}
     regime: dict[str, str] = {}
+    device: dict[str, str] = {}
+    same_cpu: dict[str, float] = {}
+    p = RESULTS / "cpu_timing" / "run_manifest.json"
+    if p.exists():
+        man = json.loads(p.read_text())
+        if man.get("device") == "cpu":
+            for k, v in man.get("variants", {}).items():
+                same_cpu[k] = v.get("wall_clock_s")
     p = RESULTS / "run_manifest.json"
     if p.exists():
-        for k, v in json.loads(p.read_text()).get("variants", {}).items():
+        man = json.loads(p.read_text())
+        for k, v in man.get("variants", {}).items():
             secs[k] = v.get("wall_clock_s")
             regime[k] = "zero-shot — no training"
+            device[k] = man.get("device", "")
+    for name, f in ((TIMESFM, "timesfm_manifest.json"), (TIMESTRAL, TIMESTRAL_MANIFEST),
+                    (TIMESFM3, TIMESFM3_MANIFEST)):
+        q = RESULTS / f
+        if q.exists():
+            man = json.loads(q.read_text())
+            timing = man.get("timing", {})
+            # A run served from the prediction cache measured file reads, not inference.
+            secs[name] = timing.get("wall_clock_s") if timing.get("complete_compute") else None
+            regime[name] = "zero-shot — no training"
+            device[name] = man.get("hardware", {}).get("device", "")
+            if device[name] == "cpu" and secs[name]:
+                same_cpu[name] = secs[name]
     for name, f in (("PatchTST", "patchtst_manifest.json"),
                     ("PatchTST-Tuned", "patchtst_tuned_manifest.json")):
         q = RESULTS / f
@@ -347,8 +465,46 @@ def cost(lb: pd.DataFrame) -> pd.DataFrame:
             "wall_clock_min": round(secs[m] / 60, 2) if secs.get(m) else None,
             "macro_mase_h24": float(m24.loc[m, "macro_mase"]),
             "coverage_h24": float(m24.loc[m, "coverage"]),
+            "device": device.get(m, ""),
+            "wall_clock_s_same_cpu": same_cpu.get(m),
         })
     return pd.DataFrame(rows)
+
+
+def _challenger_summary(model: str, slug: str, sig: pd.DataFrame, own: pd.DataFrame,
+                        lb: pd.DataFrame, wm: pd.DataFrame) -> dict:
+    """Summary block for a foundation-model challenger: its ranks, Chronos-2's significance
+    against it (from ``sig``) and its own significance against its opponents (from ``own``)."""
+    vs_c2 = sig[(sig.metric == "MASE") & (sig.opponent == model)].set_index("horizon")
+    own_mase = own[own.metric == "MASE"]
+    return {
+        "model": model,
+        "rank_by_horizon": {
+            HLABEL[h]: int(lb[(lb.horizon == h) & (lb.model == model)]["rank_mase"].iloc[0])
+            for h in HORIZONS},
+        # From Chronos-2's side: positive = Chronos-2's MASE is lower than the challenger's.
+        f"chronos2_improvement_over_{slug}_pct": {
+            HLABEL[h]: round(float(vs_c2.loc[h, "improvement_pct"]), 2) for h in HORIZONS},
+        "chronos2_better_significantly_at": [
+            HLABEL[h] for h in HORIZONS if bool(vs_c2.loc[h, "base_better"])],
+        f"{slug}_better_significantly_at": [
+            HLABEL[h] for h in HORIZONS
+            if bool(vs_c2.loc[h, "significant_95"]) and not bool(vs_c2.loc[h, "base_better"])],
+        "improvement_pct_h24": {
+            r.opponent: round(float(r.improvement_pct), 2)
+            for r in own_mase[own_mase.horizon == 24].itertuples()},
+        "opponents_beaten_significantly_all_horizons": [
+            o for o in own_mase.opponent.unique()
+            if bool(own_mase[own_mase.opponent == o]["base_better"].all())],
+        "opponents_beaten_by_both_tests_all_horizons": _beaten_by_both(own),
+        f"chronos2_vs_{slug}_dm_p_by_horizon": {
+            HLABEL[h]: round(float(vs_c2.loc[h, "p_dm"]), 4) for h in HORIZONS},
+        "tank_horizon_cells_won_vs": {
+            r.model_b: int(r.a_wins) for r in wm[wm.model_a == model].itertuples()},
+        "coverage_by_horizon": {
+            HLABEL[h]: round(float(lb[(lb.horizon == h) & (lb.model == model)]
+                                   ["coverage"].iloc[0]), 3) for h in HORIZONS},
+    }
 
 
 # ────────────────────────────────────────────────────────────── driver
@@ -362,8 +518,16 @@ def main() -> None:
     lb = leaderboard(scored)
     _write(lb, "leaderboard.csv")
 
-    sig = significance_vs_all(scored)
+    # TimesFM and Timestral against their opponents by the same tests, drawn in the order that
+    # keeps every published interval: see draw_significance().
+    sig, sig_tfm, sig_tsl, sig_tfm3 = draw_significance(scored)
     _write(sig, "significance_vs_all.csv")
+    if TIMESFM in models:
+        _write(sig_tfm, "significance_timesfm.csv")
+    if TIMESTRAL in models:
+        _write(sig_tsl, "significance_timestral.csv")
+    if TIMESFM3 in models:
+        _write(sig_tfm3, "significance_timesfm3.csv")
 
     wm = win_matrix(scored)
     _write(wm, "win_matrix_all_horizons.csv")
@@ -405,6 +569,9 @@ def main() -> None:
         "opponents_beaten_significantly_all_horizons": [
             o for o in s24.index
             if bool(sig[(sig.metric == "MASE") & (sig.opponent == o)]["base_better"].all())],
+        # The stricter reading: the bootstrap CI excludes zero *and* Diebold-Mariano p < 0.05, at
+        # every horizon. A claim only one of the two tests supports is the weaker claim.
+        "opponents_beaten_by_both_tests_all_horizons": _beaten_by_both(sig),
         "tank_horizon_cells_won_vs": {
             r.model_b: int(r.a_wins) for r in
             wm[wm.model_a == CHRONOS].itertuples() },
@@ -412,8 +579,15 @@ def main() -> None:
         "skill_positive_by_model": {
             m: int((sk[sk.model == m]["skill"] > 0).sum()) for m in sk.model.unique()},
     }
+    if TIMESFM in models:
+        summary["timesfm"] = _challenger_summary(TIMESFM, "timesfm", sig, sig_tfm, lb, wm)
+    if TIMESTRAL in models:
+        summary["timestral"] = _challenger_summary(TIMESTRAL, "timestral", sig, sig_tsl, lb, wm)
+    if TIMESFM3 in models:
+        summary["timesfm3"] = _challenger_summary(TIMESFM3, "timesfm3", sig, sig_tfm3, lb, wm)
+        summary["timesfm3"]["deployable"] = False
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
-    print("\n" + json.dumps(summary, indent=2)[:2600])
+    print("\n" + json.dumps(summary, indent=2)[:4000])
 
 
 if __name__ == "__main__":

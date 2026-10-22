@@ -1,0 +1,39 @@
+{
+  "calibration_window": [
+    "2026-07-09 00:00:00",
+    "2026-09-06 23:00:00"
+  ],
+  "reported_window": [
+    "2026-09-07 00:00:00",
+    "2026-10-21 23:00:00"
+  ],
+  "cal_days": 60,
+  "test_days": 45,
+  "horizon_h": 24,
+  "alpha": 0.2,
+  "nominal_coverage": 0.8,
+  "method": "CQR (Romano et al. 2019) with independent tail offsets, per (model, tank); multiplicative per-tank volume bias correction applied first",
+  "windows_disjoint": true,
+  "models": [
+    "Chronos2-ZS",
+    "NPTS",
+    "SeasonalNaive-24",
+    "TimesFM2.5-ZS",
+    "TimesFM3-ZS",
+    "Timestral-209M-ZS"
+  ],
+  "added_later": {
+    "TimesFM2.5-ZS": {
+      "command": "python -m src.models.calibrated_holdout --add timesfm",
+      "note": "fitted and reported on the same two windows as the original models; their rows are unchanged"
+    },
+    "Timestral-209M-ZS": {
+      "command": "python -m src.models.calibrated_holdout --add timestral",
+      "note": "fitted and reported on the same two windows as the original models; their rows are unchanged"
+    },
+    "TimesFM3-ZS": {
+      "command": "python -m src.models.calibrated_holdout --add timesfm3",
+      "note": "fitted and reported on the same two windows as the original models; their rows are unchanged"
+    }
+  }
+}

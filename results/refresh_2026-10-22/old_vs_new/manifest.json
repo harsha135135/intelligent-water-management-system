@@ -1,0 +1,22 @@
+{
+  "old_models_from": "results/chronos2",
+  "new_results": "results/refresh_2026-10-22",
+  "benchmark_origins": [
+    "2026-09-22 22:00:00",
+    "2026-10-14 23:00:00"
+  ],
+  "holdout_origins": [
+    "2026-09-06 23:00:00",
+    "2026-10-20 23:00:00"
+  ],
+  "rows_per_model": 183165,
+  "models": [
+    "DynamicOptimizedTheta",
+    "ETS",
+    "NPTS",
+    "PatchTST",
+    "PatchTST-Tuned",
+    "SeasonalNaive",
+    "Theta"
+  ]
+}

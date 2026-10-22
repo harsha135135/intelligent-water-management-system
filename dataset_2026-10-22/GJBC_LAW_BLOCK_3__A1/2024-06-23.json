@@ -1,0 +1,91 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC LAW BLOCK 3  A1",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "190.000 cm(Height) X 462.000 cm(Length) X 287.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2024-06-23 00",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.38,
+      "Closing Value in KL": 0.36
+    },
+    {
+      "Date Time": "2024-06-23 01",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.36,
+      "Closing Value in KL": 0.4
+    },
+    {
+      "Date Time": "2024-06-23 02",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.4,
+      "Closing Value in KL": 0.36
+    },
+    {
+      "Date Time": "2024-06-23 03",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.36,
+      "Closing Value in KL": 0.35
+    },
+    {
+      "Date Time": "2024-06-23 04",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.35,
+      "Closing Value in KL": 0.32
+    },
+    {
+      "Date Time": "2024-06-23 05",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.35,
+      "Closing Value in KL": 0.34
+    },
+    {
+      "Date Time": "2024-06-23 06",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.34,
+      "Closing Value in KL": 0.32
+    },
+    {
+      "Date Time": "2024-06-23 07",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.32,
+      "Closing Value in KL": 0.32
+    },
+    {
+      "Date Time": "2024-06-23 08",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.32,
+      "Closing Value in KL": 0.32
+    },
+    {
+      "Date Time": "2024-06-23 09",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.31,
+      "Closing Value in KL": 0.32
+    },
+    {
+      "Date Time": "2024-06-23 10",
+      "Inflow in KL": 5.57,
+      "Outflow in KL": 0.36,
+      "Opening Value in KL": 0.32,
+      "Closing Value in KL": 0.32
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 5.57,
+    "Outflow in KL": 0.36
+  },
+  "units": "KL"
+}

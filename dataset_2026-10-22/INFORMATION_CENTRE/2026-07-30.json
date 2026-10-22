@@ -1,0 +1,77 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "INFORMATION CENTRE",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "113.000 cm(Height) X 54.0 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2026-07-30 02",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 0.8,
+      "Closing Value in KL": 0.8
+    },
+    {
+      "Date Time": "2026-07-30 03",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.02,
+      "Opening Value in KL": 0.8,
+      "Closing Value in KL": 0.8
+    },
+    {
+      "Date Time": "2026-07-30 16",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 0.39,
+      "Closing Value in KL": 0.37
+    },
+    {
+      "Date Time": "2026-07-30 17",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.07,
+      "Opening Value in KL": 0.37,
+      "Closing Value in KL": 0.33
+    },
+    {
+      "Date Time": "2026-07-30 18",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.06,
+      "Opening Value in KL": 0.33,
+      "Closing Value in KL": 0.29
+    },
+    {
+      "Date Time": "2026-07-30 19",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.03,
+      "Opening Value in KL": 0.29,
+      "Closing Value in KL": 0.26
+    },
+    {
+      "Date Time": "2026-07-30 20",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.03,
+      "Opening Value in KL": 0.26,
+      "Closing Value in KL": 0.23
+    },
+    {
+      "Date Time": "2026-07-30 22",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.03,
+      "Opening Value in KL": 0.2,
+      "Closing Value in KL": 0.2
+    },
+    {
+      "Date Time": "2026-07-30 23",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0.04,
+      "Opening Value in KL": 0.2,
+      "Closing Value in KL": 0.16
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0,
+    "Outflow in KL": 0.34
+  },
+  "units": "KL"
+}

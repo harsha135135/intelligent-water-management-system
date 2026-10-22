@@ -1,0 +1,39 @@
+{
+  "preset": "default",
+  "label": "PatchTST",
+  "hyperparameters": {
+    "PatchTST": {
+      "max_epochs": 30,
+      "context_length": 96
+    }
+  },
+  "time_limit": 3600,
+  "context": 2048,
+  "panel_start": "2024-02-21 12:00:00",
+  "panel_end": "2026-10-21 23:00:00",
+  "n_tanks": 24,
+  "fit_cutoff": "2026-09-22 22:00:00",
+  "n_origins": 24,
+  "origin_stride_hours": 23,
+  "horizons": [
+    6,
+    12,
+    24,
+    48,
+    72,
+    168
+  ],
+  "seconds_per_horizon": {
+    "6": 32.6,
+    "12": 29.6,
+    "24": 31.0,
+    "48": 31.9,
+    "72": 32.6,
+    "168": 36.7
+  },
+  "wall_clock_s": 194.4,
+  "models": [
+    "PatchTST"
+  ],
+  "rows": 190080
+}

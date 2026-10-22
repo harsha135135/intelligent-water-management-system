@@ -211,11 +211,15 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
     <div class="note">
       <p>We replaced the water-demand forecasting model running on campus with <b>Chronos-2</b>, a
       pretrained time-series foundation model used <b>zero-shot</b> — no training at all. On a single
-      evaluation grid where all 9 models score the same <span class="num">188,664</span> rows,
+      evaluation grid where all 13 models score the same <span class="num">188,664</span> rows,
       it beats the deployed incumbent at <b>every one of six forecast horizons</b>, and we proved the
       margin is <b>statistically significant</b> at all six by two independent tests. It also beats a
       <b>PatchTST trained on this campus</b> by 16.5–18.6% — and so does the incumbent, which
-      says something about the size of the dataset.</p>
+      says something about the size of the dataset. And it beats a <b>second foundation model,
+      Google's TimesFM 2.5</b>, on every metric at every horizon — though that margin is confirmed
+      by both significance tests only at seven days. One model does score ahead of it: <b>Mistral's
+      Timestral 209M</b>, released in October 2026, by under 1% in MASE — a lead only one of the two
+      tests detects, and only at three and seven days. We kept Chronos-2, and we say why.</p>
       <p>It had two known weaknesses. We <b>diagnosed the cause of both</b> and <b>implemented the
       corrections</b>, measured on data the correction never saw. Its overconfident intervals went
       from <span class="num">72%</span> coverage to <span class="num">78.5%</span> against a target
@@ -396,9 +400,11 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
         <div class="row means"><span class="k">Means</span><span class="v">This reframes the one axis
           where the incumbent wins. <b>NPTS is better calibrated not because it models uncertainty
           better, but because it is a nonparametric sampler that can reproduce the exact-zero
-          outcome — and a continuous-density foundation model structurally cannot.</b> That is a
-          general finding about foundation models on zero-inflated data, not a quirk of our campus,
-          and it is the most publishable thing in the project.</span></div>
+          outcome — and Chronos-2 does not.</b> We first read that as a law about foundation models;
+          two other foundation models say otherwise. <b>TimesFM 2.5 reaches 0.80 coverage on the same
+          zero-heavy data</b> (p10 above zero on only 63% of rows), and Timestral 209M 0.82, so this
+          is a measured finding about Chronos-2 on zero-inflated data — still the most publishable
+          thing in the project, with TimesFM and Timestral as the contrast cases.</span></div>
       </div>
     </div>
 
@@ -591,6 +597,11 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
           <td class="bad">No. Every opponent was statistical — a fair objection, and an open one.</td>
           <td class="good">PatchTST, trained here at two configurations on identical rows.
             Chronos-2 wins by 16.5–18.6% MASE at every horizon.</td></tr>
+        <tr><th scope="row">Did you try another foundation model?</th>
+          <td class="bad">No. Chronos-2 was the only one — "is it just the only one you tried?"</td>
+          <td class="good">Two. Google's TimesFM 2.5: Chronos-2 is better on every metric at every
+            horizon; TimesFM ranks sixth of thirteen. Mistral's Timestral 209M ranks first — by under
+            1% in MASE, a lead only the bootstrap detects, at 3 d and 7 d.</td></tr>
         <tr><th scope="row">Is it deployed?</th>
           <td class="dim">No.</td>
           <td class="bad">Still no. Designed in detail across six documents, but nothing is serving.</td></tr>
@@ -655,6 +666,34 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
       short, zero-inflated series is not enough data to train a transformer from scratch — which is
       exactly the situation a pretrained model exists for.</p></div></div>
 
+    <div class="qa"><div class="q">Why Chronos-2 and not another foundation model — TimesFM, say?</div>
+      <div class="a"><p>We ran it. <b>Google's TimesFM 2.5</b>, zero-shot, under Chronos-2's own
+      protocol on the identical rows. It ranks <b>sixth of thirteen at every horizon</b>, behind all
+      four Chronos-2 variants and Timestral: its MASE is <b>2.7–9.0% higher</b> than Chronos-2 zero-shot's, the gap
+      narrowing with horizon, and Chronos-2 wins 121 of 144 tank-horizon cells. It still beats the
+      incumbent on every metric.</p>
+      <p>Two things to say straight away. The difference is significant at every horizon by the
+      bootstrap but by Diebold–Mariano only at seven days — so "better", not "proved better
+      everywhere". And <b>TimesFM has the best-calibrated intervals in the study</b>, 0.80–0.82
+      against 0.80 nominal, before any correction. We used 2.5 rather than the newer 3.0 because 3.0's
+      weights are licensed for non-commercial, non-production use, and this is a model for a
+      production system.</p></div></div>
+
+    <div class="qa"><div class="q">Timestral ranks first. Why isn't it your model?</div>
+      <div class="a"><p>Because the lead is real on this grid but small and only weakly
+      established. <b>Mistral's Timestral 209M</b>, zero-shot under the same protocol, has the lowest
+      MASE of all thirteen models at every horizon, and Chronos-2 zero-shot's MASE is
+      <b>0.3–0.9% higher</b>. But the paired bootstrap separates the two only at three and seven
+      days, and Diebold–Mariano at no horizon — by the standard we hold every other claim to, that
+      is "ahead on average", not "proved better". Its raw intervals are also well calibrated,
+      0.81–0.82 against 0.80 nominal.</p>
+      <p>We kept Chronos-2 because everything downstream — the conformal calibration, the 45-day
+      operational view, the system design — is built and validated on it, and Timestral was
+      released as a public preview days before we ran it. It is the first model we would re-test on
+      the next evaluation window, and its weights licence allows production use unless the
+      licensee's revenue exceeds USD 20M a month, so switching would be a measurement decision, not
+      a legal one.</p></div></div>
+
     <div class="qa"><div class="q">Is this running anywhere?</div>
       <div class="a"><p>No. There's a browser extension that displays real forecasts from a
       precomputed file, but nothing is serving live. The production architecture is fully
@@ -663,7 +702,9 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
 
     <div class="qa"><div class="q">What would you do next?</div>
       <div class="a"><p>Three things, in order. Write the paper — the zero-inflation calibration
-      finding is a genuine contribution and the material already exists. Build a minimal live slice
+      finding is a genuine contribution for Chronos-2, with TimesFM 2.5 and Timestral as the
+      calibrated contrast cases, and the material already exists. Re-test Timestral against
+      Chronos-2 on the next evaluation window. Build a minimal live slice
       to close the deployment gap. And attack <code>GJBC_LAW_BLOCK_3__A1</code>, the one healthy
       sensor the model genuinely fails on — it needs a spike model, not a smoother.</p></div></div>
 
@@ -692,6 +733,16 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
       not a per-tank sweep. The claim is that <b>a competently configured PatchTST loses by
       16.5–18.6% on 24 series this short</b>, not that no PatchTST could ever win, and not a
       statement about deep forecasting given substantially more data.</p></div>
+    <div class="note warn"><h4>One TimesFM checkpoint</h4>
+      <p>TimesFM 2.5 zero-shot at the same 2,048-hour context as Chronos-2. TimesFM 3.0 was not run
+      (non-commercial weights licence), nor TimesFM's covariate regression. And TimesFM ran on CPU —
+      its official code has no Apple GPU path — so compare speeds on the same-CPU numbers, where it
+      took 2.3× as long as Chronos-2.</p></div>
+    <div class="note warn"><h4>Chronos-2 is not the most accurate model we measured</h4>
+      <p>Mistral's Timestral 209M has lower MASE at every horizon — by 0.3–0.9%, a gap only the
+      bootstrap separates and only at three and seven days. It is one preview checkpoint, run
+      zero-shot without covariates on one window. Say this before you are asked: it is a stronger
+      position to have measured the challenger than to be shown it.</p></div>
     <div class="note warn"><h4>Two honest limitations in the results themselves</h4>
       <p>The evaluation covers one 23-day window in one season — the improvement figures shouldn't be
       extrapolated to a monsoon. And the daily-total confidence bands transfer worse than the hourly
@@ -728,6 +779,12 @@ footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--rule);
       <div class="stat"><div class="k">vs trained PatchTST</div>
         <div class="v">16.5–18.6%</div>
         <div class="s">lower MASE, every horizon, significant at all six</div></div>
+      <div class="stat"><div class="k">vs TimesFM 2.5</div>
+        <div class="v">2.7–10.9%</div>
+        <div class="s">lower MASE, every horizon; both tests agree at 7 d</div></div>
+      <div class="stat"><div class="k">vs Timestral 209M</div>
+        <div class="v">0.3–0.9%</div>
+        <div class="s">higher MASE, every horizon; the bootstrap alone, at 3 d and 7 d</div></div>
       <div class="stat"><div class="k">Cost</div><div class="v">89 s</div>
         <div class="s">full backtest, no training at all — PatchTST needed 55 min</div></div>
     </div>

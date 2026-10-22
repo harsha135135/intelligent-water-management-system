@@ -1,0 +1,93 @@
+{
+  "model_id": "amazon/chronos-2",
+  "device": "mps",
+  "context": 2048,
+  "n_origins": 24,
+  "horizons": [
+    6,
+    12,
+    24,
+    48,
+    72,
+    168
+  ],
+  "origins": [
+    "2026-09-22 22:00:00",
+    "2026-09-23 21:00:00",
+    "2026-09-24 20:00:00",
+    "2026-09-25 19:00:00",
+    "2026-09-26 18:00:00",
+    "2026-09-27 17:00:00",
+    "2026-09-28 16:00:00",
+    "2026-09-29 15:00:00",
+    "2026-09-30 14:00:00",
+    "2026-10-01 13:00:00",
+    "2026-10-02 12:00:00",
+    "2026-10-03 11:00:00",
+    "2026-10-04 10:00:00",
+    "2026-10-05 09:00:00",
+    "2026-10-06 08:00:00",
+    "2026-10-07 07:00:00",
+    "2026-10-08 06:00:00",
+    "2026-10-09 05:00:00",
+    "2026-10-10 04:00:00",
+    "2026-10-11 03:00:00",
+    "2026-10-12 02:00:00",
+    "2026-10-13 01:00:00",
+    "2026-10-14 00:00:00",
+    "2026-10-14 23:00:00"
+  ],
+  "tanks": [
+    "BE_BLOCK_OHT",
+    "BE_BLOCK_RO",
+    "CRICKET_GROUND_OHT",
+    "F_BLOCK",
+    "GJBC_BLOCK_1_A1_BOYS",
+    "GJBC_BLOCK_1_A2_GIRLS",
+    "GJBC_BLOCK_1_A3",
+    "GJBC_BLOCK_1_A4_RO",
+    "GJBC_BLOCK_2_A1",
+    "GJBC_LAW_BLOCK_3_A4_BOYS",
+    "GJBC_LAW_BLOCK_3__A1",
+    "GJBC_LAW_BLOCK_3__A2",
+    "GJBC_LAW_BLOCK_3__A3_GIRLS",
+    "G_BLOCK",
+    "I&H_BLOCK",
+    "INFORMATION_CENTRE",
+    "IT_BLOCK",
+    "ME_WORKSHOP_BLOCK",
+    "MM_BLOCK",
+    "MRD_BLOCK",
+    "NBX",
+    "NEW_BLOCK",
+    "NEW_BLOCK_RO",
+    "TECH_PARK"
+  ],
+  "panel_rows": 520936,
+  "panel_range": [
+    "2024-02-21 12:00:00",
+    "2026-10-21 23:00:00"
+  ],
+  "variants": {
+    "Chronos2-ZS": {
+      "wall_clock_s": 64.1,
+      "rows": 190080,
+      "path": "results/refresh_2026-10-22/predictions_Chronos2-ZS.parquet"
+    },
+    "Chronos2-COV": {
+      "wall_clock_s": 879.6,
+      "rows": 190080,
+      "path": "results/refresh_2026-10-22/predictions_Chronos2-COV.parquet"
+    },
+    "Chronos2-COV-LEAN": {
+      "wall_clock_s": 427.6,
+      "rows": 190080,
+      "path": "results/refresh_2026-10-22/predictions_Chronos2-COV-LEAN.parquet"
+    },
+    "Chronos2-COV-XL": {
+      "wall_clock_s": 837.9,
+      "rows": 190080,
+      "path": "results/refresh_2026-10-22/predictions_Chronos2-COV-XL.parquet"
+    }
+  }
+}

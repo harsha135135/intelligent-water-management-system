@@ -26,11 +26,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import KNOWN_COVARIATES, actuals_after, history_before
 
 logger = logging.getLogger(__name__)
 
-OUT = Path("results/chronos2/holdout45")
+OUT = RESULTS_DIR / "holdout45"
 TARGET = "Outflow in KL"
 HOLDOUT_DAYS = 45
 HORIZON = 24
@@ -151,6 +152,92 @@ def chronos2(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int,
             r = (time.time() - t0) / k
             logger.info("Chronos-2: %d/%d origins  %.2fs/origin", k, len(origins), r)
     return pd.concat(blocks, ignore_index=True)
+
+
+TIMESFM = "TimesFM2.5-ZS"
+
+
+def timesfm(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int) -> pd.DataFrame:
+    """TimesFM 2.5 zero-shot through the benchmark's own adapter and prediction cache
+    (``timesfm_forecasting``), so the holdout forecasts come from exactly the configuration
+    the benchmark scored. Zero-shot, like Chronos-2, so no window can leak into it."""
+    from .timesfm_forecasting import (
+        CACHE_DIR, BlockCache, RunStats, TimesFMForecaster, forecast_one,
+    )
+
+    fc = TimesFMForecaster.load(context=context, max_horizon=HORIZON,
+                                batch_size=int(panel["item_id"].nunique()))
+    cache, stats = BlockCache(CACHE_DIR), RunStats()
+    blocks, t0 = [], time.time()
+    for k, origin in enumerate(origins, 1):
+        blocks.append(forecast_one(fc, panel, origin, HORIZON, target_col=TARGET,
+                                   context=context, cache=cache, stats=stats))
+        if k % 15 == 0 or k == len(origins):
+            logger.info("TimesFM: %d/%d origins  %.2fs/origin", k, len(origins),
+                        (time.time() - t0) / k)
+    if stats.failures:
+        raise RuntimeError(f"TimesFM failed on {len(stats.failures)} series-forecasts; "
+                           f"first: {stats.failures[0]}")
+    b = pd.concat(blocks, ignore_index=True).rename(columns={"0.1": "q10", "0.9": "q90"})
+    b["model"] = TIMESFM
+    return b[["item_id", "timestamp", "step", "actual", "pred", "q10", "q90", "model", "origin"]]
+
+
+TIMESTRAL = "Timestral-209M-ZS"
+
+
+def timestral(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int) -> pd.DataFrame:
+    """Timestral 209M zero-shot through the benchmark's own adapter and prediction cache
+    (``timestral_forecasting``), so the holdout forecasts come from exactly the configuration
+    the benchmark scored. Zero-shot, like Chronos-2, so no window can leak into it."""
+    from .timesfm_forecasting import BlockCache, RunStats, forecast_one
+    from .timestral_forecasting import CACHE_DIR, MODEL_NAME, TimestralForecaster
+
+    assert MODEL_NAME == TIMESTRAL
+    fc = TimestralForecaster.load()
+    cache, stats = BlockCache(CACHE_DIR), RunStats()
+    blocks, t0 = [], time.time()
+    for k, origin in enumerate(origins, 1):
+        blocks.append(forecast_one(fc, panel, origin, HORIZON, target_col=TARGET,
+                                   context=context, cache=cache, stats=stats))
+        if k % 15 == 0 or k == len(origins):
+            logger.info("Timestral: %d/%d origins  %.2fs/origin", k, len(origins),
+                        (time.time() - t0) / k)
+    if stats.failures:
+        raise RuntimeError(f"Timestral failed on {len(stats.failures)} series-forecasts; "
+                           f"first: {stats.failures[0]}")
+    b = pd.concat(blocks, ignore_index=True).rename(columns={"0.1": "q10", "0.9": "q90"})
+    b["model"] = TIMESTRAL
+    return b[["item_id", "timestamp", "step", "actual", "pred", "q10", "q90", "model", "origin"]]
+
+
+TIMESFM3 = "TimesFM3-ZS"
+
+
+def timesfm3(panel: pd.DataFrame, origins: list[pd.Timestamp], *, context: int) -> pd.DataFrame:
+    """TimesFM 3.0 zero-shot through the benchmark's own adapter and prediction cache
+    (``timesfm3_forecasting``), so the holdout forecasts come from exactly the configuration
+    the benchmark scored. Zero-shot, like Chronos-2, so no window can leak into it. Benchmark
+    only: its weights' licence rules out production use."""
+    from .timesfm3_forecasting import CACHE_DIR, MODEL_NAME, TimesFM3Adapter
+    from .timesfm_forecasting import BlockCache, RunStats, forecast_one
+
+    assert MODEL_NAME == TIMESFM3
+    fc = TimesFM3Adapter.load(batch_size=2 * int(panel["item_id"].nunique()))
+    cache, stats = BlockCache(CACHE_DIR), RunStats()
+    blocks, t0 = [], time.time()
+    for k, origin in enumerate(origins, 1):
+        blocks.append(forecast_one(fc, panel, origin, HORIZON, target_col=TARGET,
+                                   context=context, cache=cache, stats=stats))
+        if k % 15 == 0 or k == len(origins):
+            logger.info("TimesFM 3.0: %d/%d origins  %.2fs/origin", k, len(origins),
+                        (time.time() - t0) / k)
+    if stats.failures:
+        raise RuntimeError(f"TimesFM 3.0 failed on {len(stats.failures)} series-forecasts; "
+                           f"first: {stats.failures[0]}")
+    b = pd.concat(blocks, ignore_index=True).rename(columns={"0.1": "q10", "0.9": "q90"})
+    b["model"] = TIMESFM3
+    return b[["item_id", "timestamp", "step", "actual", "pred", "q10", "q90", "model", "origin"]]
 
 
 def daily_campus(preds: pd.DataFrame) -> pd.DataFrame:

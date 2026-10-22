@@ -13,18 +13,20 @@ zero-shot — no training, no fine-tuning.
 
 ## Headline result
 
-Measured on a single rolling-origin grid where all eleven models score the **same 188,664 rows**:
+Measured on a single rolling-origin grid where all thirteen models score the **same 188,664 rows**:
 
 | | Chronos-2 zero-shot vs the deployed incumbent (NPTS) |
 |---|---|
 | **MASE improvement** | **5.7 % – 12.5 %**, at every one of six horizons |
 | **Statistical significance** | Significant at **all six horizons**, by paired bootstrap (10,000 resamples over 24 origins) **and** Diebold–Mariano — all *p* < 0.01 |
-| **Beaten significantly at every horizon** | **7 of 10** opponents — every model that is not a Chronos-2 covariate variant |
+| **Beaten significantly at every horizon** | **7 of 12** opponents by both tests — every model outside the foundation family. TimesFM 2.5 is beaten at every horizon by the bootstrap, but Diebold–Mariano confirms it only at 7 d |
 | **Tank-horizon cells won** | **101 / 144** vs the incumbent; **144 / 144** vs every classical method |
 | **Healthy tanks significantly worse** | **0 / 15** — every significant loss is on a degraded or dead sensor |
 | **Skill vs seasonal-naive** | Positive on **all 24 tanks** |
 | **vs a PatchTST trained here** | **16.5 % – 18.6 % lower MASE** at every horizon, significant at all six, 120/144 cells |
-| **Cost** | **89 seconds** for the entire backtest — the trained PatchTST needed 55 min, a **37×** difference |
+| **vs Google's TimesFM 2.5** (the second foundation model, zero-shot) | **2.7 % – 10.9 % lower MASE** at every horizon, 121/144 cells; lower error on every metric at every horizon. TimesFM ranks 6th of 13, behind Timestral and all four Chronos-2 variants — [§17](docs/review_summary.md#17-timesfm-comparison) |
+| **vs Mistral's Timestral 209M** (the third foundation model, zero-shot) | **The one model ahead of Chronos-2:** Chronos-2's MASE is **0.3 % – 0.9 % higher** at every horizon, and Chronos-2 wins only 39/144 cells. The bootstrap separates the two only at 3 d and 7 d, Diebold–Mariano at no horizon. Chronos-2 stays the production model — [§18](docs/review_summary.md#18-timestral-comparison) |
+| **Cost** | **89 seconds** for the entire backtest — the trained PatchTST needed 55 min, a **37×** difference. On the same CPU, Chronos-2 took 68 s, TimesFM 2.5 158 s and Timestral 209M 145 s |
 
 Two caveats, both measured and both stated wherever the results appear:
 
@@ -32,7 +34,9 @@ Two caveats, both measured and both stated wherever the results appear:
   0.80. Cause identified here: **~24 % of hourly readings are exactly zero**, and a
   continuous-density model puts its p10 above zero on 79 % of rows, so two-thirds of its
   lower-tail misses are zero-demand hours. **Corrected** by asymmetric conformal calibration:
-  coverage **0.741 → 0.785**, measured on a disjoint later window.
+  coverage **0.741 → 0.785**, measured on a disjoint later window. (TimesFM 2.5's raw intervals
+  cover 0.801–0.823 — the best-calibrated in the study — but its point forecasts are less
+  accurate at every horizon; Timestral 209M's cover 0.811–0.824.)
 - **24-hour volume was under-forecast by 12.15 %.** **Corrected** by a per-tank multiplicative
   factor: **−10.5 % → −1.8 %**, cutting daily campus error from 36.7 to 28.8 KL. A refill should
   still be sized on the calibrated interval, not the raw mean.
@@ -48,10 +52,10 @@ Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
 | Path | Contents |
 |---|---|
 | `src/data/` | `curate.py` — 26 directories → 24 tanks, gapless hourly reindex, raises on drift. `calendar_pesu.py` — academic-calendar covariates |
-| `src/models/` | **Forecasting** — `chronos2_forecasting.py` (the production model), `baselines_autogluon.py` (NPTS + classical), `patchtst_benchmark.py` (the trained deep control), `mlp_forecaster.py` (plain-PyTorch MLP + linear baselines; scored by `mlp_comparison.py`). **Evaluation** — `backtest.py` (the shared grid), `metrics.py`, `score_benchmark.py` (row parity, fatal under `--strict`), `significance.py` (paired bootstrap + Diebold-Mariano). **Reporting** — `unified_analysis.py` + `unified_figures.py` (every table and figure, all models), `calibration.py` + `calibrated_holdout.py`, `style.py` (one palette for every figure) |
+| `src/models/` | **Forecasting** — `chronos2_forecasting.py` (the production model), `baselines_autogluon.py` (NPTS + classical), `patchtst_benchmark.py` (the trained deep control), `timesfm_forecasting.py` (TimesFM 2.5, the second foundation model), `timestral_forecasting.py` (Mistral Timestral, the third), `mlp_forecaster.py` (plain-PyTorch MLP + linear baselines; scored by `mlp_comparison.py`). **Evaluation** — `backtest.py` (the shared grid), `metrics.py`, `score_benchmark.py` (row parity, fatal under `--strict`), `significance.py` (paired bootstrap + Diebold-Mariano). **Reporting** — `unified_analysis.py` + `unified_figures.py` (every table and figure, all models), `calibration.py` + `calibrated_holdout.py`, `style.py` (one palette for every figure) |
 | `dataset/` | Per-tank daily JSON — hourly inflow, outflow, opening and closing level. 2025-01-01 → 2026-04-22 |
 | `eda/` | `eda_hourly.py` — mass-balance sensor integrity, trust tiers, covariate mutual-information study. Outputs `tank_trust.json` |
-| `results/chronos2/` | `unified/` — the evidence: 10 CSVs, `summary.json` and **12 figures** covering all 11 models. `calibrated/` — conformal calibration and the 45-day operational view. `benchmark_table.md` and the metric CSVs. Model binaries, fitting scratch and prediction parquets are regenerable and not committed |
+| `results/chronos2/` | `unified/` — the evidence: 12 CSVs, `summary.json` and **12 figures** covering all 13 models. `calibrated/` — conformal calibration and the 45-day operational view. `benchmark_table.md` and the metric CSVs. Model binaries, fitting scratch and prediction parquets are regenerable and not committed |
 | `docs/` | Results reports and the full design specification for the real-time system |
 | `tests/` | `test_metrics.py` — 6 tests; `test_mlp.py` — 8 leakage, shape and training tests. No pytest needed. Run these before trusting any number |
 | `reports/` | `build_results_page.py` → the full HTML results page; `build_review_deck.py` → the PPTX review deck; `review_briefing.html` — the defence briefing. Both generated deliverables read the same CSVs, so they cannot disagree |
@@ -83,6 +87,8 @@ fully regenerable). To produce them:
 ```bash
 python -m src.models.chronos2_forecasting --variants Chronos2-ZS   # ~1.5 min
 python -m src.models.baselines_autogluon                           # ~26 min
+python -m src.models.timesfm_forecasting                           # ~3 min, CPU
+python -m src.models.timestral_forecasting                         # ~3 min, CPU
 ```
 
 Full step-by-step reproduction, with measured runtimes for every stage, is in
@@ -97,9 +103,9 @@ Full step-by-step reproduction, with measured runtimes for every stage, is in
 | Document | Contents |
 |---|---|
 | [`docs/phase3_results.md`](docs/phase3_results.md) | **Phase III deliverable** — final results, significance testing, the calibration diagnosis, and the inference for each review category |
-| [`docs/review_summary.md`](docs/review_summary.md) | 16-section technical report: dataset, evaluation protocol, per-tank analysis, covariate study, calibration, limitations |
+| [`docs/review_summary.md`](docs/review_summary.md) | 18-section technical report: dataset, evaluation protocol, per-tank analysis, covariate study, calibration, limitations |
 | [`docs/architecture.md`](docs/architecture.md) | The forecasting engine, and the measurement behind each design choice |
-| [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) | Complete benchmark: 11 models × 6 horizons × 6 metrics |
+| [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) | Complete benchmark: 13 models × 6 horizons × 6 metrics, (§8) TimesFM 2.5 against Chronos-2, NPTS and SeasonalNaive-24, and (§9) Timestral 209M against the same three and TimesFM |
 | [`results/chronos2/unified/`](results/chronos2/unified/) | The machine-readable evidence behind every claim: leaderboard, significance against every opponent, win matrix, per-tank, skill, calibration, cost |
 | [`docs/mlp_baseline.md`](docs/mlp_baseline.md) | A plain-PyTorch MLP and linear baseline trained here, scored against every model on the same 6–24 h rows, with significance on all tanks and on healthy tanks only |
 | [`docs/results_audit.md`](docs/results_audit.md) | Re-verification of the committed results: scoring regenerates byte-identically, where each headline number comes from, and defects found |
@@ -126,6 +132,8 @@ documents; **none of the pipeline they describe is implemented yet.**
 |---|---|
 | Data curation, calendar features, backtest harness, metrics | **Implemented** |
 | Chronos-2 inference (4 variants), benchmark, unified analysis, 12 figures | **Implemented** |
+| TimesFM 2.5 zero-shot baseline — runner, prediction cache, leakage audit, 16 tests | **Implemented** — `timesfm_forecasting.py`, [§17](docs/review_summary.md#17-timesfm-comparison) |
+| Timestral zero-shot baseline — four sizes, 209M on the roster, 15 tests | **Implemented** — `timestral_forecasting.py`, [§18](docs/review_summary.md#18-timestral-comparison) |
 | PatchTST control (two configurations) | **Implemented** |
 | PyTorch MLP + linear baselines (6–24 h) | **Implemented** — `docs/mlp_baseline.md` |
 | Sensor trust tiering, mass-balance integrity (`eda/`) | **Implemented** |
@@ -249,7 +257,9 @@ uses the settings the PatchTST paper uses for hourly data — context 512 h,
 100 epochs, 200 batches per epoch. Measured:
 default **2.2 min**, tuned
 **55 min**. Writes `predictions_PatchTST.parquet` and
-`predictions_PatchTST-Tuned.parquet` (190,080 rows each), which `score_benchmark` picks up by glob.
+`predictions_PatchTST-Tuned.parquet` (190,080 rows each), which `score_benchmark` picks up by glob —
+for every model on the benchmark roster (`unified_analysis.ORDER`); a predictions file holding any
+other model is work in progress and is skipped with a warning, never silently scored.
 
 Both are scored by the same `score_benchmark` pass as every other model, and compared in
 step 7 alongside the rest of the field — there is no separate PatchTST study to run.
@@ -264,8 +274,71 @@ python -m src.models.mlp_comparison      # needs the step 4-5b parquets
 
 Per-tank MLP (168 → 64 → 32 → 24) and linear models in plain PyTorch, fitted on data before the
 first origin with a chronological validation split. Predictions go to `results/chronos2/mlp/`,
-outside the glob `score_benchmark` and `unified_analysis` read, so the 11-model study is unchanged.
+outside the glob `score_benchmark` and `unified_analysis` read, so the benchmark roster's results are unchanged.
 Results and interpretation: [`docs/mlp_baseline.md`](docs/mlp_baseline.md).
+
+### 5d. Model execution — TimesFM 2.5, the second foundation model
+
+```bash
+python -m src.models.timesfm_forecasting      # ~3 min on CPU; writes predictions_TimesFM2.5-ZS.parquet
+python -m tests.test_timesfm                  # 16 tests, stubbed model, no download
+```
+
+Google's `google/timesfm-2.5-200m-pytorch`, zero-shot, through the official `timesfm` package
+(pinned in `requirements.txt`; the checkpoint revision is pinned in the module, and the weights
+download once to the standard Hugging Face cache, never into this repository). The protocol is
+Chronos-2 zero-shot's: the same grid, the target series only, a 2,048-hour context truncated at
+each origin, and the median as the point forecast. The runner checks
+`context_end <= origin < forecast_start` for every (origin, horizon, tank) window, writes
+`timesfm_manifest.json` (checkpoint, config, device, measured timing, peak memory, the leakage and
+missing-data audits), and refuses to write the canonical parquet if any series failed — the failures
+go to `_timesfm_partial/` and the command exits non-zero. Forecasts are cached per (origin, horizon)
+block under `results/chronos2/_timesfm_cache/`, keyed on the checkpoint, config and exact context
+values, so a rerun with identical inputs recomputes nothing; `--no-cache` forces a fresh, timed run.
+
+The official 2.5 code runs on CUDA or CPU, not Apple MPS, so it ran on CPU (measured **158 s**). For
+a same-hardware comparison, Chronos-2 zero-shot was timed on the same CPU with
+`python -m src.models.chronos2_forecasting --variants Chronos2-ZS --device cpu --out-dir results/chronos2/cpu_timing`
+(**68 s**; timing only, not scored). TimesFM 3.0 is newer but its weights are licensed for
+non-commercial, non-production use, so the deployable 2.5 checkpoint is the one evaluated.
+Full comparison: [`docs/review_summary.md` §17](docs/review_summary.md#17-timesfm-comparison).
+
+### 5e. Model execution — Timestral, the third foundation model
+
+```bash
+python -m src.models.timestral_forecasting                 # ~3 min on CPU; predictions_Timestral-209M-ZS.parquet
+python -m src.models.timestral_forecasting --size 5M       # also 28M, 123M: off the roster
+python -m src.models.timestral_forecasting --sizes-report  # all four sizes, same rows -> timestral_sizes.csv
+python -m tests.test_timestral                             # 15 tests, stubbed model, no download
+```
+
+Mistral's `mistralai/Timestral-209M`, zero-shot, through Mistral's `timestral` package (not on PyPI;
+`requirements.txt` pins its GitHub commit, and the module pins each checkpoint revision). The
+protocol and the plumbing are TimesFM's: the same grid, target only, 2,048-hour context, the median
+as the point forecast, and `timesfm_forecasting`'s leakage check, failure isolation and block cache,
+with Timestral's quantiles handed over by level value. Missing hours are passed as NaN, which
+Timestral masks, as Chronos-2 does. Run on the same CPU as TimesFM (measured **145 s**). The code is
+Apache-2.0; the weights are under a modified MIT licence that withholds all rights from a licensee
+whose global monthly revenue exceeds USD 20M — production use is allowed below that. Only the 209M
+size is on the roster; the 5M, 28M and 123M runs are scored only in `timestral_sizes.csv`.
+Full comparison: [`docs/review_summary.md` §18](docs/review_summary.md#18-timestral-comparison).
+
+To rebuild the complete comparison — every table, figure and generated document — from the
+existing prediction files (~2 min; the TimesFM and Timestral steps are served from their caches):
+
+```bash
+python -m src.models.timesfm_forecasting                 # cached: no model call if inputs unchanged
+python -m src.models.timestral_forecasting               # cached likewise
+python -m src.models.timestral_forecasting --sizes-report
+python -m src.models.score_benchmark --strict            # metrics, benchmark_table.md §8-9, the CSVs
+python -m src.models.unified_analysis                    # leaderboard, significance, win matrix, cost
+python -m src.models.unified_figures                     # U1-U12, PNG + SVG
+python -m src.models.calibrated_holdout --add timesfm timestral   # the 45-day view (others untouched)
+python reports/build_timesfm_section.py                  # docs/review_summary.md §17
+python reports/build_timestral_section.py                # docs/review_summary.md §18
+python reports/build_results_page.py && python reports/build_review_deck.py
+python reports/build_holdout45_page.py
+```
 
 ### 6. Evaluation and scoring
 
@@ -275,49 +348,57 @@ python -m src.models.score_benchmark --strict
 
 Reads every `results/chronos2/predictions_*.parquet`, attaches the seasonal-naive scales from
 pre-origin history only, asserts no row has `timestamp <= origin`, and — with `--strict` — **fails
-the run** if any two models were scored on different row counts. Writes:
+the run** if any two models were scored on different row counts or any row has an actual but no
+prediction (a failed forecast is never averaged away). Only models on the roster are read. Writes:
 
 | File | Contents |
 |---|---|
-| `results/chronos2/benchmark_table.md` | the complete benchmark document: evaluation grid, headline three-model comparison per metric, all 9 models × 6 horizons × 6 metrics, covariate table, calibration table, per-tank tables |
+| `results/chronos2/benchmark_table.md` | the complete benchmark document: evaluation grid, headline three-model comparison per metric, all 13 models × 6 horizons × 6 metrics, covariate table, calibration table, per-tank tables, §8 — TimesFM 2.5 against Chronos-2, NPTS and SeasonalNaive-24 — and §9, Timestral 209M against the same three and TimesFM |
 | `results/chronos2/metrics_by_horizon.csv` | one row per (model, horizon) — macro + volume-weighted metrics, p10–p90 coverage and width |
 | `results/chronos2/metrics_per_tank.csv` | one row per (model, horizon, tank) |
 | `results/chronos2/per_tank_comparison.csv` | 144 rows — Chronos-2 vs NPTS vs SeasonalNaive per tank and horizon, with improvement %, winner and sensor trust tier |
+| `results/chronos2/timesfm_comparison.csv` | 72 rows — TimesFM vs Chronos-2, NPTS and SeasonalNaive-24 per horizon and metric: both scores, the relative difference in words, tanks won / lost / tied, median and mean per-tank difference |
+| `results/chronos2/timesfm_per_tank.csv` | 144 rows — TimesFM vs Chronos-2 per tank and horizon on all four metrics, winner on MASE, sensor trust tier |
+| `results/chronos2/timestral_comparison.csv`, `timestral_per_tank.csv` | 96 / 144 rows — the same two tables for Timestral, which is also compared against TimesFM |
 
 Runtime: ~7 s.
 
 ### 7. Unified analysis — every table on the results page
 
 ```bash
-python -m src.models.unified_analysis      # ~4 min
+python -m src.models.unified_analysis      # ~45 s
 ```
 
-One pass over **all 11 models** on the shared grid. Replaces the per-opponent studies that
+One pass over **all 13 models** on the shared grid. Replaces the per-opponent studies that
 preceded it (Chronos-2 vs NPTS, the covariate study, the PatchTST comparison), each of which
 produced its own tables in its own shape. Writes to `results/chronos2/unified/`:
 
 | File | Contents |
 |---|---|
-| `leaderboard.csv` | 66 rows — every model x horizon, macro and volume-weighted metrics, interval coverage and width, signed volume bias, rank |
-| `significance_vs_all.csv` | 120 rows — Chronos-2 against **every** opponent, both metrics, all six horizons: paired bootstrap CI, bootstrap *p*, Diebold-Mariano statistic and *p*, origins won |
+| `leaderboard.csv` | 78 rows — every model x horizon, macro and volume-weighted metrics, interval coverage and width, signed volume bias, rank |
+| `significance_vs_all.csv` | 144 rows — Chronos-2 against **every** opponent, both metrics, all six horizons: paired bootstrap CI, bootstrap *p*, Diebold-Mariano statistic and *p*, origins won. Opponents are visited in the order they joined the study, so adding a model never re-draws the bootstrap intervals already published |
+| `significance_timesfm.csv` | 84 rows — TimesFM against every non-foundation model, by the same two tests |
+| `significance_timestral.csv` | 132 rows — Timestral against every model except Chronos-2 (already a row above). Drawn after every other table from the same seeded stream, so adding it re-drew no published interval |
 | `win_matrix_all_horizons.csv`, `win_matrix_h24.csv` | every ordered model pair, tank-horizon cells won |
-| `per_tank.csv` | 1,584 rows — model x tank x horizon, with the sensor trust tier |
+| `per_tank.csv` | 1,872 rows — model x tank x horizon, with the sensor trust tier |
 | `skill_h24.csv` | skill against the naive reference, per tank, for every model |
 | `error_by_leadtime.csv`, `diurnal_h24.csv` | where the error lives, every model |
 | `zero_inflation_h24.csv` | the interval mechanism: tail miss rates, how often p10 goes negative, what a clamp would do |
-| `cost.csv` | measured wall clock against accuracy, read from the run manifests |
+| `cost.csv` | measured wall clock against accuracy, read from the run manifests, with the device each run recorded and the same-CPU timings for the three foundation models |
 | `summary.json` | the headline numbers, so nothing downstream has to recompute them |
 
 **A cross-check worth knowing about:** the unified pass computes the four macro metrics
-independently of `score_benchmark`, and the two agree to **1e-16** across all 66 model x horizon
+independently of `score_benchmark`, and the two agree to **≤ 3.3e-16** across all 78 model x horizon
 rows. Two implementations reaching the same number from the same parquets is a stronger statement
 than either one alone.
 
 ### 8. Figures
 
 ```bash
-python -m src.models.unified_figures       # ~25 s
+python -m src.models.unified_figures       # ~5 s
 python -m src.models.calibrated_holdout    # ~3 min, the operational view
+python -m src.models.calibrated_holdout --add timesfm   # adds TimesFM to it; other rows untouched
+python -m src.models.calibrated_holdout --add timestral # adds Timestral likewise
 ```
 
 Twelve figures to `results/chronos2/unified/plots/`, as **both PNG and SVG**. Every panel carries
@@ -326,7 +407,7 @@ identity across the whole set.
 
 | ID | Shows |
 |---|---|
-| U1 | Macro MASE vs horizon, all 11 models |
+| U1 | Macro MASE vs horizon, all 13 models |
 | U2 | The leaderboard as a heatmap, with rank in every cell |
 | U3 | Chronos-2 against each opponent — 1 d with CIs, and across all six horizons |
 | U4 | Win matrix: every ordered model pair, % of 144 tank-horizon cells |
@@ -341,7 +422,12 @@ identity across the whole set.
 
 `calibrated_holdout` adds the three 45-day operational panels (one per headline model) and the
 calibration measurements, fitted on 8 Jan - 8 Mar 2026 and reported on the disjoint
-9 Mar - 22 Apr window.
+9 Mar - 22 Apr window. `--add timesfm` adds TimesFM 2.5 to the same windows (panels
+`T_holdout45_timesfm_calibrated` and `T_tanks45_timesfm`) by appending its rows to every table;
+every table is per model, so the three published models' rows stay byte-identical. `--add timestral`
+does the same for Timestral 209M (`TS_holdout45_timestral_calibrated`, `TS_tanks45_timestral`). The
+campus panels share one y-axis, so TimesFM's 17 Mar overshoot widens it for all five. `--plots`
+redraws the panels without recomputing anything.
 
 ### 9. The deliverables
 
@@ -358,17 +444,22 @@ already tracked as PNG and SVG.
 
 ```
 results/chronos2/
-├── predictions_*.parquet                  190,080 rows each (7 files, not committed)
-├── run_manifest.json / baselines_manifest.json / patchtst*_manifest.json
+├── predictions_*.parquet                  190,080 rows each (9 roster files, not committed)
+├── run_manifest.json / baselines_manifest.json / patchtst*_manifest.json / timesfm_manifest.json
+├── timestral_{5m,28m,123m,209m}_manifest.json
 ├── benchmark_table.md
-├── metrics_by_horizon.csv                 66 rows  (11 models x 6 horizons)
-├── metrics_per_tank.csv                   1,584 rows
+├── metrics_by_horizon.csv                 78 rows  (13 models x 6 horizons)
+├── metrics_per_tank.csv                   1,872 rows
+├── timesfm_comparison.csv / timesfm_per_tank.csv   72 / 144 rows
+├── timestral_comparison.csv / timestral_per_tank.csv   96 / 144 rows
+├── timestral_sizes.csv                    24 rows  (4 sizes x 6 horizons)
+├── cpu_timing/                           same-CPU Chronos-2 timing reference (manifest + README)
 ├── unified/
-│   ├── 10 CSVs + summary.json
+│   ├── 12 CSVs + summary.json
 │   └── plots/  12 figures x {png, svg}
 └── calibrated/
     ├── calibration parameters and daily tables
-    └── plots/  3 operational panels x {png, svg}
+    └── plots/  5 campus + 5 per-tank operational panels x {png, svg}
 ```
 
 Total end-to-end: **~2 hours**, almost all of it the two forecasting steps. Re-running only the
@@ -388,8 +479,9 @@ comparison with the published numbers.
 * **Six horizons:** 6 h, 12 h, 1 d, 2 d, 3 d, 7 d.
 * **Identical evaluation rows for every model** — 3,405 / 6,861 / 13,530 / 27,323 / 41,140 /
   96,405 per horizon, enforced by `backtest.assert_comparable()` and fatal under `--strict`.
-* **No leakage.** Baselines are fitted only on data at or before the first origin; Chronos-2 is
-  zero-shot with context truncated at each origin; every scored row satisfies
+* **No leakage.** Baselines are fitted only on data at or before the first origin; Chronos-2,
+  TimesFM and Timestral are zero-shot with context truncated at each origin (the TimesFM and
+  Timestral runners assert `context_end <= origin < forecast_start` on every window); every scored row satisfies
   `timestamp > origin`; MASE/RMSSE denominators use pre-origin history only.
 * **Gapless hourly reindex.** Missing hours become NaN, never dropped — collapsing a gap would
   shift later timestamps and corrupt the 24-hour seasonality the metrics scale against.
