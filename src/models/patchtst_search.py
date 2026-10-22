@@ -41,11 +41,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import KNOWN_COVARIATES, make_spec
 
 logger = logging.getLogger(__name__)
 
-OUT = Path("results/chronos2/patchtst_search")
+OUT = RESULTS_DIR / "patchtst_search"
 
 # The three heads that actually train. Every head able to represent a point mass at zero —
 # PiecewiseLinear, ImplicitQuantileNetwork — is a quantile-function output, and gluonts' PatchTST
@@ -129,7 +130,7 @@ def main() -> None:
     ap.add_argument("--phase", default="deep", help="Tag written into trials.csv and the config.")
     ap.add_argument("--append", action="store_true",
                     help="Merge into an existing trials.csv rather than replacing it.")
-    ap.add_argument("--model-dir", default="results/chronos2/_patchtst_search")
+    ap.add_argument("--model-dir", default=str(RESULTS_DIR / "_patchtst_search"))
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

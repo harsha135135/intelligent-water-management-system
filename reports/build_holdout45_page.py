@@ -17,20 +17,32 @@ origin. So no model saw a single hour of the window it is scored on. TimesFM and
 calibrated run through ``python -m src.models.calibrated_holdout --add timesfm`` / ``--add timestral``.
 
     python reports/build_holdout45_page.py     # -> reports/holdout45_explorer.html
+
+``--with-old`` (a later study only) adds the published study's holdout PatchTST, loaded unchanged
+and run on the same origins by ``python -m src.models.old_vs_new``, as a dashed line in
+PatchTST's colour: the same model, an older fit.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import pathlib
+import sys
 
 import numpy as np
 import pandas as pd
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CAL = ROOT / "results/chronos2/calibrated/predictions_calibrated.parquet"
-PT = ROOT / "results/chronos2/holdout45_patchtst/predictions_holdout45_patchtst.parquet"
-OUT = ROOT / "reports" / "holdout45_explorer.html"
+sys.path.insert(0, str(ROOT))
+from src.config import IS_PUBLISHED, PUBLISHED_RESULTS, RESULTS_DIR  # noqa: E402
+
+CAL = ROOT / RESULTS_DIR / "calibrated/predictions_calibrated.parquet"
+PT = ROOT / RESULTS_DIR / "holdout45_patchtst/predictions_holdout45_patchtst.parquet"
+OLD = ROOT / RESULTS_DIR / "old_vs_new/holdout_old_models.parquet"
+MANIFEST = ROOT / RESULTS_DIR / "calibrated/manifest.json"
+# A second study writes its own explorer; only the published study writes into reports/.
+OUT = (ROOT / "reports" if IS_PUBLISHED else ROOT / RESULTS_DIR / "reports") / "holdout45_explorer.html"
 
 # Order fixes the colour assignment: slot 1 blue, slot 2 orange, slot 3 aqua, then TimesFM's
 # magenta (validated against the other three on both surfaces: light #b0177f, dark #d65bb1), then
@@ -54,7 +66,21 @@ MODELS = [
 # The models read from the calibrated run; PatchTST comes from its own holdout file.
 CAL_MODELS = {"Chronos2-ZS", "NPTS", "TimesFM2.5-ZS", "Timestral-209M-ZS"}
 ADD_HINT = {"TimesFM2.5-ZS": "timesfm", "Timestral-209M-ZS": "timestral"}
-NWORD = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}.get(len(MODELS), str(len(MODELS)))
+NWORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+
+# The published study's PatchTST, March fit, beside the retrained one (``--with-old``). It reuses
+# PatchTST's swatch on both surfaces and is told apart by its dash, so no seventh hue is needed.
+OLD_PATCHTST = {"key": "patchtst_mar", "label": "PatchTST (Mar)", "src": "PatchTST@Mar",
+                "note": "the published study's PatchTST, fitted to {cut}, run unchanged",
+                "dash": "6 4"}
+OLD_MANIFEST = ROOT / PUBLISHED_RESULTS / "holdout45_patchtst/manifest.json"
+OLD_CSS = """
+:root{--s-patchtst_mar:#1baf7a}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--s-patchtst_mar:#199e70} }
+:root[data-theme="dark"]{--s-patchtst_mar:#199e70}
+.chip.patchtst_mar .key{background:repeating-linear-gradient(90deg,var(--s-patchtst_mar) 0 6px,
+  transparent 6px 9px)}
+"""
 
 PRETTY = {"I&H_BLOCK": "I&H Block", "NBX": "NBX"}
 
@@ -72,7 +98,7 @@ def r2(a):
     return [None if not np.isfinite(v) else round(float(v), 2) for v in a]
 
 
-def load() -> pd.DataFrame:
+def load(with_old: bool = False) -> pd.DataFrame:
     frames = []
     cal = pd.read_parquet(CAL, columns=["item_id", "timestamp", "model", "actual",
                                         "pred", "q10", "q90"])
@@ -83,6 +109,12 @@ def load() -> pd.DataFrame:
         frames.append(pt)
     else:
         raise SystemExit(f"missing {PT}\n  run: python -m src.models.holdout45_patchtst")
+    if with_old:
+        if not OLD.exists():
+            raise SystemExit(f"missing {OLD}\n  run: python -m src.models.old_vs_new")
+        old = pd.read_parquet(OLD, columns=["item_id", "timestamp", "model", "actual",
+                                           "pred", "q10", "q90"])
+        frames.append(old[old["model"] == OLD_PATCHTST["src"]])
     df = pd.concat(frames, ignore_index=True)
     src = {m["src"] for m in MODELS}
     missing = src - set(df["model"].unique())
@@ -157,7 +189,7 @@ def build_payload(df: pd.DataFrame) -> dict:
         "n_hours": n_h,
         "n_days": n_h // 24,
         "n_tanks": n_t,
-        "models": [{k: m[k] for k in ("key", "label", "note")} for m in MODELS],
+        "models": [{k: m[k] for k in ("key", "label", "note", "dash") if k in m} for m in MODELS],
         "days": days,
         "campus": campus,
         "tanks": tank_rows,
@@ -311,6 +343,7 @@ footer code{font-size:11.5px;background:var(--wash);padding:1px 5px;border-radiu
 JS = r"""
 const D = window.__HOLDOUT45__;
 const MK = D.models.map(m => m.key);
+const DASH = Object.fromEntries(D.models.map(m => [m.key, m.dash]));
 const EXPECTED = {};              // cells expected per point: 24 tanks for campus, 1 for a tank
 const ENT = {};
 ENT[D.campus.id] = D.campus; EXPECTED[D.campus.id] = D.n_tanks;
@@ -525,7 +558,8 @@ function draw() {
   });
 
   active.forEach(k => seg(v.pred[k], Y).forEach(s =>
-    svg.appendChild(el("path", {class: "line", stroke: colorOf(k), d: dpath(s)}))));
+    svg.appendChild(el("path", {class: "line", stroke: colorOf(k), "stroke-dasharray": DASH[k],
+                                d: dpath(s)}))));
   if (state.on.actual) seg(v.actual, Y).forEach(s =>
     svg.appendChild(el("path", {class: "line actual", d: dpath(s)})));
 
@@ -853,17 +887,17 @@ HTML = """<!doctype html>
      matched-pair sums — the actual and every prediction are summed over exactly the hours whose
      meter reading exists — so a partial day cannot flatter one model. Coverage below 100% is
      called out in the tooltip and in the table; the headline MAE, MAPE and bias skip points under
-     95% coverage, which is why the campus outage on 25 March and the gap on 16 March do not count
+     95% coverage, which is why __GAPS__ do not count
      against anyone.</p>
   <p><strong>Provenance.</strong> Chronos-2&nbsp;ZS, NPTS, TimesFM&nbsp;2.5 and Timestral&nbsp;209M come from
-     <code>results/chronos2/calibrated/predictions_calibrated.parquet</code>; PatchTST from
-     <code>results/chronos2/holdout45_patchtst/predictions_holdout45_patchtst.parquet</code>.
+     <code>__RESULTS__/calibrated/predictions_calibrated.parquet</code>; PatchTST from
+     <code>__RESULTS__/holdout45_patchtst/predictions_holdout45_patchtst.parquet</code>.
      All __NWORD__ share the origin grid. The two fitted models (NPTS, PatchTST) share the fit
      cutoff (__CUTOFF__); the three foundation models (Chronos-2, TimesFM, Timestral) are
      zero-shot, with their context cut at each origin — so nothing leaks. TimesFM carries the last
      observed value across a sensor gap that reaches the origin, where Chronos-2 and Timestral mask
-     it; that is why it overshoots the day after the 16 March outage.
-     Rebuild with <code>python reports/build_holdout45_page.py</code>.</p>
+     it__TFM_GAP__.
+     Rebuild with <code>python reports/build_holdout45_page.py</code>.</p>__FLAG_NOTE__
 </footer>
 
 </div>
@@ -875,22 +909,66 @@ HTML = """<!doctype html>
 
 
 def main() -> None:
-    payload = build_payload(load())
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--flag", nargs="*", default=[], metavar="KEY",
+                    help="model keys whose result in this study is qualified (marked † on the "
+                         "page), e.g. patchtst")
+    ap.add_argument("--flag-note", default="",
+                    help="the footnote explaining the † marks")
+    ap.add_argument("--with-old", action="store_true",
+                    help="add the published study's PatchTST (March fit) run on these origins")
+    args = ap.parse_args()
+    if args.with_old:
+        if IS_PUBLISHED:
+            raise SystemExit("--with-old compares against the published study; set PESU_RESULTS_DIR")
+        i = next(i for i, m in enumerate(MODELS) if m["key"] == "patchtst")
+        MODELS[i]["label"] = "PatchTST (Sep)"
+        old_cut = pd.Timestamp(json.loads(OLD_MANIFEST.read_text())["fit_cutoff"])
+        MODELS.insert(i + 1, dict(OLD_PATCHTST, note=OLD_PATCHTST["note"].format(
+            cut=f"{old_cut:%-d %b %Y}")))
+    nword = NWORDS.get(len(MODELS), str(len(MODELS)))
+    for m in MODELS:
+        if m["key"] in args.flag:
+            m["label"] += " †"
+            m["note"] += " — qualified in this study, see the footnote"
+    flag_note = (f'\n  <p><strong>†</strong> {args.flag_note}</p>' if args.flag else "")
+    if args.with_old:
+        flag_note = (
+            '\n  <p><strong>PatchTST (Mar)</strong>, dashed, is the published study\'s holdout '
+            f"PatchTST: fitted to {old_cut:%-d %B %Y} on Waltr's figures as they were then, loaded unchanged "
+            "and run on this window's origins, so it is the one model here whose fit cutoff is not "
+            "the one above. Its calendar inputs are blank on these dates too, since the calendar "
+            f"ends in May 2026. From <code>{RESULTS_DIR}/old_vs_new/holdout_old_models.parquet</code>; "
+            "regenerate with <code>python -m src.models.old_vs_new</code>.</p>") + flag_note
+
+    payload = build_payload(load(args.with_old))
     chips = "\n  ".join(
         f'<button type="button" class="chip {m["key"]}" data-series="{m["key"]}" '
         f'aria-pressed="true" title="{m["note"]}"><span class="key"></span>{m["label"]}</button>'
         for m in MODELS)
     first, last = payload["days"][0]["label"], payload["days"][-1]["label"]
+    reported = [pd.Timestamp(x) for x in json.loads(MANIFEST.read_text())["reported_window"]]
+    cutoff = (reported[0] - pd.Timedelta(hours=1)).strftime("%Y-%m-%d %H:%M")
+    # The two outages named here were read off the published window; a later window gets the
+    # general statement instead of dates that are not in it.
+    gaps, tfm_gap = (("the campus outage on 25 March and the gap on 16 March",
+                      "; that is why it overshoots the day after the 16 March outage")
+                     if IS_PUBLISHED else ("days with a sensor outage", ""))
     html = (HTML
-            .replace("__CSS__", CSS)
+            .replace("__CSS__", CSS + (OLD_CSS if args.with_old else ""))
             .replace("__JS__", JS)
             .replace("__CHIPS__", chips)
-            .replace("__WINDOW__", f"{first} – {last} 2026 ({payload['n_days']} days)")
+            .replace("__WINDOW__", f"{first} – {last} {reported[1]:%Y} ({payload['n_days']} days)")
             .replace("__NTANKS__", str(payload["n_tanks"]))
             .replace("__NHOURS__", f"{payload['n_hours']:,}")
-            .replace("__CUTOFF__", "2026-03-08 23:00")
-            .replace("__NWORDCAP__", NWORD.capitalize())
-            .replace("__NWORD__", NWORD)
+            .replace("__CUTOFF__", cutoff)
+            .replace("__GAPS__", gaps)
+            .replace("__TFM_GAP__", tfm_gap)
+            .replace("__FLAG_NOTE__", flag_note)
+            .replace("__RESULTS__", str(RESULTS_DIR))
+            .replace("__NWORDCAP__", nword.capitalize())
+            .replace("__NWORD__", nword)
             .replace("__DATA__", json.dumps(payload, separators=(",", ":"))))
     OUT.write_text(html)
     kb = OUT.stat().st_size / 1024

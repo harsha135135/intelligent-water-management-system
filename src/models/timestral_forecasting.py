@@ -56,6 +56,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .timesfm_forecasting import (
     N_OUTPUTS, QUANTILE_INDEX, BlockCache, RunStats, _hardware, _peak_rss_mb, _rss_mb,
     forecast_one, missing_data_audit,
@@ -89,7 +90,7 @@ assert all(SLOT_LEVELS[i] == float(q) for q, i in QUANTILE_INDEX.items())
 # timestral's own defaults, passed explicitly so they are part of the fingerprint.
 FORECAST_FLAGS = {"symmetric_averaging": True, "clip_nonnegative": True}
 
-CACHE_DIR = Path("results/chronos2/_timestral_cache")
+CACHE_DIR = RESULTS_DIR / "_timestral_cache"
 PARTIAL_DIR_NAME = "_timestral_partial"
 SIZES_CSV = "timestral_sizes.csv"
 
@@ -270,7 +271,7 @@ def main() -> None:
     ap.add_argument("--horizons", nargs="+", type=int, default=None)
     ap.add_argument("--context", type=int, default=2048,
                     help="Context hours, truncated at each origin (default 2048, as Chronos-2).")
-    ap.add_argument("--out-dir", default="results/chronos2")
+    ap.add_argument("--out-dir", default=str(RESULTS_DIR))
     ap.add_argument("--max-tanks", type=int, default=None)
     ap.add_argument("--cache-dir", default=str(CACHE_DIR))
     ap.add_argument("--no-cache", action="store_true",

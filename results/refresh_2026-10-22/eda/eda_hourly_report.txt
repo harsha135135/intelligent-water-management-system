@@ -1,0 +1,150 @@
+
+========================================================================================
+PESU CAMPUS WATER DEMAND - HOURLY EDA
+========================================================================================
+rows=520,936  tanks=24  range=2024-02-21 12:00:00 .. 2026-10-21 23:00:00
+
+========================================================================================
+SECTION A - MASS-BALANCE SENSOR INTEGRITY
+========================================================================================
+Identity tested per hour:  Opening + Inflow - Outflow - Closing = residual
+A healthy sensor gives residual ~ 0. Persistent non-zero residual means the meter and
+the level probe disagree, i.e. the reported outflow is not what the tank actually did.
+
+Per-tank mass-balance and trust tier:
+                   item_id  rows  missing_pct  zero_pct  mean_kl  resid_mae  resid_p99  rel_resid  breach_pct  carry_break_pct  observed    trust
+               BE_BLOCK_RO 22139         7.77     73.12   0.0076     0.0019       0.01     0.2552        0.10             0.09     20419     dead
+        INFORMATION_CENTRE 20121        12.85     82.59   0.0050     0.0011       0.01     0.2157        0.04             0.03     17536     dead
+              BE_BLOCK_OHT 23364         7.02     20.28   1.4359     0.2020       1.33     0.1407       18.75             8.78     21724 degraded
+                 MRD_BLOCK 22045         4.57     34.29   1.1686     0.1713       0.89     0.1466       19.92             6.16     21037 degraded
+                       NBX 22231         2.51     34.41   0.7194     0.0828       0.59     0.1152        6.16             2.94     21673 degraded
+                   F_BLOCK 22235         0.88     53.62   0.6086     0.1250       0.79     0.2054       25.36             9.04     22040 degraded
+      GJBC_LAW_BLOCK_3__A2 22304         2.89     53.27   0.3515     0.0691       0.23     0.1967       21.23             0.82     21660 degraded
+                 I&H_BLOCK 22233         0.76     71.75   0.3384     0.0495       0.44     0.1463       11.46             5.84     22063 degraded
+GJBC_LAW_BLOCK_3__A3_GIRLS 22304         0.77     43.15   0.3257     0.0682       0.31     0.2095       26.78             4.19     22133 degraded
+           GJBC_BLOCK_2_A1 22283         4.08     50.24   0.3197     0.0369       0.49     0.1153        3.23             2.60     21374 degraded
+                 TECH_PARK 22045         1.49     70.05   0.3122     0.1585       0.53     0.5075       56.34             7.99     21717 degraded
+      GJBC_LAW_BLOCK_3__A1 22303         1.51     52.02   0.2451     0.0538       0.22     0.2193       19.99             0.81     21967 degraded
+           GJBC_BLOCK_1_A3 22284         0.64     41.90   0.1720     0.0265       0.12     0.1542        3.20             0.46     22141 degraded
+      GJBC_BLOCK_1_A1_BOYS 22307         1.44     35.84   0.1619     0.0293       0.18     0.1808        2.39             2.17     21986 degraded
+     GJBC_BLOCK_1_A2_GIRLS 23362         0.95     43.58   0.1484     0.0310       0.14     0.2087        3.62             1.52     23139 degraded
+         ME_WORKSHOP_BLOCK 20120        14.43     59.54   0.0794     0.0223       0.12     0.2802        1.05             0.83     17216 degraded
+        GJBC_BLOCK_1_A4_RO 22066         0.32     60.66   0.0584     0.0070       0.04     0.1202        0.39             0.37     21996 degraded
+                  IT_BLOCK 22184         1.61     65.35   0.0446     0.0121       0.05     0.2712        0.29             0.26     21826 degraded
+              NEW_BLOCK_RO 22168         2.31     78.74   0.0434     0.0064       0.10     0.1476        0.89             0.86     21656 degraded
+        CRICKET_GROUND_OHT 11937        14.18     71.59   0.0410     0.0100       0.06     0.2449        0.40             0.29     10244 degraded
+                  MM_BLOCK 22184         1.49      9.65   1.1884     0.0677       0.39     0.0570        1.81             1.66     21853  healthy
+  GJBC_LAW_BLOCK_3_A4_BOYS 22302         1.25     24.40   1.0638     0.0859       0.61     0.0808        4.50             4.17     22024  healthy
+                   G_BLOCK 22183         1.80     17.54   0.9619     0.0803       0.67     0.0835        5.91             5.76     21784  healthy
+                 NEW_BLOCK 22232         1.34     20.98   0.1201     0.0092       0.05     0.0770        0.43             0.32     21933  healthy
+
+Tier counts: degraded=18, healthy=4, dead=2
+
+Tier rules:  dead      = mean < 0.01 KL/h or >90% zero hours
+             degraded  = >10% missing, or >45% zero hours, or rel_resid > 0.10
+             healthy   = everything else
+rel_resid = mean|residual| / mean outflow, i.e. balance error as a fraction of the
+tank's own throughput. Scale-free, so it does not punish high-flow tanks.
+
+Wrote /Users/harshamac/Documents/PES/capstone/capsem6/Capstone/results/refresh_2026-10-22/eda/tank_trust.json
+    [plot] 01_massbalance_residual_per_tank.png
+    [plot] 02_massbalance_availability_map.png
+
+========================================================================================
+SECTION B - HOURLY FORECASTABILITY
+========================================================================================
+All 56 existing plots are daily aggregates. Everything below is at the hourly
+resolution the models actually operate at.
+    [plot] 03_hourly_acf_all_tanks.png
+    [plot] 04_hourly_double_seasonality_and_decay.png
+
+Seasonality strength per tank (ACF at seasonal lags):
+                   item_id   acf_24  acf_168
+              NEW_BLOCK_RO 0.653116 0.543983
+           GJBC_BLOCK_2_A1 0.641945 0.672561
+      GJBC_LAW_BLOCK_3__A2 0.447898 0.439087
+                   F_BLOCK 0.369265 0.278829
+GJBC_LAW_BLOCK_3__A3_GIRLS 0.357754 0.263067
+  GJBC_LAW_BLOCK_3_A4_BOYS 0.356261 0.328328
+        GJBC_BLOCK_1_A4_RO 0.331698 0.285039
+                       NBX 0.314730 0.175802
+              BE_BLOCK_OHT 0.311705 0.246917
+                 NEW_BLOCK 0.304958 0.247915
+     GJBC_BLOCK_1_A2_GIRLS 0.294686 0.248514
+           GJBC_BLOCK_1_A3 0.287186 0.269719
+                  IT_BLOCK 0.276028 0.190463
+      GJBC_BLOCK_1_A1_BOYS 0.246705 0.125878
+                  MM_BLOCK 0.243977 0.174388
+         ME_WORKSHOP_BLOCK 0.200505 0.054706
+                   G_BLOCK 0.193939 0.138715
+                 TECH_PARK 0.193936 0.210504
+                 MRD_BLOCK 0.179435 0.193289
+        CRICKET_GROUND_OHT 0.172648 0.061084
+      GJBC_LAW_BLOCK_3__A1 0.154049 0.110885
+                 I&H_BLOCK 0.119977 0.082193
+
+----------------------------------------------------------------------------------------
+B3 - Seasonal-naive error floor (the MASE / RMSSE denominator)
+----------------------------------------------------------------------------------------
+MASE and RMSSE divide model error by these numbers. A tank with a tiny scale is a
+tank where beating seasonal naive is hard, regardless of its absolute KL error.
+                   item_id  scale_mae  scale_rmse  mean_kl  scale_over_mean
+                 MRD_BLOCK     1.0093      2.3071   1.1686            0.864
+              BE_BLOCK_OHT     0.9337      1.6734   1.4359            0.650
+  GJBC_LAW_BLOCK_3_A4_BOYS     0.7671      1.4259   1.0638            0.721
+                       NBX     0.6353      2.0972   0.7194            0.883
+                  MM_BLOCK     0.5955      1.3120   1.1884            0.501
+                   F_BLOCK     0.5488      1.1598   0.6086            0.902
+                   G_BLOCK     0.4960      1.0257   0.9619            0.516
+                 I&H_BLOCK     0.4604      1.3400   0.3384            1.361
+      GJBC_LAW_BLOCK_3__A2     0.3031      1.3814   0.3515            0.862
+                 TECH_PARK     0.2974      0.9279   0.3122            0.953
+GJBC_LAW_BLOCK_3__A3_GIRLS     0.2569      0.4804   0.3257            0.789
+      GJBC_LAW_BLOCK_3__A1     0.2374      1.0235   0.2451            0.969
+           GJBC_BLOCK_2_A1     0.1993      0.3643   0.3197            0.623
+           GJBC_BLOCK_1_A3     0.1411      0.2405   0.1720            0.820
+      GJBC_BLOCK_1_A1_BOYS     0.1349      0.2790   0.1619            0.833
+     GJBC_BLOCK_1_A2_GIRLS     0.1287      0.2190   0.1484            0.867
+         ME_WORKSHOP_BLOCK     0.1124      0.5566   0.0794            1.416
+                 NEW_BLOCK     0.0751      0.1589   0.1201            0.625
+        CRICKET_GROUND_OHT     0.0601      0.1851   0.0410            1.466
+        GJBC_BLOCK_1_A4_RO     0.0596      0.1889   0.0584            1.021
+                  IT_BLOCK     0.0527      0.1522   0.0446            1.182
+              NEW_BLOCK_RO     0.0300      0.0954   0.0434            0.691
+               BE_BLOCK_RO     0.0095      0.0464   0.0076            1.250
+        INFORMATION_CENTRE     0.0088      0.0551   0.0050            1.760
+    [plot] 05_hourly_seasonal_naive_floor.png
+
+========================================================================================
+SECTION C - HORIZON-SPECIFIC FEATURE STUDY
+========================================================================================
+Which covariates carry information about demand h hours ahead? This decides what
+goes into Chronos-2's future_df, and it is horizon-dependent: lag terms dominate
+short horizons, calendar terms dominate long ones.
+
+Mutual information with demand h hours ahead (higher = more informative):
+horizon            6       12      24      48      72      168
+feature                                                       
+lag_1           0.4181  0.4215  0.8659  0.8185  0.7778  0.7271
+lag_24          0.4238  0.4208  0.5796  0.5615  0.5494  0.5170
+lag_168         0.3950  0.3870  0.5206  0.5102  0.5068  0.5051
+roll_24         0.4513  0.4408  0.4538  0.4505  0.4438  0.4362
+hour_cos        0.1443  0.1492  0.1443  0.1462  0.1476  0.1537
+hour_sin        0.1486  0.1438  0.1346  0.1388  0.1361  0.1349
+exam_proximity  0.1040  0.1018  0.0999  0.1035  0.1018  0.1072
+is_summer       0.0151  0.0130  0.0087  0.0152  0.0161  0.0153
+is_esa          0.0088  0.0051  0.0121  0.0048  0.0093  0.0020
+is_isa          0.0051  0.0020  0.0000  0.0039  0.0041  0.0005
+dow_sin         0.0019  0.0000  0.0040  0.0064  0.0002  0.0016
+is_weekend      0.0019  0.0035  0.0000  0.0028  0.0000  0.0009
+dow_cos         0.0066  0.0000  0.0000  0.0000  0.0000  0.0024
+is_holiday      0.0012  0.0026  0.0032  0.0000  0.0011  0.0000
+    [plot] 06_features_mi_by_horizon.png
+    [plot] 07_features_mi_share_by_horizon.png
+
+========================================================================================
+SUMMARY
+========================================================================================
+Tanks by trust tier : {'degraded': np.int64(18), 'healthy': np.int64(4), 'dead': np.int64(2)}
+Plots written       : 7 -> /Users/harshamac/Documents/PES/capstone/capsem6/Capstone/results/refresh_2026-10-22/eda/plots_hourly
+Trust tiers         : /Users/harshamac/Documents/PES/capstone/capsem6/Capstone/results/refresh_2026-10-22/eda/tank_trust.json

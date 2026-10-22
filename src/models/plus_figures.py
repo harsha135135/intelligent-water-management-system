@@ -20,11 +20,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .style import GRID, INK, INK2, SURFACE, save
 from .unified_figures import COLOR, SEQ
 
-SEARCH = Path("results/chronos2/patchtst_search")
-PLUS = Path("results/chronos2/plus")
+SEARCH = RESULTS_DIR / "patchtst_search"
+PLUS = RESULTS_DIR / "plus"
 PLOTS = PLUS / "plots"
 
 HEAD_COLOR = {"StudentT": "#6d3fc4", "Laplace": "#a78bfa", "Normal": "#c4b5fd"}

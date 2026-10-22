@@ -212,7 +212,7 @@ def test_output_schema_matches_the_benchmark():
 def test_only_the_209m_size_is_on_the_roster():
     assert MODEL_NAME == "Timestral-209M-ZS" == ua.TIMESTRAL
     assert MODEL_NAME in ua.ORDER
-    assert ua.ADDED_LATER == [TIMESFM, MODEL_NAME]
+    assert ua.ADDED_LATER[:2] == [TIMESFM, MODEL_NAME]           # later arrivals only append
     assert ua.FAMILY[MODEL_NAME] == "foundation"
     assert MODEL_NAME in ua.LABEL and MODEL_NAME in ua.SHORT
     off = [model_name(s) for s in SIZES if s != "209M"]
@@ -253,8 +253,8 @@ def test_adding_timestral_redraws_neither_published_significance_table():
         return fn(s)
 
     try:
-        sig_a, tfm_a, tsl_a = draw(without)
-        sig_b, tfm_b, tsl_b = draw(scored)
+        sig_a, tfm_a, tsl_a, _ = draw(without)
+        sig_b, tfm_b, tsl_b, _ = draw(scored)
         # The same drawn naively - every opponent in one Chronos-2 pass, TimesFM's after - shows
         # the guard is load-bearing: TimesFM's intervals would move.
         naive_tfm = draw(scored, lambda s: (ua.significance_vs_all(s), ua.significance_vs_all(
@@ -322,7 +322,7 @@ def test_timesfm_summary_keeps_its_published_keys():
                       TIMESFM: 0.65, MODEL_NAME: 0.62})
     try:
         significance.RNG = np.random.default_rng(significance.SEED)
-        sig, sig_tfm, sig_tsl = ua.draw_significance(scored)
+        sig, sig_tfm, sig_tsl, _ = ua.draw_significance(scored)
     finally:
         significance.RNG = np.random.default_rng(significance.SEED)
     lb = pd.DataFrame([{"model": m, "horizon": h, "rank_mase": i + 1, "coverage": 0.8}

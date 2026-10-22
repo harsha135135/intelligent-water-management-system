@@ -11,6 +11,8 @@ pyarrow
 # checkpoint revision is pinned in the module, and the weights (~0.9 GB) download to the standard
 # Hugging Face cache on first use - never into this repository.
 timesfm[torch]==3.0.2
+# The same release also ships TimesFM 3.0's code (``timesfm3``, src/models/timesfm3_forecasting.py).
+# 3.0's weights are non-commercial / non-production: it is a benchmark-only reference point.
 
 # Mistral Timestral zero-shot baseline (src/models/timestral_forecasting.py). Not on PyPI; pinned
 # to the GitHub commit the published Timestral numbers were produced with. Checkpoint revisions

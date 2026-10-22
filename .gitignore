@@ -49,6 +49,14 @@ results/chronos2/**/_model/
 results/chronos2/holdout45/
 results/chronos2/*.parquet
 results/chronos2/**/*.parquet
+# Any later study (PESU_RESULTS_DIR=results/<name>) follows the same rules.
+results/*/_*/
+results/*/**/_npts*/
+results/*/**/_model/
+results/*/**/_*cache/
+results/*/holdout45/
+results/*/**/*.parquet
+results/*/logs/
 *.pkl
 *.ckpt
 *.pt

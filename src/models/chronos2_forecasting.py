@@ -27,6 +27,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import (
     KNOWN_COVARIATES, PAST_COVARIATES, BacktestSpec, actuals_after, history_before,
 )
@@ -147,7 +148,7 @@ def main() -> None:
     ap.add_argument("--horizons", nargs="+", type=int, default=None)
     ap.add_argument("--context", type=int, default=2048)
     ap.add_argument("--device", default="mps")
-    ap.add_argument("--out-dir", default="results/chronos2")
+    ap.add_argument("--out-dir", default=str(RESULTS_DIR))
     ap.add_argument("--max-tanks", type=int, default=None)
     args = ap.parse_args()
 

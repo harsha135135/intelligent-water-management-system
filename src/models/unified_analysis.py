@@ -23,13 +23,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import EDA_DIR, RESULTS_DIR
 from .metrics import attach_scales
 from .significance import boot_ci as _boot_ci, dm_test as _dm_test
+from .timesfm3_forecasting import MANIFEST_NAME as TIMESFM3_MANIFEST
+from .timesfm3_forecasting import MODEL_NAME as TIMESFM3
 from .timesfm_forecasting import MODEL_NAME as TIMESFM
 from .timestral_forecasting import MANIFEST_NAME as TIMESTRAL_MANIFEST
 from .timestral_forecasting import MODEL_NAME as TIMESTRAL
 
-RESULTS = Path("results/chronos2")
+RESULTS = RESULTS_DIR
 OUT = RESULTS / "unified"
 PLOTS = OUT / "plots"
 
@@ -50,7 +53,7 @@ REFERENCE = "SeasonalNaive"
 # message, rather than silently joining the published tables.
 ORDER = [
     "Chronos2-ZS", "Chronos2-COV-XL", "Chronos2-COV", "Chronos2-COV-LEAN",
-    TIMESFM, TIMESTRAL,
+    TIMESFM, TIMESTRAL, TIMESFM3,
     "NPTS", "PatchTST-Tuned", "PatchTST", "ETS", "Theta", "DynamicOptimizedTheta",
     "SeasonalNaive",
 ]
@@ -61,7 +64,11 @@ ORDER = [
 # their original order, and later arrivals are appended - so adding a model can never re-draw the
 # intervals already published for the others. See draw_significance() for the same rule across
 # tables.
-ADDED_LATER = [TIMESFM, TIMESTRAL]
+ADDED_LATER = [TIMESFM, TIMESTRAL, TIMESFM3]
+
+# On the roster for comparison, but their weights' licence rules out a production system, so no
+# report may offer them as a deployment candidate. See timesfm3_forecasting.
+NOT_DEPLOYABLE = {TIMESFM3}
 
 LABEL = {
     "Chronos2-ZS": "Chronos-2 (zero-shot)",
@@ -70,6 +77,7 @@ LABEL = {
     "Chronos2-COV-XL": "Chronos-2 + covariates (XL)",
     TIMESFM: "TimesFM 2.5 (zero-shot)",
     TIMESTRAL: "Timestral 209M (zero-shot)",
+    TIMESFM3: "TimesFM 3.0 (zero-shot)",
     "NPTS": "NPTS",
     "PatchTST": "PatchTST (defaults)",
     "PatchTST-Tuned": "PatchTST (tuned)",
@@ -82,7 +90,7 @@ LABEL = {
 SHORT = {
     "Chronos2-ZS": "Chronos-2 ZS", "Chronos2-COV": "C2 +cov",
     "Chronos2-COV-LEAN": "C2 +cov lean", "Chronos2-COV-XL": "C2 +cov XL",
-    TIMESFM: "TimesFM 2.5 ZS", TIMESTRAL: "Timestral ZS",
+    TIMESFM: "TimesFM 2.5 ZS", TIMESTRAL: "Timestral ZS", TIMESFM3: "TimesFM 3.0 ZS",
     "NPTS": "NPTS", "PatchTST": "PatchTST", "PatchTST-Tuned": "PatchTST tuned",
     "ETS": "ETS", "Theta": "Theta", "DynamicOptimizedTheta": "DOTheta",
     "SeasonalNaive": "SeasNaive-24",
@@ -93,7 +101,7 @@ SHORT = {
 FAMILY = {
     "Chronos2-ZS": "foundation", "Chronos2-COV": "foundation",
     "Chronos2-COV-LEAN": "foundation", "Chronos2-COV-XL": "foundation",
-    TIMESFM: "foundation", TIMESTRAL: "foundation",
+    TIMESFM: "foundation", TIMESTRAL: "foundation", TIMESFM3: "foundation",
     "PatchTST": "trained deep", "PatchTST-Tuned": "trained deep",
     "NPTS": "statistical", "ETS": "statistical", "Theta": "statistical",
     "DynamicOptimizedTheta": "statistical", "SeasonalNaive": "reference",
@@ -246,20 +254,25 @@ def significance_vs_all(scored: pd.DataFrame, base: str = CHRONOS,
     return pd.DataFrame(rows)
 
 
-def draw_significance(scored: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Chronos-2 against every model, TimesFM against every non-foundation model, and Timestral
-    against every model but Chronos-2.
+def draw_significance(scored: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame,
+                                                     pd.DataFrame, pd.DataFrame]:
+    """Chronos-2 against every model, TimesFM 2.5 against every non-foundation model, Timestral
+    against every model but Chronos-2, and TimesFM 3.0 against every model but those two.
 
-    All three tables draw from one seeded stream, and TimesFM's table was first drawn straight
-    after the Chronos-2 table. A model that joined after TimesFM therefore has its Chronos-2 rows
-    drawn after both tables, and appended; Timestral's own table is drawn after that. So no
-    published interval is re-drawn. A pair already in an earlier table is not repeated in a later
-    one (Chronos-2 vs TimesFM, Chronos-2 vs Timestral): a second bootstrap of the same pair would
-    only add a second, slightly different interval.
+    All four tables draw from one seeded stream, and each model's draws come after every table
+    that existed before it joined. TimesFM 2.5's table was first drawn straight after the
+    Chronos-2 table; Timestral's Chronos-2 rows and then its own table were drawn after both; a
+    model that joined after Timestral (TimesFM 3.0) has its Chronos-2 rows drawn after Timestral's
+    table, and its own table last. Inside a table a later model is always visited after the
+    original opponents (``significance_vs_all``), so its rows are appended. So no published
+    interval is re-drawn. A pair already in an earlier table is not repeated in a later one: a
+    second bootstrap of the same pair would only add a second, slightly different interval.
     """
     models = _present(scored)
-    late = [m for m in ADDED_LATER[ADDED_LATER.index(TIMESFM) + 1:] if m in models]
-    sig = significance_vs_all(scored, opponents=[m for m in models if m not in late])
+    newer = [m for m in ADDED_LATER[ADDED_LATER.index(TIMESTRAL) + 1:] if m in models]
+    late = [m for m in ADDED_LATER[ADDED_LATER.index(TIMESFM) + 1:]
+            if m in models and m not in newer]
+    sig = significance_vs_all(scored, opponents=[m for m in models if m not in late + newer])
     sig_tfm = pd.DataFrame()
     if TIMESFM in models:
         sig_tfm = significance_vs_all(
@@ -271,7 +284,13 @@ def draw_significance(scored: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame,
     if TIMESTRAL in models:
         sig_tsl = significance_vs_all(scored, base=TIMESTRAL,
                                       opponents=[m for m in models if m != CHRONOS])
-    return sig, sig_tfm, sig_tsl
+    if newer:
+        sig = pd.concat([sig, significance_vs_all(scored, opponents=newer)], ignore_index=True)
+    sig_tfm3 = pd.DataFrame()
+    if TIMESFM3 in models:
+        sig_tfm3 = significance_vs_all(scored, base=TIMESFM3,
+                                       opponents=[m for m in models if m not in (CHRONOS, TIMESTRAL)])
+    return sig, sig_tfm, sig_tsl, sig_tfm3
 
 
 def _beaten_by_both(sig: pd.DataFrame, alpha: float = 0.05) -> list[str]:
@@ -318,7 +337,7 @@ def per_tank(scored: pd.DataFrame) -> pd.DataFrame:
         n=("actual", "size"), mae=("abs_err", "mean"), mase=("scaled_abs", "mean"),
         mean_actual=("actual", "mean"),
     ).reset_index().rename(columns={"item_id": "tank"})
-    tp = Path("eda/tank_trust.json")
+    tp = EDA_DIR / "tank_trust.json"
     if tp.exists():
         g["trust"] = g["tank"].map(json.loads(tp.read_text()))
     g["horizon_label"] = g["horizon"].map(HLABEL)
@@ -409,7 +428,8 @@ def cost(lb: pd.DataFrame) -> pd.DataFrame:
             secs[k] = v.get("wall_clock_s")
             regime[k] = "zero-shot — no training"
             device[k] = man.get("device", "")
-    for name, f in ((TIMESFM, "timesfm_manifest.json"), (TIMESTRAL, TIMESTRAL_MANIFEST)):
+    for name, f in ((TIMESFM, "timesfm_manifest.json"), (TIMESTRAL, TIMESTRAL_MANIFEST),
+                    (TIMESFM3, TIMESFM3_MANIFEST)):
         q = RESULTS / f
         if q.exists():
             man = json.loads(q.read_text())
@@ -500,12 +520,14 @@ def main() -> None:
 
     # TimesFM and Timestral against their opponents by the same tests, drawn in the order that
     # keeps every published interval: see draw_significance().
-    sig, sig_tfm, sig_tsl = draw_significance(scored)
+    sig, sig_tfm, sig_tsl, sig_tfm3 = draw_significance(scored)
     _write(sig, "significance_vs_all.csv")
     if TIMESFM in models:
         _write(sig_tfm, "significance_timesfm.csv")
     if TIMESTRAL in models:
         _write(sig_tsl, "significance_timestral.csv")
+    if TIMESFM3 in models:
+        _write(sig_tfm3, "significance_timesfm3.csv")
 
     wm = win_matrix(scored)
     _write(wm, "win_matrix_all_horizons.csv")
@@ -561,6 +583,9 @@ def main() -> None:
         summary["timesfm"] = _challenger_summary(TIMESFM, "timesfm", sig, sig_tfm, lb, wm)
     if TIMESTRAL in models:
         summary["timestral"] = _challenger_summary(TIMESTRAL, "timestral", sig, sig_tsl, lb, wm)
+    if TIMESFM3 in models:
+        summary["timesfm3"] = _challenger_summary(TIMESFM3, "timesfm3", sig, sig_tfm3, lb, wm)
+        summary["timesfm3"]["deployable"] = False
     (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
     print("\n" + json.dumps(summary, indent=2)[:4000])
 

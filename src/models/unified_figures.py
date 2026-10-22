@@ -24,6 +24,13 @@ that marks dead sensors and negative p10s. Against every model colour the green'
 normal-vision deltaE is 16.8 and its worst CVD deltaE 8.3 (both against ETS's ochre); against
 Chronos-2 zero-shot they are 29.2 and 27.7.
 
+TimesFM 3.0, a benchmark-only entry (its weights' licence rules out production), is drawn in a
+lighter shade of TimesFM 2.5's magenta (``#b06498``), the way the Chronos-2 variants share a blue:
+a fourteenth distinct hue does not exist in this set (the only ones that clear every gate are
+saturated blues, which would read as Chronos-2). Against every colour but TimesFM 2.5's its worst
+normal-vision deltaE is 15.5 and its worst CVD deltaE 9.0; against TimesFM 2.5 they are 12.8 and
+9.0, wider than the 9.9 between neighbouring Chronos-2 shades. Its labels carry the name.
+
 Reads only the CSVs written by ``unified_analysis``; recomputes nothing.
 
     python -m src.models.unified_figures     # ~25 s -> results/chronos2/unified/plots/
@@ -45,7 +52,7 @@ from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 from .unified_analysis import (
     CHRONOS, FAMILY, HLABEL, HORIZONS, INCUMBENT, LABEL, ORDER, OUT, PLOTS, REFERENCE, SHORT,
-    TIMESFM, TIMESTRAL,
+    TIMESFM, TIMESFM3, TIMESTRAL,
 )
 
 # The covariate variants of the production candidate: near-identical to it by construction.
@@ -61,7 +68,7 @@ GRID = "#e6e5e1"
 COLOR = {
     "Chronos2-ZS": "#2a78d6", "Chronos2-COV-XL": "#5598e7",
     "Chronos2-COV": "#82b6f0", "Chronos2-COV-LEAN": "#a8ccf4",
-    TIMESFM: "#b0177f", TIMESTRAL: "#206000",
+    TIMESFM: "#b0177f", TIMESTRAL: "#206000", TIMESFM3: "#b06498",
     "PatchTST-Tuned": "#6d3fc4", "PatchTST": "#a78bfa",
     "NPTS": "#eb6834",
     "ETS": "#8a6d3b", "Theta": "#b08a4f", "DynamicOptimizedTheta": "#cbab77",
@@ -195,7 +202,8 @@ def u1_leaderboard(lb: pd.DataFrame) -> None:
     ax.set_xlim(HORIZONS[0] * 0.88, HORIZONS[-1] * 3.4)
     _end_labels(ax, ends)
     _title(ax, "Every model, every horizon",
-           "Macro MASE on the identical 188,664 rows. The four Chronos-2 variants coincide — "
+           f"Macro MASE on the identical {int(lb[lb.model == CHRONOS]['rows'].sum()):,} rows. "
+           "The four Chronos-2 variants coincide — "
            "labels are pushed apart to stay legible, the lines are not.")
     _save(fig, "U1_leaderboard_mase")
 
@@ -321,8 +329,9 @@ def u4_win_matrix(wm: pd.DataFrame) -> None:
     ax.set_xlabel("…against this model")
     ax.set_ylabel("this model wins % of cells…")
     ax.grid(False)
-    fig.colorbar(im, ax=ax, shrink=0.7, label="% of 144 tank × horizon cells won", pad=0.02)
-    _title(ax, "Head-to-head, all 144 tank × horizon cells",
+    cells = int(wm["cells"].max())
+    fig.colorbar(im, ax=ax, shrink=0.7, label=f"% of {cells} tank × horizon cells won", pad=0.02)
+    _title(ax, f"Head-to-head, all {cells} tank × horizon cells",
            "Read a row: how often that model beats each other model on per-tank MAE. 50 = a tie.")
     _save(fig, "U4_win_matrix")
 
@@ -370,7 +379,7 @@ def u6_skill(sk: pd.DataFrame) -> None:
         lead = m == CHRONOS
         ax.scatter(g.mean_actual, g.skill, s=52 if lead else 26, color=COLOR[m],
                    ec=SURFACE, lw=1.1, alpha=1 if lead else 0.66, zorder=4 if lead else 3,
-                   label=SHORT[m] if lead or m in (TIMESFM, TIMESTRAL, INCUMBENT,
+                   label=SHORT[m] if lead or m in (TIMESFM, TIMESTRAL, TIMESFM3, INCUMBENT,
                                                    "PatchTST-Tuned")
                    else None)
     ax.axhline(0, color=INK2, lw=1.2, zorder=2)
@@ -382,8 +391,13 @@ def u6_skill(sk: pd.DataFrame) -> None:
     ax.set_ylabel("skill vs SeasonalNaive-24  (1 − MAE ratio)")
     ax.legend(frameon=False, loc="lower right", fontsize=9)
     _title(ax, "Skill against the naive reference, every tank and every model",
-           "Every Chronos-2 point is above zero on all 24 tanks — including the dead sensors, "
-           "which is what the 'flattered average' objection asks about.")
+           (f"Every Chronos-2 point is above zero on all {sk.tank.nunique()} tanks — "
+            "including the dead sensors, "
+            if (sk[sk.model.str.startswith("Chronos2")]["skill"] > 0).all() else
+            f"Chronos-2 zero-shot is above zero on "
+            f"{int((sk[sk.model == CHRONOS]['skill'] > 0).sum())} of {sk.tank.nunique()} tanks — "
+            "including the dead sensors, ")
+           + "which is what the 'flattered average' objection asks about.")
     _save(fig, "U6_skill_vs_demand")
 
 
@@ -463,6 +477,8 @@ def u8_cost(ca: pd.DataFrame) -> None:
         others = [f"TimesFM 2.5 {cpu[TIMESFM]:.0f} s"]
         if TIMESTRAL in cpu.index:
             others.append(f"Timestral 209M {cpu[TIMESTRAL]:.0f} s")
+        if TIMESFM3 in cpu.index:
+            others.append(f"TimesFM 3.0 {cpu[TIMESFM3]:.0f} s")
         sub += f" Same CPU: Chronos-2 zero-shot {cpu[CHRONOS]:.0f} s, {', '.join(others)}."
     # Labels of the near-coincident Chronos-2 points are pushed apart vertically; leave them
     # room inside the axes rather than letting the lowest one land on the x-axis.
@@ -527,7 +543,9 @@ def u10_diurnal(dn: pd.DataFrame) -> None:
     ax2.set_ylabel("mean demand (KL/h)", color=INK2)
     ax2.grid(False)
     _title(axes[0], "Error tracks demand, hour by hour")
-    _title(axes[1], "The under-forecast is present in every hour")
+    c2 = dn[dn.model == CHRONOS]
+    _title(axes[1], "The under-forecast is present in every hour" if (c2["bias"] > 0).all()
+           else "Signed bias, hour by hour")
     # This many lines cannot be told apart by colour alone: one shared legend under both panels.
     from matplotlib.lines import Line2D
     handles = [Line2D([], [], color=COLOR[m], lw=2.4 if m == CHRONOS else 1.6, label=SHORT[m])
@@ -579,7 +597,8 @@ def u11_zero_inflation(zi: pd.DataFrame) -> None:
              f"{z.zero_fraction*100:.0f}% of hourly readings are exactly zero. Chronos-2 places "
              f"p10 above zero on {z.p10_above_zero_pct:.0f}% of rows, so "
              f"{z.below_misses_that_are_zero*100:.0f}% of its lower-tail misses are zero-demand "
-             f"hours. Clamping reaches {z.coverage_if_p10_clamped:.3f} — past nominal — which is "
+             f"hours. Clamping reaches {z.coverage_if_p10_clamped:.3f} — "
+             f"{'past' if z.coverage_if_p10_clamped > 0.8 else 'short of'} nominal — which is "
              f"why the fix is asymmetric conformal calibration, not a clamp.",
              ha="center", va="top", fontsize=9, color=INK2, wrap=True)
     _save(fig, "U11_zero_inflation")
@@ -611,6 +630,7 @@ def u12_volume_bias(lb: pd.DataFrame) -> None:
     over = sorted(m for m in d24.index if d24[m] > 0)
     tfm = f", TimesFM 2.5 {d24[TIMESFM]:+.1f}%" if TIMESFM in d24.index else ""
     tfm += f", Timestral {d24[TIMESTRAL]:+.1f}%" if TIMESTRAL in d24.index else ""
+    tfm += f", TimesFM 3.0 {d24[TIMESFM3]:+.1f}%" if TIMESFM3 in d24.index else ""
     _title(ax, "Signed volume bias — the number that sizes a refill",
            f"At 1 d every model under-forecasts except {' and '.join(SHORT[m] for m in over)}, "
            f"which sit near zero. Chronos-2 is {d24[CHRONOS]:+.1f}%{tfm}, the trained deep "

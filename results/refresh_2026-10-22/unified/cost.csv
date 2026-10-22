@@ -1,0 +1,15 @@
+model,family,regime,wall_clock_s,wall_clock_min,macro_mase_h24,coverage_h24,device,wall_clock_s_same_cpu
+Chronos2-ZS,foundation,zero-shot — no training,64.1,1.07,0.6939086031033995,0.7505227001194743,mps,72.3
+Chronos2-COV-XL,foundation,zero-shot — no training,837.9,13.96,0.6992204567276449,0.7516427718040621,mps,
+Chronos2-COV,foundation,zero-shot — no training,879.6,14.66,0.6981461718371472,0.7910692951015532,mps,
+Chronos2-COV-LEAN,foundation,zero-shot — no training,427.6,7.13,0.6963186062600704,0.7600059737156512,mps,
+TimesFM2.5-ZS,foundation,zero-shot — no training,166.7,2.78,0.726843313120407,0.8224313022700119,cpu,166.7
+Timestral-209M-ZS,foundation,zero-shot — no training,144.2,2.4,0.6800705197825451,0.8688022700119474,cpu,144.2
+TimesFM3-ZS,foundation,zero-shot — no training,143.6,2.39,0.7069436599799568,0.8464008363201911,cpu,143.6
+NPTS,statistical,fitted — five models in one AutoGluon pass,621.3,10.35,0.8305778265716018,0.8916517323775388,,
+PatchTST-Tuned,trained deep,"trained — 100 epochs, context 512 h",3711.0,61.85,1.0032375862751766,0.8238500597371565,,
+PatchTST,trained deep,"trained — 30 epochs, context 96 h",194.4,3.24,0.9989854052450505,0.7971923536439666,,
+ETS,statistical,fitted — five models in one AutoGluon pass,621.3,10.35,0.9753117020040047,0.8773148148148148,,
+Theta,statistical,fitted — five models in one AutoGluon pass,621.3,10.35,0.9603103532743864,0.9275686977299881,,
+DynamicOptimizedTheta,statistical,fitted — five models in one AutoGluon pass,621.3,10.35,0.9602956333873265,0.9276433691756273,,
+SeasonalNaive,reference,fitted — five models in one AutoGluon pass,621.3,10.35,0.9954138350800602,0.8800029868578255,,

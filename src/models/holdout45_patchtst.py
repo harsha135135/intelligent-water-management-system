@@ -26,13 +26,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import KNOWN_COVARIATES, actuals_after, history_before
 from .holdout45_continuous import HORIZON, TARGET, build_origins
 from .patchtst_benchmark import PRESETS, _to_tsdf
 
 logger = logging.getLogger(__name__)
 
-OUT = Path("results/chronos2/holdout45_patchtst")
+OUT = RESULTS_DIR / "holdout45_patchtst"
 
 
 def patchtst(panel, origins, *, hyperparameters, context, time_limit, model_dir, label):
@@ -80,7 +81,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--days", type=int, default=45)
     ap.add_argument("--preset", choices=sorted(PRESETS) + ["searched"], default="tuned")
-    ap.add_argument("--config", default="results/chronos2/patchtst_search/best_config.json")
+    ap.add_argument("--config", default=str(RESULTS_DIR / "patchtst_search" / "best_config.json"))
     ap.add_argument("--context", type=int, default=2048)
     ap.add_argument("--time-limit", type=int, default=1800)
     ap.add_argument("--label", default="PatchTST")

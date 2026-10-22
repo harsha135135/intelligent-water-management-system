@@ -30,6 +30,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import KNOWN_COVARIATES, BacktestSpec, actuals_after, history_before
 
 logger = logging.getLogger(__name__)
@@ -131,12 +132,12 @@ def main() -> None:
                     help="With --preset searched: epochs for the final full-budget refit.")
     ap.add_argument("--batches-final", type=int, default=200)
     ap.add_argument("--preset", choices=sorted(PRESETS) + ["searched"], default="default")
-    ap.add_argument("--config", default="results/chronos2/patchtst_search/best_config.json",
+    ap.add_argument("--config", default=str(RESULTS_DIR / "patchtst_search" / "best_config.json"),
                     help="With --preset searched: the config the hyperparameter search selected.")
     ap.add_argument("--label", default=None,
                     help="Name written into the model column (default: the preset's name).")
-    ap.add_argument("--out-dir", default="results/chronos2")
-    ap.add_argument("--model-dir", default="results/chronos2/_patchtst_models")
+    ap.add_argument("--out-dir", default=str(RESULTS_DIR))
+    ap.add_argument("--model-dir", default=str(RESULTS_DIR / "_patchtst_models"))
     ap.add_argument("--out-name", default="predictions_PatchTST.parquet")
     ap.add_argument("--manifest-name", default="patchtst_manifest.json")
     ap.add_argument("--max-tanks", type=int, default=None)

@@ -29,12 +29,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import DATASET_DIR
 from .calendar_pesu import add_academic_features
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATASET_DIR = PROJECT_ROOT / "dataset"
 
 TARGET_COL = "Outflow in KL"
 ITEM_ID_COL = "item_id"
@@ -79,18 +79,20 @@ def apply_tank_aliases(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def reindex_gapless_hourly(df: pd.DataFrame) -> pd.DataFrame:
-    """Reindex each tank onto a complete hourly range between its own first and last reading.
+    """Reindex each tank onto a complete hourly range from its own first reading to the end of
+    the panel.
 
     Missing hours become NaN rather than being dropped. Chronos-2 tolerates NaN in the target
     (it masks them); silently collapsing the gap instead would shift every subsequent timestamp
-    and corrupt the 24-hour seasonality.
+    and corrupt the 24-hour seasonality. A sensor that stops before the panel ends is held open
+    the same way, so every tank has a full future window at every origin (a covariate model
+    needs one) and its missing hours drop out of every model's score alike.
     """
+    panel_end = df[TIMESTAMP_COL].max()
     frames = []
     for item_id, group in df.groupby(ITEM_ID_COL, sort=True):
         group = group.sort_values(TIMESTAMP_COL).drop_duplicates(TIMESTAMP_COL, keep="last")
-        full = pd.date_range(
-            group[TIMESTAMP_COL].iloc[0], group[TIMESTAMP_COL].iloc[-1], freq="h"
-        )
+        full = pd.date_range(group[TIMESTAMP_COL].iloc[0], panel_end, freq="h")
         group = group.set_index(TIMESTAMP_COL).reindex(full)
         group.index.name = TIMESTAMP_COL
         group[ITEM_ID_COL] = item_id

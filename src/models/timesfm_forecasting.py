@@ -14,8 +14,9 @@ the 2.0.x release lacks.
 
 TimesFM 3.0 (``google/timesfm-3.0-pytorch``) is newer, but its weights are licensed for
 non-commercial, non-production use only. This benchmark exists to choose the model for a campus
-system that will run in production, so the checkpoint that could actually be deployed is the one
-evaluated.
+system that will run in production, so 2.5 - the checkpoint that could actually be deployed - is
+the TimesFM the published study evaluated. 3.0 was later added as a benchmark-only reference point
+(``timesfm3_forecasting``), never a deployment candidate.
 
 Protocol - the same as ``Chronos2-ZS``
 --------------------------------------
@@ -68,6 +69,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import BacktestSpec, actuals_after, history_before
 
 logger = logging.getLogger(__name__)
@@ -93,7 +95,7 @@ FORECAST_FLAGS = {
     "fix_quantile_crossing": True,
 }
 
-CACHE_DIR = Path("results/chronos2/_timesfm_cache")
+CACHE_DIR = RESULTS_DIR / "_timesfm_cache"
 MANIFEST_NAME = "timesfm_manifest.json"
 PARTIAL_DIR_NAME = "_timesfm_partial"
 
@@ -460,7 +462,7 @@ def main() -> None:
     ap.add_argument("--batch-size", type=int, default=32,
                     help="Series per forward pass; capped at the tank count. Speed only - "
                          "each series is forecast independently of the others in its batch.")
-    ap.add_argument("--out-dir", default="results/chronos2")
+    ap.add_argument("--out-dir", default=str(RESULTS_DIR))
     ap.add_argument("--max-tanks", type=int, default=None)
     ap.add_argument("--cache-dir", default=str(CACHE_DIR))
     ap.add_argument("--no-cache", action="store_true",

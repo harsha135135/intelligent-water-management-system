@@ -1,0 +1,27 @@
+{
+  "hyperparameters": {
+    "SeasonalNaive": {},
+    "NPTS": {},
+    "ETS": {},
+    "Theta": {},
+    "DynamicOptimizedTheta": {}
+  },
+  "time_limit": 600,
+  "context": 2048,
+  "fit_cutoff": "2026-03-24 22:00:00",
+  "seconds_per_horizon": {
+    "6": 230.4,
+    "12": 302.0,
+    "24": 298.1,
+    "48": 224.7,
+    "72": 113.6,
+    "168": 409.8
+  },
+  "models": [
+    "DynamicOptimizedTheta",
+    "ETS",
+    "NPTS",
+    "SeasonalNaive",
+    "Theta"
+  ]
+}

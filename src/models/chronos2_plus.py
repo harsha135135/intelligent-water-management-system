@@ -44,12 +44,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import RESULTS_DIR
 from .backtest import BacktestSpec, TARGET_COL, make_spec
 from .metrics import attach_scales
 
 logger = logging.getLogger(__name__)
 
-RESULTS = Path("results/chronos2")
+RESULTS = RESULTS_DIR
 OUT = RESULTS / "plus"
 CHRONOS = "Chronos2-ZS"
 HORIZONS = [6, 12, 24, 48, 72, 168]

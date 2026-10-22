@@ -1,0 +1,6 @@
+model,rows,max_abs_pred_diff
+DynamicOptimizedTheta,190080,0.0
+ETS,190080,0.0
+NPTS,190080,0.0
+SeasonalNaive,190080,0.0
+Theta,190080,0.0

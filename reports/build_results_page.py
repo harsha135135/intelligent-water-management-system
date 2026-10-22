@@ -15,10 +15,19 @@ import base64
 import html
 import json
 import pathlib
+import sys
 
 import pandas as pd
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from src.config import IS_PUBLISHED  # noqa: E402
+
+if not IS_PUBLISHED:
+    # Its prose interprets the published window; on another study it would state claims the data
+    # may not support. A second study's report is FINAL_ANALYSIS.md, generated beside its results.
+    raise SystemExit(f"{pathlib.Path(__file__).name} builds the published study only "
+                     "(PESU_RESULTS_DIR is set)")
 U = ROOT / "results/chronos2/unified"
 UP = U / "plots"
 H45 = ROOT / "results/chronos2/calibrated"

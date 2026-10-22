@@ -34,6 +34,7 @@ INCUMBENT = "NPTS"
 REFERENCE = "SeasonalNaive"
 TIMESFM = "TimesFM2.5-ZS"
 TIMESTRAL = "Timestral-209M-ZS"
+TIMESFM3 = "TimesFM3-ZS"
 
 HORIZONS = [6, 12, 24, 48, 72, 168]
 HLABEL = {6: "6h", 12: "12h", 24: "24h", 48: "48h", 72: "72h", 168: "168h"}
@@ -41,10 +42,10 @@ HLABEL = {6: "6h", 12: "12h", 24: "24h", 48: "48h", 72: "72h", 168: "168h"}
 # TimesFM's magenta and Timestral's dark green are validated against the three identity colours
 # above and every other colour in the unified figures (see unified_figures' module docstring).
 COLOR = {CHRONOS: "#2a78d6", INCUMBENT: "#eb6834", REFERENCE: "#1baf7a", TIMESFM: "#b0177f",
-         TIMESTRAL: "#206000"}
+         TIMESTRAL: "#206000", TIMESFM3: "#b06498"}
 LABEL = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
          REFERENCE: "SeasonalNaive-24", TIMESFM: "TimesFM 2.5 (zero-shot)",
-         TIMESTRAL: "Timestral 209M (zero-shot)"}
+         TIMESTRAL: "Timestral 209M (zero-shot)", TIMESFM3: "TimesFM 3.0 (zero-shot)"}
 
 SEQ_BLUE = LinearSegmentedColormap.from_list(
     "seq_blue", ["#cde2fb", "#9ec5f4", "#5598e7", "#2a78d6", "#1c5cab", "#0d366b"])

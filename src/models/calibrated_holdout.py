@@ -23,15 +23,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ..config import EDA_DIR, RESULTS_DIR
 from . import calibration as cal
 from .holdout45_continuous import (
-    CHRONOS, HORIZON, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL, build_origins, chronos2, npts,
-    seasonal_naive, timesfm, timestral,
+    CHRONOS, HORIZON, INCUMBENT, REFERENCE, TIMESFM, TIMESFM3, TIMESTRAL, build_origins, chronos2,
+    npts, seasonal_naive, timesfm, timesfm3, timestral,
 )
 
 logger = logging.getLogger(__name__)
 
-OUT = Path("results/chronos2/calibrated")
+OUT = RESULTS_DIR / "calibrated"
 CAL_DAYS, TEST_DAYS = 60, 45
 
 
@@ -127,7 +128,8 @@ def daily_summary(daily: pd.DataFrame, preds: pd.DataFrame) -> pd.DataFrame:
 PER_MODEL_TABLES = ["bias_factors.csv", "conformal_offsets.csv", "calibration_effect.csv",
                     "calibration_effect_insample.csv", "daily_band.csv", "daily_campus.csv",
                     "daily_band_per_tank.csv", "daily_per_tank.csv", "summary.csv"]
-ADDABLE = {"timesfm": (TIMESFM, timesfm), "timestral": (TIMESTRAL, timestral)}
+ADDABLE = {"timesfm": (TIMESFM, timesfm), "timestral": (TIMESTRAL, timestral),
+           "timesfm3": (TIMESFM3, timesfm3)}
 
 
 def calibrate(cal_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
@@ -313,6 +315,19 @@ def main() -> None:
 
 # ---------------------------------------------------------------- figures
 
+def _windows() -> tuple[list[pd.Timestamp], list[pd.Timestamp], int]:
+    """Calibration window, reported window and reported days, read from the run's manifest so
+    no caption states a date the run did not use."""
+    man = json.loads((OUT / "manifest.json").read_text())
+    return ([pd.Timestamp(x) for x in man["calibration_window"]],
+            [pd.Timestamp(x) for x in man["reported_window"]], int(man["test_days"]))
+
+
+def _span(window: list[pd.Timestamp], *, year: bool = False) -> str:
+    a, b = window
+    return f"{a.day} {a:%b} – {b.day} {b:%b}" + (f" {b:%Y}" if year else "")
+
+
 def plot_all() -> None:
     """Actual vs calibrated forecast over the reported window, one figure per model."""
     import matplotlib
@@ -325,20 +340,24 @@ def plot_all() -> None:
     daily = pd.read_csv(OUT / "daily_campus.csv", parse_dates=["day"])
     summ = pd.read_csv(OUT / "summary.csv").set_index("model")
     eff = pd.read_csv(OUT / "calibration_effect.csv").set_index("model")
+    band = pd.read_csv(OUT / "daily_band.csv").set_index("model")
+    resid = pd.read_csv(OUT / "conformal_offsets.csv").groupby("model")["n"].median()
+    cal_w, rep_w, n_days = _windows()
 
     col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
            REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM],
-           TIMESTRAL: COLOR[TIMESTRAL]}
+           TIMESTRAL: COLOR[TIMESTRAL], TIMESFM3: COLOR[TIMESFM3]}
     label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
              REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)",
-             TIMESTRAL: "Timestral 209M (zero-shot)"}
+             TIMESTRAL: "Timestral 209M (zero-shot)", TIMESFM3: "TimesFM 3.0 (zero-shot)"}
     fname = {CHRONOS: "X_holdout45_chronos2_calibrated",
              INCUMBENT: "Y_holdout45_npts_calibrated",
              REFERENCE: "Z_holdout45_seasonal_naive_calibrated",
              TIMESFM: "T_holdout45_timesfm_calibrated",
-             TIMESTRAL: "TS_holdout45_timestral_calibrated"}
+             TIMESTRAL: "TS_holdout45_timestral_calibrated",
+             TIMESFM3: "T3_holdout45_timesfm3_calibrated"}
     # A model gets a panel only if the run actually holds its predictions.
-    models = [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL)
+    models = [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL, TIMESFM3)
               if m in set(daily["model"])]
 
     ymax = max(daily["actual_kl"].max(), daily["band_hi"].max()) * 1.16
@@ -367,10 +386,11 @@ def plot_all() -> None:
         ax.plot(g["day"], g["pred_kl"], color=c, lw=2.1, ls="--", zorder=3,
                 label="Predicted — calibrated")
         ax.set_ylim(0, ymax)
-        ax.set_yticks([0, 100, 200, 300])
+        # Ticks span the observed demand; the extra headroom above them holds the stats box.
+        ax.set_yticks(np.arange(0, daily["actual_kl"].max() + 1, 100))
         ax.set_ylabel("Campus demand per day (KL)")
         ax.legend(frameon=False, fontsize=8.3, loc="lower left", ncol=2)
-        ax.set_title(f"{label[model]} — calibrated, 45 consecutive days",
+        ax.set_title(f"{label[model]} — calibrated, {n_days} consecutive days",
                      fontsize=11.5, color=INK, loc="left")
 
         box = (f"                raw     calibrated\n"
@@ -401,21 +421,21 @@ def plot_all() -> None:
         # which it does not hold gets a different sentence rather than a false one.
         falls = "falls" if abs(s.total_bias_pct) < abs(s.total_bias_raw_pct) else "rises"
         if s.daily_band_coverage < 0.8:
-            nominal = (", short of nominal — 56 calibration days cannot pin down a daily-total "
-                       "percentile across a regime change")
+            nominal = (f", short of nominal — {int(band.loc[model, 'n_days'])} calibration days "
+                       "cannot pin down a daily-total percentile across a regime change")
         else:
             nominal = ", at nominal" if s.daily_band_coverage == 0.8 else ", above nominal"
         hourly_gap, daily_gap = abs(e.coverage_cal - 0.8), abs(s.daily_band_coverage - 0.8)
         transfer = ("transfer far better" if daily_gap > 2 * hourly_gap else
                     "transfer better" if daily_gap > hourly_gap else "do no better")
-        _caption(fig, f"Corrections are fitted on 8 Jan – 8 Mar 2026 and reported here on "
-                      f"9 Mar – 22 Apr, a strictly later and disjoint window, so nothing on this "
+        _caption(fig, f"Corrections are fitted on {_span(cal_w, year=True)} and reported here on "
+                      f"{_span(rep_w)}, a strictly later and disjoint window, so nothing on this "
                       f"chart is measured on data the calibration saw. Volume bias {falls} from "
                       f"{s.total_bias_raw_pct:+.1f}% to {s.total_bias_pct:+.1f}% and daily MAE from "
                       f"{s.daily_mae_raw_kl:.1f} to {s.daily_mae_kl:.1f} KL. The shaded band is a "
                       f"conformal 80% interval for the daily total, also fitted on the earlier "
-                      f"window; it covers {100*s.daily_band_coverage:.0f}% of these 45 days"
-                      f"{nominal}. The hourly intervals, fitted on ~1,400 residuals "
+                      f"window; it covers {100*s.daily_band_coverage:.0f}% of these {n_days} days"
+                      f"{nominal}. The hourly intervals, fitted on ~{round(resid[model], -2):,.0f} residuals "
                       f"per tank, {transfer} ({e.coverage_raw:.3f} to {e.coverage_cal:.3f}).",
                  y=-0.015)
         for ext in ("png", "svg"):
@@ -426,7 +446,7 @@ def plot_all() -> None:
 
 # ---------------------------------------------------------------- per-tank view
 
-REPRESENTATIVE = Path("results/chronos2/representative_tanks.json")
+REPRESENTATIVE = RESULTS_DIR / "representative_tanks.json"
 
 
 def daily_per_tank(preds: pd.DataFrame) -> pd.DataFrame:
@@ -476,7 +496,7 @@ def plot_per_tank() -> None:
 
     tank_daily = pd.read_csv(OUT / "daily_per_tank.csv", parse_dates=["day"])
     band = pd.read_csv(OUT / "daily_band_per_tank.csv")
-    trust = json.loads(Path("eda/tank_trust.json").read_text())
+    trust = json.loads((EDA_DIR / "tank_trust.json").read_text())
 
     d = tank_daily.merge(band, on=["model", "item_id"], how="left")
     d["band_lo"] = np.clip(d["pred_kl"] + d["d_lo"], 0.0, None)
@@ -484,15 +504,16 @@ def plot_per_tank() -> None:
 
     col = {CHRONOS: COLOR["Chronos2-ZS"], INCUMBENT: COLOR["NPTS"],
            REFERENCE: COLOR["SeasonalNaive"], TIMESFM: COLOR[TIMESFM],
-           TIMESTRAL: COLOR[TIMESTRAL]}
+           TIMESTRAL: COLOR[TIMESTRAL], TIMESFM3: COLOR[TIMESFM3]}
     label = {CHRONOS: "Chronos-2 (zero-shot)", INCUMBENT: "NPTS (incumbent)",
              REFERENCE: "SeasonalNaive-24 (reference)", TIMESFM: "TimesFM 2.5 (zero-shot)",
-             TIMESTRAL: "Timestral 209M (zero-shot)"}
+             TIMESTRAL: "Timestral 209M (zero-shot)", TIMESFM3: "TimesFM 3.0 (zero-shot)"}
     fname = {CHRONOS: "X_tanks45_chronos2", INCUMBENT: "Y_tanks45_npts",
              REFERENCE: "Z_tanks45_seasonal_naive", TIMESFM: "T_tanks45_timesfm",
-             TIMESTRAL: "TS_tanks45_timestral"}
+             TIMESTRAL: "TS_tanks45_timestral", TIMESFM3: "T3_tanks45_timesfm3"}
 
-    for model in [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL)
+    cal_w, rep_w, n_days = _windows()
+    for model in [m for m in (CHRONOS, INCUMBENT, REFERENCE, TIMESFM, TIMESTRAL, TIMESFM3)
                   if m in set(d["model"])]:
         c = col[model]
         fig, axes = plt.subplots(2, 2, figsize=(12.4, 6.8))
@@ -537,15 +558,15 @@ def plot_per_tank() -> None:
                    plt.Rectangle((0, 0), 1, 1, fc=c, alpha=0.16, label="conformal band")]
         fig.legend(handles=handles, loc="upper left", bbox_to_anchor=(0.012, 0.925),
                    frameon=False, fontsize=8.4, ncol=4)
-        fig.suptitle(f"{label[model]} — four representative tanks, 45 consecutive days",
+        fig.suptitle(f"{label[model]} — four representative tanks, {n_days} consecutive days",
                      fontsize=11.5, color=INK, x=0.012, ha="left", y=0.97)
 
-        _caption(fig, "Daily demand per tank, 9 Mar – 22 Apr 2026. Tanks are the repository's "
+        _caption(fig, f"Daily demand per tank, {_span(rep_w, year=True)}. Tanks are the repository's "
                       "existing representative set — highest, median and lowest demand among live "
                       "tanks plus the highest-MASE tank — chosen by measured role, not by hand, so "
                       "the panel cannot be cherry-picked. Each panel has its own y-scale: these "
                       "tanks span two orders of magnitude of demand. Corrections are fitted on the "
-                      "earlier, disjoint 8 Jan – 8 Mar window. Shaded columns are days below 95% "
+                      f"earlier, disjoint {_span(cal_w)} window. Shaded columns are days below 95% "
                       "sensor coverage.", y=-0.015)
         for ext in ("png", "svg"):
             fig.savefig(plots / f"{fname[model]}.{ext}")
