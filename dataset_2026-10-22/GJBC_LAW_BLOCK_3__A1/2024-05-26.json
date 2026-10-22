@@ -1,0 +1,133 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC LAW BLOCK 3  A1",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "190.000 cm(Height) X 462.000 cm(Length) X 287.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2024-05-26 07",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.09,
+      "Closing Value in KL": 3.09
+    },
+    {
+      "Date Time": "2024-05-26 08",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.09,
+      "Closing Value in KL": 3.09
+    },
+    {
+      "Date Time": "2024-05-26 09",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.09,
+      "Closing Value in KL": 3.09
+    },
+    {
+      "Date Time": "2024-05-26 10",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.09,
+      "Closing Value in KL": 3.09
+    },
+    {
+      "Date Time": "2024-05-26 11",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.09,
+      "Closing Value in KL": 3.11
+    },
+    {
+      "Date Time": "2024-05-26 12",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.11,
+      "Closing Value in KL": 3.11
+    },
+    {
+      "Date Time": "2024-05-26 13",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.11,
+      "Closing Value in KL": 3.12
+    },
+    {
+      "Date Time": "2024-05-26 14",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.12,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 15",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 16",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 17",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 18",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 19",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 20",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 21",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 22",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.13
+    },
+    {
+      "Date Time": "2024-05-26 23",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 3.13,
+      "Closing Value in KL": 3.12
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0,
+    "Outflow in KL": 0
+  },
+  "units": "KL"
+}

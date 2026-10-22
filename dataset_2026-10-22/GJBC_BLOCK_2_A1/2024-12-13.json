@@ -1,0 +1,10 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "GJBC BLOCK 2 A1",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "185.000 cm(Height) X 524.000 cm(Length) X 120.000 cm(Breadth)",
+  "data": [],
+  "Total": {},
+  "units": "KL"
+}

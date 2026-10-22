@@ -1,0 +1,42 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "MM BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "200.000 cm(Height) X 150.0 cm(Radius)",
+  "data": [
+    {
+      "Date Time": "2024-09-10 01",
+      "Inflow in KL": 0.3,
+      "Outflow in KL": 0.16,
+      "Opening Value in KL": 4.49,
+      "Closing Value in KL": 4.49
+    },
+    {
+      "Date Time": "2024-09-10 03",
+      "Inflow in KL": 0.3,
+      "Outflow in KL": 0.16,
+      "Opening Value in KL": 0.75,
+      "Closing Value in KL": 0.75
+    },
+    {
+      "Date Time": "2024-09-10 04",
+      "Inflow in KL": 0.3,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 0.69,
+      "Closing Value in KL": 0.69
+    },
+    {
+      "Date Time": "2024-09-10 18",
+      "Inflow in KL": 0.3,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 8.34,
+      "Closing Value in KL": 8.34
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 1.2,
+    "Outflow in KL": 0.32
+  },
+  "units": "KL"
+}

@@ -1,0 +1,10 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "I&H BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "161.000 cm(Height) X 410.000 cm(Length) X 370.000 cm(Breadth)",
+  "data": [],
+  "Total": {},
+  "units": "KL"
+}

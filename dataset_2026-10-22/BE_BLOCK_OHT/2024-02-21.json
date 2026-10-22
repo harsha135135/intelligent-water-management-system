@@ -1,0 +1,98 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "BE BLOCK OHT",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "280.000 cm(Height) X 608.000 cm(Length) X 390.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2024-02-21 12",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 36.0,
+      "Closing Value in KL": 36.05
+    },
+    {
+      "Date Time": "2024-02-21 13",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 35.9,
+      "Closing Value in KL": 35.9
+    },
+    {
+      "Date Time": "2024-02-21 14",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 35.76,
+      "Closing Value in KL": 35.76
+    },
+    {
+      "Date Time": "2024-02-21 15",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 35.76,
+      "Closing Value in KL": 35.95
+    },
+    {
+      "Date Time": "2024-02-21 16",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 36.05,
+      "Closing Value in KL": 36.26
+    },
+    {
+      "Date Time": "2024-02-21 17",
+      "Inflow in KL": 2.8,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 36.26,
+      "Closing Value in KL": 38.18
+    },
+    {
+      "Date Time": "2024-02-21 18",
+      "Inflow in KL": 1.51,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 39.07,
+      "Closing Value in KL": 40.57
+    },
+    {
+      "Date Time": "2024-02-21 19",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 40.57,
+      "Closing Value in KL": 40.1
+    },
+    {
+      "Date Time": "2024-02-21 20",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 40.05,
+      "Closing Value in KL": 39.88
+    },
+    {
+      "Date Time": "2024-02-21 21",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 39.88,
+      "Closing Value in KL": 40.1
+    },
+    {
+      "Date Time": "2024-02-21 22",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 40.14,
+      "Closing Value in KL": 40.48
+    },
+    {
+      "Date Time": "2024-02-21 23",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 40.55,
+      "Closing Value in KL": 40.98
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 4.31,
+    "Outflow in KL": 0
+  },
+  "units": "KL"
+}

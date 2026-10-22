@@ -1,0 +1,10 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "IT BLOCK",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "123.000 cm(Height) X 280.000 cm(Length) X 130.000 cm(Breadth)",
+  "data": [],
+  "Total": {},
+  "units": "KL"
+}

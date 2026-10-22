@@ -1,0 +1,10 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "INFORMATION CENTRE",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cylindrical",
+  "Tank Dimensions": "113.000 cm(Height) X 54.0 cm(Radius)",
+  "data": [],
+  "Total": {},
+  "units": "KL"
+}

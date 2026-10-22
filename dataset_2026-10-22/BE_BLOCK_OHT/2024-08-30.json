@@ -1,0 +1,63 @@
+{
+  "Report Type": "daily",
+  "Tank Name": "BE BLOCK OHT",
+  "Tank Type": "overhead_tank",
+  "Tank Shape": "cuboidal",
+  "Tank Dimensions": "280.000 cm(Height) X 608.000 cm(Length) X 390.000 cm(Breadth)",
+  "data": [
+    {
+      "Date Time": "2024-08-30 07",
+      "Inflow in KL": 0,
+      "Outflow in KL": 1.51,
+      "Opening Value in KL": 53.0,
+      "Closing Value in KL": 51.88
+    },
+    {
+      "Date Time": "2024-08-30 08",
+      "Inflow in KL": 0,
+      "Outflow in KL": 3.62,
+      "Opening Value in KL": 51.49,
+      "Closing Value in KL": 47.88
+    },
+    {
+      "Date Time": "2024-08-30 10",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 39.64,
+      "Closing Value in KL": 39.64
+    },
+    {
+      "Date Time": "2024-08-30 12",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 38.92,
+      "Closing Value in KL": 38.92
+    },
+    {
+      "Date Time": "2024-08-30 13",
+      "Inflow in KL": 0.84,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 38.95,
+      "Closing Value in KL": 38.97
+    },
+    {
+      "Date Time": "2024-08-30 14",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 39.78,
+      "Closing Value in KL": 39.9
+    },
+    {
+      "Date Time": "2024-08-30 15",
+      "Inflow in KL": 0,
+      "Outflow in KL": 0,
+      "Opening Value in KL": 40.29,
+      "Closing Value in KL": 40.62
+    }
+  ],
+  "Total": {
+    "Inflow in KL": 0.84,
+    "Outflow in KL": 5.13
+  },
+  "units": "KL"
+}
