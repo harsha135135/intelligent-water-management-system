@@ -5,45 +5,146 @@
 **Guides:** Ms. Preet Kanwal · Mr. Prasad B Honnavalli
 **Team:** Abhay Patil · Amogh E M · Harshavardhan M · Viraj Ved Shankar
 
-Hourly water-demand forecasting for **24 distribution tanks** on the PES University RR campus,
-built on **Chronos-2** (`amazon/chronos-2`), a pretrained time-series foundation model used
-zero-shot — no training, no fine-tuning.
+Hourly water-demand forecasting for the **24 distribution tanks** on the PES University RR campus,
+from the campus's Waltr tank sensors. Fourteen forecasting models are compared on exactly the
+same data, in two separate evaluation windows six months apart, and the best one feeds the
+**Waltr forecast dock**, a browser extension that shows each tank's forecast.
 
 ---
 
-## Headline result
+## Final results
 
-Measured on a single rolling-origin grid where all thirteen models score the **same 188,664 rows**:
+### Recommendation
 
-| | Chronos-2 zero-shot vs the deployed incumbent (NPTS) |
-|---|---|
-| **MASE improvement** | **5.7 % – 12.5 %**, at every one of six horizons |
-| **Statistical significance** | Significant at **all six horizons**, by paired bootstrap (10,000 resamples over 24 origins) **and** Diebold–Mariano — all *p* < 0.01 |
-| **Beaten significantly at every horizon** | **7 of 12** opponents by both tests — every model outside the foundation family. TimesFM 2.5 is beaten at every horizon by the bootstrap, but Diebold–Mariano confirms it only at 7 d |
-| **Tank-horizon cells won** | **101 / 144** vs the incumbent; **144 / 144** vs every classical method |
-| **Healthy tanks significantly worse** | **0 / 15** — every significant loss is on a degraded or dead sensor |
-| **Skill vs seasonal-naive** | Positive on **all 24 tanks** |
-| **vs a PatchTST trained here** | **16.5 % – 18.6 % lower MASE** at every horizon, significant at all six, 120/144 cells |
-| **vs Google's TimesFM 2.5** (the second foundation model, zero-shot) | **2.7 % – 10.9 % lower MASE** at every horizon, 121/144 cells; lower error on every metric at every horizon. TimesFM ranks 6th of 13, behind Timestral and all four Chronos-2 variants — [§17](docs/review_summary.md#17-timesfm-comparison) |
-| **vs Mistral's Timestral 209M** (the third foundation model, zero-shot) | **The one model ahead of Chronos-2:** Chronos-2's MASE is **0.3 % – 0.9 % higher** at every horizon, and Chronos-2 wins only 39/144 cells. The bootstrap separates the two only at 3 d and 7 d, Diebold–Mariano at no horizon. Chronos-2 stays the production model — [§18](docs/review_summary.md#18-timestral-comparison) |
-| **Cost** | **89 seconds** for the entire backtest — the trained PatchTST needed 55 min, a **37×** difference. On the same CPU, Chronos-2 took 68 s, TimesFM 2.5 158 s and Timestral 209M 145 s |
+| Use | Model | Why |
+|---|---|---|
+| **Per-tank hourly forecast** (shipped in the extension) | **Timestral 209M**, zero-shot | Lowest error of all 14 models at every horizon, in both windows. In the second window its lead over Chronos-2 is confirmed by both significance tests at 1, 2 and 7 days ahead |
+| **Fallback, and daily campus totals** | **Chronos-2**, zero-shot | A close second. After calibration, its daily campus error is within 1 KL/day of Timestral's in both windows |
 
-Two caveats, both measured and both stated wherever the results appear:
+Both are *zero-shot*: pretrained foundation models used as they are, with no training on campus
+data. Every forecast also goes through a per-tank volume correction and calibrated 80 % intervals.
 
-- **Prediction intervals were overconfident** — p10–p90 covered **0.714–0.743** against a nominal
-  0.80. Cause identified here: **~24 % of hourly readings are exactly zero**, and a
-  continuous-density model puts its p10 above zero on 79 % of rows, so two-thirds of its
-  lower-tail misses are zero-demand hours. **Corrected** by asymmetric conformal calibration:
-  coverage **0.741 → 0.785**, measured on a disjoint later window. (TimesFM 2.5's raw intervals
-  cover 0.801–0.823 — the best-calibrated in the study — but its point forecasts are less
-  accurate at every horizon; Timestral 209M's cover 0.811–0.824.)
-- **24-hour volume was under-forecast by 12.15 %.** **Corrected** by a per-tank multiplicative
-  factor: **−10.5 % → −1.8 %**, cutting daily campus error from 36.7 to 28.8 KL. A refill should
-  still be sized on the calibrated interval, not the raw mean.
+The published study (first window) kept Chronos-2 as the production model because Timestral's
+lead was not yet confirmed. The second window confirmed it, so the
+[final analysis](results/refresh_2026-10-22/FINAL_ANALYSIS.md) recommends Timestral. The final
+choice is the team's.
 
-Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
-[`docs/review_summary.md`](docs/review_summary.md) ·
-[`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md)
+### The two evaluation windows
+
+| | Window 1 — published study | Window 2 — refresh study |
+|---|---|---|
+| Data | Waltr export, 1 Jan 2025 – 22 Apr 2026 (270,849 tank-hours) | Re-downloaded, 21 Feb 2024 – 21 Oct 2026 (520,936 tank-hours) |
+| Benchmark | 24 forecast start times, 24 Mar – 15 Apr 2026 | 24 forecast start times, 22 Sep – 14 Oct 2026 |
+| 45-day daily view | 9 Mar – 22 Apr 2026 | 7 Sep – 21 Oct 2026 |
+| Results | [`results/chronos2/`](results/chronos2/) | [`results/refresh_2026-10-22/`](results/refresh_2026-10-22/) |
+
+### Leaderboard
+
+Mean rank across the six horizons (1 = best of 14), and **MASE** one day ahead. MASE is the
+error relative to a "same hour yesterday" forecast: **below 1.0 is better than that, and lower
+is better**. MASE levels are not comparable *between* windows, because each window is scaled by
+its own history; ranks are.
+
+| Model | Kind | Rank, window 1 | Rank, window 2 | MASE 1 d, window 1 | MASE 1 d, window 2 |
+|---|---|---|---|---|---|
+| **Timestral 209M** | foundation, zero-shot | **1.0** | **1.0** | 0.653 | 0.680 |
+| **Chronos-2** | foundation, zero-shot | 4.2 | 2.7 | 0.655 | 0.694 |
+| Chronos-2 + calendar (XL) † | foundation + covariates | 2.0 | 4.5 | 0.655 | 0.699 |
+| TimesFM 3.0 ‡ | foundation, zero-shot | 7.3 | 5.7 | 0.734 | 0.707 |
+| TimesFM 2.5 | foundation, zero-shot | 6.2 | 7.0 | 0.690 | 0.727 |
+| NPTS (current incumbent) | statistical | 7.5 | 8.3 | 0.710 | 0.831 |
+| PatchTST, tuned † | deep learning, trained here | 9.0 | 13.2 | 0.802 | 1.003 |
+| SeasonalNaive-24 (reference) | "same hour yesterday" | 14.0 | 12.8 | 1.032 | 0.995 |
+
+- † Reads the academic calendar, which ends in May 2026, so its window-2 result is qualified.
+- ‡ Benchmark only: TimesFM 3.0's licence forbids production use.
+- Window-1 ranks come from the published study re-analysed with TimesFM 3.0 added; every
+  published number is unchanged. All 14 models:
+  [`window_comparison.md`](results/refresh_2026-10-22/window_comparison.md).
+
+### Is the difference real?
+
+Each comparison uses two tests over the 24 forecast start times: a paired bootstrap (10,000
+resamples) and Diebold–Mariano. A result only one test supports is the weaker claim.
+
+| Comparison | Window 1 | Window 2 |
+|---|---|---|
+| **Timestral vs Chronos-2** | Chronos-2's MASE 0.3–0.9 % higher; bootstrap only, at 3 d and 7 d | Chronos-2's MASE 1.9–2.5 % higher; **both tests at 1 d, 2 d and 7 d** |
+| **Chronos-2 vs NPTS** (incumbent) | 5.7–12.5 % lower MASE; both tests, all six horizons | 11.9–27.0 % lower; both tests, all six horizons |
+| **Chronos-2 vs PatchTST tuned** (trained here) | 16.5–18.6 % lower; both tests, all six horizons | 28.1–47.0 % lower; both tests, all six horizons |
+| **Chronos-2 vs TimesFM 2.5** | 2.7–10.9 % lower; Diebold–Mariano confirms 1 of 6 horizons | 2.7–7.5 % lower; both tests, all six horizons |
+
+### Daily campus volume — the operational view
+
+One forecast every night for the next 24 hours, over 45 consecutive days. The corrections are
+fitted on a separate, earlier 60 days. Daily campus error in KL/day, raw → after calibration:
+
+| Model | Window 1 (actual ≈ 270 KL/day) | Window 2 (actual ≈ 228 KL/day) |
+|---|---|---|
+| Chronos-2 | 36.7 → **28.8** | 33.8 → **24.4** |
+| Timestral 209M | 35.8 → **28.0** | 37.7 → **24.9** |
+| TimesFM 2.5 | 41.7 → 32.6 | 38.8 → 25.0 |
+| TimesFM 3.0 ‡ | — | 36.6 → 24.4 |
+| NPTS (incumbent) | 41.1 → 36.3 | 47.9 → 40.6 |
+
+Raw, the foundation models under-forecast total campus volume by 9.6–13.0 %; after the
+correction every model's bias is within ±2.6 %. The day-by-day forecasts can be explored in
+[`reports/holdout45_explorer.html`](reports/holdout45_explorer.html) (window 2; open it in a browser).
+
+### What we learned
+
+1. **Pretrained beats trained-here.** Timestral, Chronos-2 and TimesFM 2.5, used zero-shot, beat
+   every model fitted on campus data at every horizon in both windows, including a PatchTST tuned to
+   the paper's hourly settings. TimesFM 3.0 does so in window 2, but at only 3 of 6 horizons in
+   window 1.
+2. **Retraining did not help.** The March-trained PatchTST beats the one retrained on September
+   data at all six horizons; the retrained tuned network collapsed to near-zero forecasts at
+   four of them ([`OLD_VS_NEW.md`](results/refresh_2026-10-22/old_vs_new/OLD_VS_NEW.md)). The
+   zero-shot models need no retraining. What fresher data improves is their calibration.
+3. **Calibration is essential.** Raw intervals and volumes are biased. Chronos-2's 80 % interval
+   covered 74 % of hours in window 1, 79 % after calibration (77 % → 83 % in window 2).
+4. **It is cheap.** On the same laptop CPU, the full 144-forecast backtest took 72 s for Chronos-2,
+   144 s for Timestral and TimesFM 3.0, and 167 s for TimesFM 2.5. Training the tuned PatchTST took
+   62 minutes.
+5. **The data needs care.** Waltr revised its own history in 2026: over the published study's
+   period, campus outflow fell 4.8 % and 56,534 of 270,849 tank-hours changed. Of the 24 sensors, 15 are
+   healthy, 6 degraded and 3 dead.
+
+**Full reports:** [final analysis](results/refresh_2026-10-22/FINAL_ANALYSIS.md) (both windows) ·
+[`docs/phase3_results.md`](docs/phase3_results.md) and
+[`docs/review_summary.md`](docs/review_summary.md) (published study) ·
+[`benchmark_table.md`](results/refresh_2026-10-22/benchmark_table.md) (every model, horizon and
+metric).
+
+---
+
+## Models compared
+
+| Model | Kind | Trained on campus data? | Deployable? |
+|---|---|---|---|
+| Chronos-2 (Amazon) — zero-shot, plus three variants that also read calendar features | foundation | No | Yes |
+| Timestral 209M (Mistral) | foundation | No | Yes — modified MIT licence (no rights above USD 20M monthly revenue) |
+| TimesFM 2.5 (Google) | foundation | No | Yes — Apache-2.0 |
+| TimesFM 3.0 (Google) | foundation | No | **No** — non-commercial licence; benchmark only |
+| PatchTST, default and tuned | deep learning | Yes | Yes |
+| NPTS (the incumbent), ETS, Theta, DynamicOptimizedTheta | statistical | Refitted at every forecast | Yes |
+| SeasonalNaive-24 | reference | — | — |
+
+A plain-PyTorch MLP and linear baseline are compared separately in
+[`docs/mlp_baseline.md`](docs/mlp_baseline.md).
+
+## How the models are tested
+
+- **Same rows for every model.** All 24 tanks, the same 24 forecast start times and six horizons
+  (6 h, 12 h, 1 d, 2 d, 3 d, 7 d). The scorer fails the run if any two models differ by a row.
+- **Every hour of the day.** Start times are 23 hours apart, so each hour of the day is a start
+  time exactly once.
+- **No look-ahead.** Models see only data up to each start time. Trained models are fitted before
+  the first one, and every forecast window is checked.
+- **Gaps stay gaps.** Missing sensor hours are kept as missing and scored for no model; they are
+  never dropped or filled.
+- **Significance, not just averages.** Every headline difference is tested with the paired
+  bootstrap and Diebold–Mariano.
 
 ---
 
@@ -51,480 +152,63 @@ Full analysis: [`docs/phase3_results.md`](docs/phase3_results.md) ·
 
 | Path | Contents |
 |---|---|
-| `src/data/` | `curate.py` — 26 directories → 24 tanks, gapless hourly reindex, raises on drift. `calendar_pesu.py` — academic-calendar covariates |
-| `src/models/` | **Forecasting** — `chronos2_forecasting.py` (the production model), `baselines_autogluon.py` (NPTS + classical), `patchtst_benchmark.py` (the trained deep control), `timesfm_forecasting.py` (TimesFM 2.5, the second foundation model), `timestral_forecasting.py` (Mistral Timestral, the third), `mlp_forecaster.py` (plain-PyTorch MLP + linear baselines; scored by `mlp_comparison.py`). **Evaluation** — `backtest.py` (the shared grid), `metrics.py`, `score_benchmark.py` (row parity, fatal under `--strict`), `significance.py` (paired bootstrap + Diebold-Mariano). **Reporting** — `unified_analysis.py` + `unified_figures.py` (every table and figure, all models), `calibration.py` + `calibrated_holdout.py`, `style.py` (one palette for every figure) |
-| `dataset/` | Per-tank daily JSON — hourly inflow, outflow, opening and closing level. 2025-01-01 → 2026-04-22 |
-| `eda/` | `eda_hourly.py` — mass-balance sensor integrity, trust tiers, covariate mutual-information study. Outputs `tank_trust.json` |
-| `results/chronos2/` | `unified/` — the evidence: 12 CSVs, `summary.json` and **12 figures** covering all 13 models. `calibrated/` — conformal calibration and the 45-day operational view. `benchmark_table.md` and the metric CSVs. Model binaries, fitting scratch and prediction parquets are regenerable and not committed |
-| `docs/` | Results reports and the full design specification for the real-time system |
-| `tests/` | `test_metrics.py` — 6 tests; `test_mlp.py` — 8 leakage, shape and training tests. No pytest needed. Run these before trusting any number |
-| `reports/` | `build_results_page.py` → the full HTML results page; `build_review_deck.py` → the PPTX review deck; `review_briefing.html` — the defence briefing. Both generated deliverables read the same CSVs, so they cannot disagree |
-| `extension/` | FastAPI service, Next.js dashboard, and the Waltr MV3 forecast dock |
-| `water_forecast_dash/` | Standalone Flask dashboard prototype |
-| `notebooks/` | Exploratory analysis |
-
----
+| `src/data/` | Data loading and curation (`curate.py`), the academic calendar, and the Waltr download tool (`waltr_fetch.py`) |
+| `src/models/` | One runner per model, the shared backtest and metrics, scoring, significance tests, calibration, analysis and figures |
+| `src/config.py` | Switches the pipeline between the two studies (environment variables) |
+| `dataset/`, `dataset_2026-10-22/` | Raw per-tank daily JSON from Waltr — window 1 and window 2 |
+| `results/chronos2/` | Window 1 (published study): tables, figures, calibration |
+| `results/refresh_2026-10-22/` | Window 2 (refresh study), including `FINAL_ANALYSIS.md` |
+| `eda/` | Sensor-integrity checks and trust tiers |
+| `reports/` | Builders for the results page, the review deck and the 45-day explorer |
+| `extension/` | The Waltr forecast dock (`waltr-dock/`), API and dashboard |
+| `docs/` | Results reports, the reproduction guide and the real-time system design |
+| `tests/` | 59 tests, no pytest needed |
 
 ## Quick start
 
 ```bash
-git clone https://github.com/harsha135135/<repo>.git && cd <repo>
-python3 -m venv venv && source venv/bin/activate     # Python 3.10+ (3.13 used for the published run)
+git clone https://github.com/harsha135135/intelligent-water-management-system.git
+cd intelligent-water-management-system
+python3 -m venv venv && source venv/bin/activate      # Python 3.10+
 pip install -r requirements.txt
+
+python -m tests.test_metrics                          # must pass before trusting any number
+python -m src.models.score_benchmark --strict         # window 1, from the prediction files
 ```
 
-Then, in order:
-
-```bash
-python -m src.data.curate          # 26 dirs -> 24 tanks, 270,849 rows.  ~4 s
-python -m tests.test_metrics       # 6/6 must pass. If they don't, no number below is valid
-python -m src.models.score_benchmark --strict   # regenerates every metric.  ~7 s
-```
-
-`score_benchmark` needs the prediction parquets, which are **not committed** (they are large and
-fully regenerable). To produce them:
-
-```bash
-python -m src.models.chronos2_forecasting --variants Chronos2-ZS   # ~1.5 min
-python -m src.models.baselines_autogluon                           # ~26 min
-python -m src.models.timesfm_forecasting                           # ~3 min, CPU
-python -m src.models.timestral_forecasting                         # ~3 min, CPU
-```
-
-Full step-by-step reproduction, with measured runtimes for every stage, is in
-[Reproducing the final benchmark](#reproducing-the-final-benchmark) below.
-
----
+Prediction files and model weights are large and not committed; they regenerate in about two
+hours. Full step-by-step reproduction with measured runtimes:
+[`docs/reproducing.md`](docs/reproducing.md). The window-2 commands are in
+[`reports/README.md`](reports/README.md).
 
 ## Documentation
 
-### Results
-
 | Document | Contents |
 |---|---|
-| [`docs/phase3_results.md`](docs/phase3_results.md) | **Phase III deliverable** — final results, significance testing, the calibration diagnosis, and the inference for each review category |
-| [`docs/review_summary.md`](docs/review_summary.md) | 18-section technical report: dataset, evaluation protocol, per-tank analysis, covariate study, calibration, limitations |
-| [`docs/architecture.md`](docs/architecture.md) | The forecasting engine, and the measurement behind each design choice |
-| [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) | Complete benchmark: 13 models × 6 horizons × 6 metrics, (§8) TimesFM 2.5 against Chronos-2, NPTS and SeasonalNaive-24, and (§9) Timestral 209M against the same three and TimesFM |
-| [`results/chronos2/unified/`](results/chronos2/unified/) | The machine-readable evidence behind every claim: leaderboard, significance against every opponent, win matrix, per-tank, skill, calibration, cost |
-| [`docs/mlp_baseline.md`](docs/mlp_baseline.md) | A plain-PyTorch MLP and linear baseline trained here, scored against every model on the same 6–24 h rows, with significance on all tanks and on healthy tanks only |
-| [`docs/results_audit.md`](docs/results_audit.md) | Re-verification of the committed results: scoring regenerates byte-identically, where each headline number comes from, and defects found |
-
-### Real-time system — designed, not yet built
-
-The forecasting study is complete. Turning it into a running system is specified across six
-documents; **none of the pipeline they describe is implemented yet.**
-
-| Document | Contents |
-|---|---|
-| [`docs/realtime_architecture.md`](docs/realtime_architecture.md) | Master architecture — adapter seam, component catalogue, 10 Mermaid diagrams, quality rules, feedback loop, degradation matrix |
-| [`docs/implementation_plan.md`](docs/implementation_plan.md) | Phases 0–11 with files, dependencies, tests, acceptance criteria, risks |
-| [`docs/api_design.md`](docs/api_design.md) | REST surface, SSE event types, transport comparison, auth and roles |
-| [`docs/data_model.md`](docs/data_model.md) | 20 entities with fields, indexes, retention |
-| [`docs/demo_plan.md`](docs/demo_plan.md) | Historical replay, the actual-vs-predicted reveal, scenarios mined from the real record |
-| [`docs/safety_and_controls.md`](docs/safety_and_controls.md) | Motor-control safety, per-tank limits derived from measurement, fail-safe matrix |
-
----
+| [`results/refresh_2026-10-22/FINAL_ANALYSIS.md`](results/refresh_2026-10-22/FINAL_ANALYSIS.md) | **Final analysis** — both windows, significance, the daily view, the deployment recommendation |
+| [`docs/phase3_results.md`](docs/phase3_results.md) | Phase III deliverable — the published study's results and inferences |
+| [`docs/review_summary.md`](docs/review_summary.md) | Technical report — data, protocol, per-tank analysis, calibration, TimesFM (§17), Timestral (§18) |
+| [`docs/reproducing.md`](docs/reproducing.md) | Reproduce every number, step by step |
+| [`docs/architecture.md`](docs/architecture.md) | The forecasting engine and the measurement behind each design choice |
+| [`docs/results_audit.md`](docs/results_audit.md) | Independent re-check of the committed results |
+| [`docs/realtime_architecture.md`](docs/realtime_architecture.md) and [`docs/implementation_plan.md`](docs/implementation_plan.md) | The planned real-time system (with [`api_design`](docs/api_design.md), [`data_model`](docs/data_model.md), [`demo_plan`](docs/demo_plan.md), [`safety_and_controls`](docs/safety_and_controls.md)) |
 
 ## Status
 
 | Component | Status |
 |---|---|
-| Data curation, calendar features, backtest harness, metrics | **Implemented** |
-| Chronos-2 inference (4 variants), benchmark, unified analysis, 12 figures | **Implemented** |
-| TimesFM 2.5 zero-shot baseline — runner, prediction cache, leakage audit, 16 tests | **Implemented** — `timesfm_forecasting.py`, [§17](docs/review_summary.md#17-timesfm-comparison) |
-| Timestral zero-shot baseline — four sizes, 209M on the roster, 15 tests | **Implemented** — `timestral_forecasting.py`, [§18](docs/review_summary.md#18-timestral-comparison) |
-| PatchTST control (two configurations) | **Implemented** |
-| PyTorch MLP + linear baselines (6–24 h) | **Implemented** — `docs/mlp_baseline.md` |
-| Sensor trust tiering, mass-balance integrity (`eda/`) | **Implemented** |
-| Significance against every opponent, calibration diagnosis | **Implemented** |
-| Waltr forecast dock (offline, precomputed bundle) | **Implemented** |
-| WALTR HTTP client | **Implemented but unusable** — requires a JWT; none is available |
-| Real-time ingestion, state store, alerts, decision engine, Flutter dashboard | **Not built** — specified in Phases 1–8 |
-| Conformal interval calibration, volume bias correction | **Implemented** — `calibration.py`, measured out of sample |
-| Live WALTR data feed | **Blocked** — requires an issued service token |
-| Real motor control | **Blocked** — no motor API exists, and the dataset contains **no motor telemetry** |
-
----
-
-## Notes on the data
-
-- **24 physical tanks, not 26.** `dataset/` contains 26 directories; two are longer re-scrapes of
-  existing tanks. `src/data/curate.py` keeps the superset, drops the stale copy, and **raises** if
-  the count is not exactly 24.
-- **Missing hours are held open as NaN, never dropped.** Collapsing a gap would shift every later
-  timestamp and destroy the 24-hour seasonality the metrics scale against.
-- **Sensor quality varies materially.** 15 tanks are healthy, 6 degraded, 3 dead (73–96 % zero
-  hours). Tiers are in `eda/tank_trust.json`, derived from a mass-balance identity test.
-- **Model binaries and prediction parquets are not committed.** They total ~380 MB and regenerate
-  in about an hour. What is committed is the evidence — metrics, tables and figures.
-
----
-## Reproducing the final benchmark
-
-The Chronos-2 vs NPTS evaluation reported in [`docs/review_summary.md`](docs/review_summary.md)
-and [`results/chronos2/benchmark_table.md`](results/chronos2/benchmark_table.md) is reproduced by
-the commands below, in order. All are run from the repository root with `venv/` activated.
-Runtimes are the **measured wall clock from the actual run** (Apple MPS laptop GPU, Python
-3.13.3); they are recorded in `logs/` and in `results/chronos2/run_manifest.json`.
-
-```bash
-source venv/bin/activate
-```
-
-### 1. Data preparation
-
-```bash
-python -m src.data.curate
-```
-
-Loads `dataset/`, drops the two duplicated tank directories, relabels the surviving copies,
-reindexes every tank onto a gapless hourly range, and prints a per-tank curation receipt.
-Expect: `26 directories -> 24 tanks`, `rows=270,849`, range `2025-01-01 00:00 .. 2026-04-22 23:00`.
-The loader **raises** if the tank count is not exactly 24. Runtime: ~4 s. Writes no files —
-every downstream script calls `load_curated_hourly()` itself.
-
-### 2. Metric tests — run these before trusting any number
-
-```bash
-python -m tests.test_metrics    # prints PASS/FAIL per test, exits non-zero on failure
-```
-
-6 tests, no pytest required. The load-bearing one is `test_seasonal_naive_mase_is_about_one`:
-MASE is defined so a seasonal-naive forecast scores 1.0, and if that identity fails every number
-in the benchmark is wrong. Runtime: ~3 s.
-
-### 3. EDA — trust tiers and the covariate feature study
-
-```bash
-python eda/eda_hourly.py
-```
-
-Writes `eda/tank_trust.json` (healthy / degraded / dead per tank),
-`eda/tank_mass_balance.csv`, `eda/tank_forecastability.csv`,
-`eda/feature_mi_by_horizon.csv` and `eda/eda_hourly_report.txt`. The benchmark's per-tank tables
-join against `tank_trust.json` and `tank_mass_balance.csv`, so run this before step 6.
-Runtime: ~25 s; the outputs are deterministic and reproduce byte-identically.
-
-### 4. Model execution — Chronos-2
-
-```bash
-# the proposed production model, on its own (89 s)
-python -m src.models.chronos2_forecasting --variants Chronos2-ZS
-
-# all four variants, as used for the covariate study (33 min total)
-python -m src.models.chronos2_forecasting     --variants Chronos2-ZS Chronos2-COV Chronos2-COV-LEAN Chronos2-COV-XL
-```
-
-Zero-shot — nothing is fitted. Writes `results/chronos2/predictions_<variant>.parquet`
-(190,080 rows each) and `results/chronos2/run_manifest.json` (origins, tanks, horizons,
-per-variant `wall_clock_s`). Measured: ZS **1.5 min**, COV-LEAN 5.9 min, COV-XL 10.5 min,
-COV 15.5 min. Useful flags: `--device cpu`, `--context 2048`, `--max-tanks N` for a smoke test.
-
-### 5. Model execution — baselines (incumbent + reference)
-
-```bash
-python -m src.models.baselines_autogluon
-```
-
-Fits one AutoGluon predictor per horizon on data **at or before the first origin**
-(2026-03-24 22:00) and rolls it forward over all 24 origins — `prediction_length` is fixed at fit
-time, so each horizon needs its own predictor. Produces NPTS (the incumbent), SeasonalNaive
-(the reference), ETS, Theta and DynamicOptimizedTheta in one pass. Writes
-`results/chronos2/predictions_autogluon_baselines.parquet` (950,400 rows) and
-`baselines_manifest.json`. Measured per horizon: 3.8 / 5.0 / 5.0 / 3.7 / 1.9 / 6.8 min —
-**~26 min total**. `--include-neural` would add PatchTST/TiDE to this same pass, but PatchTST is
-run from its own module instead — see step 5b.
-
-### 5b. Model execution — the PatchTST control
-
-```bash
-python -m src.models.patchtst_benchmark --preset default
-python -m src.models.patchtst_benchmark --preset tuned \
-    --out-name predictions_PatchTST-Tuned.parquet \
-    --manifest-name patchtst_tuned_manifest.json \
-    --model-dir results/chronos2/_patchtst_tuned_models
-```
-
-PatchTST is the **trained deep control**: the same patched-transformer family Chronos-2 belongs to,
-but fitted on this campus rather than pretrained. One predictor per horizon, fitted strictly on
-data at or before the first origin and rolled forward — the same protocol the statistical baselines
-use, so nothing leaks and the row counts stay identical.
-
-Two configurations are run because one would have been unfair. Chronos-2 conditions on 2,048 hours
-of context; AutoGluon's default PatchTST sees 96. The `tuned` preset
-uses the settings the PatchTST paper uses for hourly data — context 512 h,
-100 epochs, 200 batches per epoch. Measured:
-default **2.2 min**, tuned
-**55 min**. Writes `predictions_PatchTST.parquet` and
-`predictions_PatchTST-Tuned.parquet` (190,080 rows each), which `score_benchmark` picks up by glob —
-for every model on the benchmark roster (`unified_analysis.ORDER`); a predictions file holding any
-other model is work in progress and is skipped with a warning, never silently scored.
-
-Both are scored by the same `score_benchmark` pass as every other model, and compared in
-step 7 alongside the rest of the field — there is no separate PatchTST study to run.
-
-### 5c. Model execution — the PyTorch MLP baseline
-
-```bash
-python -m tests.test_mlp                 # 8/8
-python -m src.models.mlp_forecaster      # ~50 s on CPU
-python -m src.models.mlp_comparison      # needs the step 4-5b parquets
-```
-
-Per-tank MLP (168 → 64 → 32 → 24) and linear models in plain PyTorch, fitted on data before the
-first origin with a chronological validation split. Predictions go to `results/chronos2/mlp/`,
-outside the glob `score_benchmark` and `unified_analysis` read, so the benchmark roster's results are unchanged.
-Results and interpretation: [`docs/mlp_baseline.md`](docs/mlp_baseline.md).
-
-### 5d. Model execution — TimesFM 2.5, the second foundation model
-
-```bash
-python -m src.models.timesfm_forecasting      # ~3 min on CPU; writes predictions_TimesFM2.5-ZS.parquet
-python -m tests.test_timesfm                  # 16 tests, stubbed model, no download
-```
-
-Google's `google/timesfm-2.5-200m-pytorch`, zero-shot, through the official `timesfm` package
-(pinned in `requirements.txt`; the checkpoint revision is pinned in the module, and the weights
-download once to the standard Hugging Face cache, never into this repository). The protocol is
-Chronos-2 zero-shot's: the same grid, the target series only, a 2,048-hour context truncated at
-each origin, and the median as the point forecast. The runner checks
-`context_end <= origin < forecast_start` for every (origin, horizon, tank) window, writes
-`timesfm_manifest.json` (checkpoint, config, device, measured timing, peak memory, the leakage and
-missing-data audits), and refuses to write the canonical parquet if any series failed — the failures
-go to `_timesfm_partial/` and the command exits non-zero. Forecasts are cached per (origin, horizon)
-block under `results/chronos2/_timesfm_cache/`, keyed on the checkpoint, config and exact context
-values, so a rerun with identical inputs recomputes nothing; `--no-cache` forces a fresh, timed run.
-
-The official 2.5 code runs on CUDA or CPU, not Apple MPS, so it ran on CPU (measured **158 s**). For
-a same-hardware comparison, Chronos-2 zero-shot was timed on the same CPU with
-`python -m src.models.chronos2_forecasting --variants Chronos2-ZS --device cpu --out-dir results/chronos2/cpu_timing`
-(**68 s**; timing only, not scored). TimesFM 3.0 is newer but its weights are licensed for
-non-commercial, non-production use, so the deployable 2.5 checkpoint is the one evaluated.
-Full comparison: [`docs/review_summary.md` §17](docs/review_summary.md#17-timesfm-comparison).
-
-### 5e. Model execution — Timestral, the third foundation model
-
-```bash
-python -m src.models.timestral_forecasting                 # ~3 min on CPU; predictions_Timestral-209M-ZS.parquet
-python -m src.models.timestral_forecasting --size 5M       # also 28M, 123M: off the roster
-python -m src.models.timestral_forecasting --sizes-report  # all four sizes, same rows -> timestral_sizes.csv
-python -m tests.test_timestral                             # 15 tests, stubbed model, no download
-```
-
-Mistral's `mistralai/Timestral-209M`, zero-shot, through Mistral's `timestral` package (not on PyPI;
-`requirements.txt` pins its GitHub commit, and the module pins each checkpoint revision). The
-protocol and the plumbing are TimesFM's: the same grid, target only, 2,048-hour context, the median
-as the point forecast, and `timesfm_forecasting`'s leakage check, failure isolation and block cache,
-with Timestral's quantiles handed over by level value. Missing hours are passed as NaN, which
-Timestral masks, as Chronos-2 does. Run on the same CPU as TimesFM (measured **145 s**). The code is
-Apache-2.0; the weights are under a modified MIT licence that withholds all rights from a licensee
-whose global monthly revenue exceeds USD 20M — production use is allowed below that. Only the 209M
-size is on the roster; the 5M, 28M and 123M runs are scored only in `timestral_sizes.csv`.
-Full comparison: [`docs/review_summary.md` §18](docs/review_summary.md#18-timestral-comparison).
-
-To rebuild the complete comparison — every table, figure and generated document — from the
-existing prediction files (~2 min; the TimesFM and Timestral steps are served from their caches):
-
-```bash
-python -m src.models.timesfm_forecasting                 # cached: no model call if inputs unchanged
-python -m src.models.timestral_forecasting               # cached likewise
-python -m src.models.timestral_forecasting --sizes-report
-python -m src.models.score_benchmark --strict            # metrics, benchmark_table.md §8-9, the CSVs
-python -m src.models.unified_analysis                    # leaderboard, significance, win matrix, cost
-python -m src.models.unified_figures                     # U1-U12, PNG + SVG
-python -m src.models.calibrated_holdout --add timesfm timestral   # the 45-day view (others untouched)
-python reports/build_timesfm_section.py                  # docs/review_summary.md §17
-python reports/build_timestral_section.py                # docs/review_summary.md §18
-python reports/build_results_page.py && python reports/build_review_deck.py
-python reports/build_holdout45_page.py
-```
-
-### 6. Evaluation and scoring
-
-```bash
-python -m src.models.score_benchmark --strict
-```
-
-Reads every `results/chronos2/predictions_*.parquet`, attaches the seasonal-naive scales from
-pre-origin history only, asserts no row has `timestamp <= origin`, and — with `--strict` — **fails
-the run** if any two models were scored on different row counts or any row has an actual but no
-prediction (a failed forecast is never averaged away). Only models on the roster are read. Writes:
-
-| File | Contents |
-|---|---|
-| `results/chronos2/benchmark_table.md` | the complete benchmark document: evaluation grid, headline three-model comparison per metric, all 13 models × 6 horizons × 6 metrics, covariate table, calibration table, per-tank tables, §8 — TimesFM 2.5 against Chronos-2, NPTS and SeasonalNaive-24 — and §9, Timestral 209M against the same three and TimesFM |
-| `results/chronos2/metrics_by_horizon.csv` | one row per (model, horizon) — macro + volume-weighted metrics, p10–p90 coverage and width |
-| `results/chronos2/metrics_per_tank.csv` | one row per (model, horizon, tank) |
-| `results/chronos2/per_tank_comparison.csv` | 144 rows — Chronos-2 vs NPTS vs SeasonalNaive per tank and horizon, with improvement %, winner and sensor trust tier |
-| `results/chronos2/timesfm_comparison.csv` | 72 rows — TimesFM vs Chronos-2, NPTS and SeasonalNaive-24 per horizon and metric: both scores, the relative difference in words, tanks won / lost / tied, median and mean per-tank difference |
-| `results/chronos2/timesfm_per_tank.csv` | 144 rows — TimesFM vs Chronos-2 per tank and horizon on all four metrics, winner on MASE, sensor trust tier |
-| `results/chronos2/timestral_comparison.csv`, `timestral_per_tank.csv` | 96 / 144 rows — the same two tables for Timestral, which is also compared against TimesFM |
-
-Runtime: ~7 s.
-
-### 7. Unified analysis — every table on the results page
-
-```bash
-python -m src.models.unified_analysis      # ~45 s
-```
-
-One pass over **all 13 models** on the shared grid. Replaces the per-opponent studies that
-preceded it (Chronos-2 vs NPTS, the covariate study, the PatchTST comparison), each of which
-produced its own tables in its own shape. Writes to `results/chronos2/unified/`:
-
-| File | Contents |
-|---|---|
-| `leaderboard.csv` | 78 rows — every model x horizon, macro and volume-weighted metrics, interval coverage and width, signed volume bias, rank |
-| `significance_vs_all.csv` | 144 rows — Chronos-2 against **every** opponent, both metrics, all six horizons: paired bootstrap CI, bootstrap *p*, Diebold-Mariano statistic and *p*, origins won. Opponents are visited in the order they joined the study, so adding a model never re-draws the bootstrap intervals already published |
-| `significance_timesfm.csv` | 84 rows — TimesFM against every non-foundation model, by the same two tests |
-| `significance_timestral.csv` | 132 rows — Timestral against every model except Chronos-2 (already a row above). Drawn after every other table from the same seeded stream, so adding it re-drew no published interval |
-| `win_matrix_all_horizons.csv`, `win_matrix_h24.csv` | every ordered model pair, tank-horizon cells won |
-| `per_tank.csv` | 1,872 rows — model x tank x horizon, with the sensor trust tier |
-| `skill_h24.csv` | skill against the naive reference, per tank, for every model |
-| `error_by_leadtime.csv`, `diurnal_h24.csv` | where the error lives, every model |
-| `zero_inflation_h24.csv` | the interval mechanism: tail miss rates, how often p10 goes negative, what a clamp would do |
-| `cost.csv` | measured wall clock against accuracy, read from the run manifests, with the device each run recorded and the same-CPU timings for the three foundation models |
-| `summary.json` | the headline numbers, so nothing downstream has to recompute them |
-
-**A cross-check worth knowing about:** the unified pass computes the four macro metrics
-independently of `score_benchmark`, and the two agree to **≤ 3.3e-16** across all 78 model x horizon
-rows. Two implementations reaching the same number from the same parquets is a stronger statement
-than either one alone.
-
-### 8. Figures
-
-```bash
-python -m src.models.unified_figures       # ~5 s
-python -m src.models.calibrated_holdout    # ~3 min, the operational view
-python -m src.models.calibrated_holdout --add timesfm   # adds TimesFM to it; other rows untouched
-python -m src.models.calibrated_holdout --add timestral # adds Timestral likewise
-```
-
-Twelve figures to `results/chronos2/unified/plots/`, as **both PNG and SVG**. Every panel carries
-every model; colour is assigned by family in `style.py` and never by rank, so a model keeps its
-identity across the whole set.
-
-| ID | Shows |
-|---|---|
-| U1 | Macro MASE vs horizon, all 13 models |
-| U2 | The leaderboard as a heatmap, with rank in every cell |
-| U3 | Chronos-2 against each opponent — 1 d with CIs, and across all six horizons |
-| U4 | Win matrix: every ordered model pair, % of 144 tank-horizon cells |
-| U5 | Per tank x per model MASE at 1 d, ordered by demand, labelled by sensor tier |
-| U6 | Skill against the naive reference vs tank demand |
-| U7 | Interval coverage against the width that bought it |
-| U8 | Accuracy against measured compute |
-| U9 | Error against lead time, out to 168 h |
-| U10 | Error and bias by hour of day, against the demand profile |
-| U11 | Why the intervals miss — tail asymmetry, negative p10, the clamp |
-| U12 | Signed volume bias by model and horizon |
-
-`calibrated_holdout` adds the three 45-day operational panels (one per headline model) and the
-calibration measurements, fitted on 8 Jan - 8 Mar 2026 and reported on the disjoint
-9 Mar - 22 Apr window. `--add timesfm` adds TimesFM 2.5 to the same windows (panels
-`T_holdout45_timesfm_calibrated` and `T_tanks45_timesfm`) by appending its rows to every table;
-every table is per model, so the three published models' rows stay byte-identical. `--add timestral`
-does the same for Timestral 209M (`TS_holdout45_timestral_calibrated`, `TS_tanks45_timestral`). The
-campus panels share one y-axis, so TimesFM's 17 Mar overshoot widens it for all five. `--plots`
-redraws the panels without recomputing anything.
-
-### 9. The deliverables
-
-```bash
-python reports/build_results_page.py    # ~10 s -> reports/phase3_results_page.html
-python reports/build_review_deck.py     # ~15 s -> reports/PW26_PK_06_phase3_review.pptx
-```
-
-Both read the same CSVs under `results/chronos2/unified/`, so the page and the deck cannot drift
-from the data or from each other. Neither output is committed: each embeds figures that are
-already tracked as PNG and SVG.
-
-### Expected files after a full run
-
-```
-results/chronos2/
-├── predictions_*.parquet                  190,080 rows each (9 roster files, not committed)
-├── run_manifest.json / baselines_manifest.json / patchtst*_manifest.json / timesfm_manifest.json
-├── timestral_{5m,28m,123m,209m}_manifest.json
-├── benchmark_table.md
-├── metrics_by_horizon.csv                 78 rows  (13 models x 6 horizons)
-├── metrics_per_tank.csv                   1,872 rows
-├── timesfm_comparison.csv / timesfm_per_tank.csv   72 / 144 rows
-├── timestral_comparison.csv / timestral_per_tank.csv   96 / 144 rows
-├── timestral_sizes.csv                    24 rows  (4 sizes x 6 horizons)
-├── cpu_timing/                           same-CPU Chronos-2 timing reference (manifest + README)
-├── unified/
-│   ├── 12 CSVs + summary.json
-│   └── plots/  12 figures x {png, svg}
-└── calibrated/
-    ├── calibration parameters and daily tables
-    └── plots/  5 campus + 5 per-tank operational panels x {png, svg}
-```
-
-Total end-to-end: **~2 hours**, almost all of it the two forecasting steps. Re-running only the
-analysis and reporting from existing predictions takes **~8 minutes**.
-
-### Methodology details that matter
-
-These are properties of the evaluation, not options — changing any of them invalidates
-comparison with the published numbers.
-
-* **24 physical tanks.** `dataset/` has 26 directories; `GJBC_BLOCK_1_A1_BOY_S` and
-  `GJBC_BLOCK_1_A2_GIRL_S` are longer re-scrapes of two existing tanks. `curate.py` keeps the
-  superset, drops the stale copy, and raises if the count is not 24.
-* **24 origins at a 23-hour stride, not 24.** A 24-hour stride puts every origin at the same
-  clock hour, so the 6 h horizon would only ever be scored on the quiet 00:00–05:00 window.
-  23 is co-prime with 24, so the 24 origins visit **every hour-of-day exactly once**.
-* **Six horizons:** 6 h, 12 h, 1 d, 2 d, 3 d, 7 d.
-* **Identical evaluation rows for every model** — 3,405 / 6,861 / 13,530 / 27,323 / 41,140 /
-  96,405 per horizon, enforced by `backtest.assert_comparable()` and fatal under `--strict`.
-* **No leakage.** Baselines are fitted only on data at or before the first origin; Chronos-2,
-  TimesFM and Timestral are zero-shot with context truncated at each origin (the TimesFM and
-  Timestral runners assert `context_end <= origin < forecast_start` on every window); every scored row satisfies
-  `timestamp > origin`; MASE/RMSSE denominators use pre-origin history only.
-* **Gapless hourly reindex.** Missing hours become NaN, never dropped — collapsing a gap would
-  shift later timestamps and corrupt the 24-hour seasonality the metrics scale against.
-* **Sanity check to look for first:** SeasonalNaive-24 must score MASE ≈ 1 (measured
-  0.967–1.069). If it does not, the scaling denominator is wrong and every number is wrong.
-* **PatchTST is in scope and on the grid.** It is run from `src/models/patchtst_benchmark.py` at
-  two configurations and scored on the identical rows, then compared in the same unified pass as
-  every other model. The older `results/patchtst/` directory is a *different*, non-comparable
-  evaluation and is not used anywhere.
-
----
+| Data curation, backtest, metrics, significance tests | Done |
+| 14-model benchmark in two windows, calibration, 45-day daily view | Done |
+| Waltr forecast dock (offline, precomputed calibrated Timestral forecasts; Chronos-2 bundle beside it) | Done |
+| Waltr data download (`waltr_fetch.py`) | Done — needs a browser session token, which lasts 15 minutes |
+| Live Waltr data feed | Blocked — needs an issued service token |
+| Real-time ingestion, alerts, decision engine, dashboard | Designed, not built — see the docs above |
+| Motor control | Blocked — there is no motor API, and the data has no motor telemetry |
 
 ## Planned real-time system
 
-The benchmark above is an **offline study**. The next phase turns it into a running real-time
-forecasting, monitoring, alerting and motor decision-support system. That system is **designed but
-not yet built** — the documents below are the blueprint, and no part of the pipeline they describe
-exists in this repository yet.
-
-### What it will do
-
-Ingest tank readings continuously → validate and quality-flag them → hold current state per tank →
-generate rolling Chronos-2 forecasts at six horizons → record every prediction before the answer
-is known → score it against the actual when that arrives → monitor rolling accuracy and drift →
-raise deduplicated, severity-ranked alerts → propose motor actions through a decision engine and a
-separate safety gate → and show all of it in a Flutter Web dashboard where **every number carries
-its provenance**.
-
-### Demo vs live — the distinction is structural
-
-The demo replays the historical dataset through the production pipeline as if it were arriving
-now. It is **not** live data and never claims to be:
-
-* `mode` (`replay` | `live`) is a column on every fact table, a field in every API response and
-  SSE event, and a non-dismissible banner in the UI.
-* Forecasts during a replay are **real Chronos-2 inference** computed from the context available
-  at that simulated moment — not precomputed and not replayed.
-* Deleting a replay session deletes every row it created.
-
-Switching to production is a configuration change (`SOURCE=waltr MOTOR=waltr CLOCK=real
-MODE=live`), not a rewrite: validation, state, forecasting, accuracy, decisions, alerts, the API
-and the UI are all source-agnostic by construction.
-
-See [Documentation](#documentation) above for the six design documents, and [Status](#status) for what is and is not built.
-
-Nothing in the planned system is running today.
+The benchmark is an offline study. The next phase turns it into a running system: ingest tank
+readings continuously, forecast every tank on a rolling basis, score each forecast once the actual
+arrives, raise alerts, and propose motor actions through a separate safety gate. A replay mode will
+run the historical data through the same pipeline, clearly labelled as replay and never as live.
+**None of it is built yet**; the design documents are listed above.

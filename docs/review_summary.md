@@ -786,7 +786,7 @@ Ordered by measured value per unit of effort:
 ## 15. Reproducibility
 
 Full step-by-step commands, runtimes and expected outputs are in the
-[README, "Reproducing the final benchmark"](../README.md#reproducing-the-final-benchmark).
+[`docs/reproducing.md`, "Reproducing the final benchmark"](reproducing.md#reproducing-the-final-benchmark).
 Short version:
 
 ```bash
